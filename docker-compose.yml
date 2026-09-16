@@ -1,0 +1,15 @@
+services:
+  smartbin-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smartbin-portal:latest
+    container_name: smartbin-portal
+    restart: unless-stopped
+    ports:
+      - "3080:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3

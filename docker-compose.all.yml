@@ -1,0 +1,82 @@
+# Smartbin Microservices Cluster - Full Stack Orchestration
+# Chạy tất cả 6 microservices và Cổng Điều Phối Trung Tâm (Portal)
+version: '3.8'
+
+services:
+  # 0. Cổng Điều Phối Trung Tâm (Portal Hub)
+  smartbin-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smartbin-portal:latest
+    container_name: smartbin-portal
+    restart: unless-stopped
+    ports:
+      - "3080:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      - smartbin-webapp
+      - smartbin-citizen
+      - smartbin-admin-billing
+      - smartbin-hrm
+      - smart-trashcan
+      - smartbin-core
+
+  # 1. Web App Giám Sát & Báo Cáo Bản Đồ (Nhánh webapp)
+  smartbin-webapp:
+    image: smartbin-webapp:latest
+    container_name: smartbin-webapp-service
+    restart: unless-stopped
+    ports:
+      - "3005:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+  # 2. Cổng Dịch Vụ Cư Dân (Nhánh smartbin-citizen-service)
+  smartbin-citizen:
+    image: smartbin-citizen-service:latest
+    container_name: smartbin-citizen-microservice
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+
+  # 3. Quản Trị & Thu Phí Dịch Vụ (Nhánh smartbin-admin-billing-service)
+  smartbin-admin-billing:
+    image: smartbin-admin-billing-service:latest
+    container_name: smartbin-admin-billing-microservice
+    restart: unless-stopped
+    ports:
+      - "3003:80"
+
+  # 4. Quản Lý Nhân Sự & Ca Trực (Nhánh smartbin-hrm-service)
+  smartbin-hrm:
+    image: smartbin-hrm-service:latest
+    container_name: smartbin-hrm-microservice
+    restart: unless-stopped
+    ports:
+      - "3004:80"
+
+  # 5. Mô Phỏng 3D Thùng Rác Thông Minh (Nhánh project)
+  smart-trashcan:
+    image: smart-trashcan-3d:latest
+    container_name: smart-trashcan-microservice
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+
+  # 6. Hệ Thống Core Server & Quản Trị Nền Tảng (Nhánh project-main)
+  smartbin-core:
+    image: smartbin-web:latest
+    container_name: smartbin-web-app
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
