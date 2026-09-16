@@ -8,10 +8,11 @@ import {
   CHANGE_DECISION,
 } from './constants.js';
 import { BulkyServiceError } from './errors.js';
-import { transitionOrder, evaluateChangePolicy } from './orderRules.js';
-import { calculateQuote } from './quoting.js';
+import { transitionOrder } from './transitions.js';
+import { evaluateChangePolicy, settleChangeProposal } from './policies.js';
+import { calculateQuote, isQuoteExpired } from './pricing.js';
 import { evaluateAiResult } from './recognition.js';
-import { toDispatchBulkyWasteOrder, createDispatchEvent } from './dispatch.js';
+import { toDispatchBulkyWasteOrder, createDispatchEvent } from './dispatchMapper.js';
 
 describe('bulky domain contracts', () => {
   it('freezes the public statuses and follows the complete order graph', () => {
@@ -47,12 +48,15 @@ describe('bulky domain contracts', () => {
   });
 
   it('locks unknown or low-confidence AI results for manual review and never infers mass', () => {
-    expect(evaluateAiResult({ itemType: 'ROCKET', confidence: 0.99 })).toMatchObject({
+    expect(evaluateAiResult({ itemType: 'ROCKET', confidence: 0.99, massKg: 999 })).toMatchObject({
       decision: AI_DECISION.MANUAL_REVIEW,
       requiresManualReview: true,
     });
+    expect(
+      evaluateAiResult({ itemType: 'ROCKET', confidence: 0.99, massKg: 999 }),
+    ).not.toHaveProperty('massKg');
     expect(evaluateAiResult({ itemType: 'SOFA', confidence: 0.4 })).toMatchObject({
-      decision: AI_DECISION.CONFIRM_REQUIRED,
+      decision: AI_DECISION.NEEDS_CONFIRMATION,
       requiresManualReview: false,
     });
     expect(evaluateAiResult({ itemType: 'SOFA', confidence: 0.99 })).not.toHaveProperty('massKg');
@@ -68,10 +72,15 @@ describe('bulky domain contracts', () => {
     });
     expect(quote.totalVnd).toBe(250000);
     expect(Number.isInteger(quote.totalVnd)).toBe(true);
+    expect(quote.expiresAt).toBe('2026-01-01T00:30:00.000Z');
+    expect(isQuoteExpired(quote, '2026-01-01T00:30:00.000Z')).toBe(true);
   });
 
   it('preserves old booking until a change is accepted and applies cutoff policy', () => {
-    const order = { status: ORDER_STATUS.CONFIRMED, serviceWindow: { date: '2026-01-10' } };
+    const order = {
+      orderStatus: ORDER_STATUS.CONFIRMED,
+      confirmedServiceWindow: { date: '2026-01-10' },
+    };
     expect(
       evaluateChangePolicy({
         order,
@@ -90,23 +99,61 @@ describe('bulky domain contracts', () => {
     ).toMatchObject({ decision: CHANGE_DECISION.REVIEW, preservesCurrentBooking: true });
   });
 
+  it('distinguishes unpaid cancellation, settled refund, and proposal settlement deltas', () => {
+    const unpaid = evaluateChangePolicy({
+      order: {
+        orderStatus: ORDER_STATUS.AWAITING_PAYMENT,
+        confirmedServiceWindow: { date: '2026-01-10' },
+        paymentStatus: PAYMENT_STATUS.UNPAID,
+      },
+      action: 'CANCEL',
+      requestedAt: '2026-01-01T00:00:00Z',
+      now: '2026-01-01T00:00:00Z',
+      policy: { cutoffHours: 24 },
+    });
+    expect(unpaid.reason).toBe('RELEASE_HOLD_NO_REFUND');
+    const settled = evaluateChangePolicy({
+      order: {
+        orderStatus: ORDER_STATUS.CONFIRMED,
+        confirmedServiceWindow: { date: '2026-01-10' },
+        paymentStatus: PAYMENT_STATUS.SUCCESS,
+      },
+      action: 'CANCEL',
+      requestedAt: '2026-01-01T00:00:00Z',
+      now: '2026-01-01T00:00:00Z',
+      policy: { cutoffHours: 24 },
+    });
+    expect(settled.refundStatus).toBe(REFUND_STATUS.REQUESTED);
+    const oldOrder = { orderStatus: ORDER_STATUS.CONFIRMED, acceptedQuote: { totalVnd: 100000 } };
+    expect(settleChangeProposal({ order: oldOrder, proposal: { totalVnd: 100000 } }).outcome).toBe(
+      'EQUAL_PRICE',
+    );
+    expect(
+      settleChangeProposal({
+        order: oldOrder,
+        proposal: { totalVnd: 150000 },
+        settlement: { paymentStatus: PAYMENT_STATUS.UNPAID },
+      }),
+    ).toMatchObject({ accepted: false, preservesCurrentBooking: true });
+    expect(settleChangeProposal({ order: oldOrder, proposal: { totalVnd: 50000 } })).toMatchObject({
+      accepted: true,
+      outcome: 'PARTIAL_REFUND_DUE',
+    });
+  });
+
   it('maps only paid confirmed orders and creates exact versioned event IDs', () => {
     const order = {
       orderId: 'b1',
       householdId: 'h1',
-      status: ORDER_STATUS.CONFIRMED,
+      orderStatus: ORDER_STATUS.CONFIRMED,
       paymentStatus: PAYMENT_STATUS.SUCCESS,
       confirmationVersion: 1,
-      itemType: 'SOFA',
-      itemsCount: 1,
-      pickupDate: '2026-01-10',
-      address: 'A',
-      latitude: 1,
-      longitude: 2,
-      hasElevator: true,
-      floor: 2,
-      totalPriceVnd: 100000,
-      paymentTransactionId: 'tx1',
+      confirmedItems: [{ catalogItemCode: 'SOFA', quantity: 1 }],
+      requestedDate: '2026-01-10',
+      serviceLocation: { address: 'A', latitude: 1, longitude: 2 },
+      handlingConditions: { hasLift: true, floorNumber: 2 },
+      acceptedQuote: { totalVnd: 100000 },
+      acceptedPayment: { status: PAYMENT_STATUS.SUCCESS, transactionReference: 'tx1' },
     };
     expect(toDispatchBulkyWasteOrder(order)).toMatchObject({
       orderId: 'b1',
@@ -117,8 +164,16 @@ describe('bulky domain contracts', () => {
       eventId: 'b1:1:UPSERT',
       type: 'UPSERT',
     });
+    expect(createDispatchEvent(order, 'CANCEL', '2026-01-01T00:00:00.000Z')).toMatchObject({
+      eventId: 'b1:1:CANCEL',
+      occurredAt: '2026-01-01T00:00:00.000Z',
+    });
     expect(() =>
-      toDispatchBulkyWasteOrder({ ...order, paymentStatus: PAYMENT_STATUS.UNPAID }),
+      toDispatchBulkyWasteOrder({
+        ...order,
+        paymentStatus: PAYMENT_STATUS.UNPAID,
+        acceptedPayment: { status: PAYMENT_STATUS.UNPAID },
+      }),
     ).toThrow(BulkyServiceError);
   });
 });
