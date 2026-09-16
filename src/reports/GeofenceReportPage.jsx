@@ -50,7 +50,8 @@ const GeofenceReportPage = () => {
       const query = new URLSearchParams({ from, to });
       deviceIds.forEach((deviceId) => query.append('deviceId', deviceId));
       groupIds.forEach((groupId) => query.append('groupId', groupId));
-      geofenceIds.forEach((geofenceId) => query.append('geofenceId', geofenceId));
+      const targetGeofenceIds = geofenceIds.length ? geofenceIds : Object.keys(geofences);
+      targetGeofenceIds.forEach((geofenceId) => query.append('geofenceId', geofenceId));
       setLoading(true);
       try {
         const response = await fetchOrThrow(`/api/reports/geofences?${query.toString()}`, {
@@ -61,7 +62,7 @@ const GeofenceReportPage = () => {
         setLoading(false);
       }
     },
-    [geofenceIds],
+    [geofenceIds, geofences],
   );
 
   const onExport = useCatch(async () => {
