@@ -1,0 +1,8 @@
+node_modules
+.git
+.github
+build
+dist
+.env.local
+.vscode
+*.log
