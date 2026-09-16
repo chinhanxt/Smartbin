@@ -22,7 +22,7 @@ const MapDefaultCamera = ({ filteredPositions }) => {
       if (position) {
         map.jumpTo({
           center: toMapCoordinates(position.longitude, position.latitude),
-          zoom: Math.max(defaultZoom > 0 ? defaultZoom : map.getZoom(), 10),
+          zoom: defaultZoom > 0 ? defaultZoom : 15.5,
         });
         setInitialized(true);
       }
@@ -30,7 +30,7 @@ const MapDefaultCamera = ({ filteredPositions }) => {
       if (defaultLatitude && defaultLongitude) {
         map.jumpTo({
           center: toMapCoordinates(defaultLongitude, defaultLatitude),
-          zoom: defaultZoom,
+          zoom: defaultZoom > 0 ? defaultZoom : 15.5,
         });
         setInitialized(true);
       } else {
@@ -46,13 +46,14 @@ const MapDefaultCamera = ({ filteredPositions }) => {
           map.fitBounds(bounds, {
             duration: 0,
             padding: Math.min(canvas.width, canvas.height) * 0.1,
+            maxZoom: 15.5,
           });
           setInitialized(true);
         } else if (coordinates.length) {
           const [individual] = coordinates;
           map.jumpTo({
             center: individual,
-            zoom: Math.max(defaultZoom > 0 ? defaultZoom : map.getZoom(), 10),
+            zoom: defaultZoom > 0 ? defaultZoom : 15.5,
           });
           setInitialized(true);
         }

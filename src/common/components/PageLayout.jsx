@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   AppBar,
   Breadcrumbs,
-  Divider,
   Drawer,
   IconButton,
   Toolbar,
@@ -22,22 +21,35 @@ const useStyles = makeStyles()((theme, { miniVariant }) => ({
   root: {
     height: '100%',
     display: 'flex',
+    backgroundColor: '#f8fafc',
     [theme.breakpoints.down('md')]: {
       flexDirection: 'column',
     },
   },
   desktopDrawer: {
-    width: miniVariant ? theme.spacing(7) : theme.dimensions.drawerWidthDesktop,
+    width: miniVariant ? '56px' : '250px',
     overflowX: 'hidden',
-    transition: theme.transitions.create('width', {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
+    backgroundColor: '#ffffff',
+    borderRight: '1px solid #e2e8f0',
+    boxShadow: 'none',
+    transition: 'width 0.15s ease',
     ...(miniVariant && {
       '& .MuiListItemButton-root': {
-        minHeight: 48,
+        minHeight: 38,
+        justifyContent: 'center',
+        padding: '6px 0',
+        margin: '2px 6px',
+      },
+      '& .MuiListItemIcon-root': {
+        minWidth: 'auto',
       },
       '& .MuiListItemText-root': {
+        display: 'none',
+      },
+      '& .MuiListSubheader-root': {
+        display: 'none',
+      },
+      '& hr': {
         display: 'none',
       },
     }),
@@ -45,14 +57,41 @@ const useStyles = makeStyles()((theme, { miniVariant }) => ({
       display: 'none',
     },
   },
+  drawerToolbar: {
+    minHeight: '52px !important',
+    height: '52px',
+    padding: '0 12px !important',
+    borderBottom: '1px solid #e2e8f0',
+    backgroundColor: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: miniVariant ? 'center' : 'space-between',
+  },
+  navButton: {
+    borderRadius: '8px',
+    color: '#64748b',
+    padding: '6px',
+    transition: 'background-color 0.12s ease, color 0.12s ease',
+    '&:hover': {
+      backgroundColor: '#f1f5f9',
+      color: '#020817',
+    },
+  },
   mobileDrawer: {
-    width: theme.dimensions.drawerWidthTablet,
+    width: '270px',
+    backgroundColor: '#ffffff',
     '@media print': {
       display: 'none',
     },
   },
   mobileToolbar: {
     zIndex: 1,
+    minHeight: '52px !important',
+    height: '52px',
+    backgroundColor: '#ffffff !important',
+    color: '#020817 !important',
+    borderBottom: '1px solid #e2e8f0',
+    boxShadow: 'none !important',
     '@media print': {
       display: 'none',
     },
@@ -63,6 +102,7 @@ const useStyles = makeStyles()((theme, { miniVariant }) => ({
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'auto',
+    backgroundColor: '#f8fafc',
   },
 }));
 
@@ -74,19 +114,23 @@ const PageTitle = ({ breadcrumbs }) => {
 
   if (desktop) {
     return (
-      <Typography variant="h6" noWrap>
+      <Typography
+        variant="subtitle1"
+        noWrap
+        sx={{ fontWeight: 600, fontSize: '0.9375rem', color: '#020817' }}
+      >
         {t(breadcrumbs[0])}
       </Typography>
     );
   }
   return (
-    <Breadcrumbs>
+    <Breadcrumbs sx={{ fontSize: '0.875rem' }}>
       {breadcrumbs.slice(0, -1).map((breadcrumb) => (
-        <Typography variant="h6" color="inherit" key={breadcrumb}>
+        <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }} key={breadcrumb}>
           {t(breadcrumb)}
         </Typography>
       ))}
-      <Typography variant="h6" color="textPrimary">
+      <Typography variant="body2" sx={{ color: '#020817', fontWeight: 600 }}>
         {t(breadcrumbs[breadcrumbs.length - 1])}
       </Typography>
     </Breadcrumbs>
@@ -115,34 +159,30 @@ const PageLayout = ({ menu, breadcrumbs, children }) => {
           className={classes.desktopDrawer}
           slotProps={{ paper: { className: classes.desktopDrawer } }}
         >
-          <Toolbar>
+          <div className={classes.drawerToolbar}>
             {!miniVariant && (
-              <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                 <IconButton
-                  color="inherit"
+                  className={classes.navButton}
                   edge="start"
-                  sx={{ mr: 2 }}
                   onClick={() => navigate('/')}
                 >
                   <BackIcon />
                 </IconButton>
                 <PageTitle breadcrumbs={breadcrumbs} />
-              </>
+              </div>
             )}
             <IconButton
-              color="inherit"
-              edge="start"
-              sx={{ ml: miniVariant ? -2 : 'auto' }}
+              className={classes.navButton}
               onClick={toggleDrawer}
             >
               {miniVariant !== (theme.direction === 'rtl') ? (
-                <ChevronRightIcon />
+                <ChevronRightIcon fontSize="small" />
               ) : (
-                <ChevronLeftIcon />
+                <ChevronLeftIcon fontSize="small" />
               )}
             </IconButton>
-          </Toolbar>
-          <Divider />
+          </div>
           {menu}
         </Drawer>
       ) : (
@@ -157,11 +197,11 @@ const PageLayout = ({ menu, breadcrumbs, children }) => {
       )}
       {!desktop && (
         <AppBar className={classes.mobileToolbar} position="static" color="inherit">
-          <Toolbar>
+          <Toolbar sx={{ minHeight: '52px !important', height: '52px', px: '12px !important' }}>
             <IconButton
-              color="inherit"
+              className={classes.navButton}
               edge="start"
-              sx={{ mr: 2 }}
+              sx={{ mr: 1.5 }}
               onClick={() => setOpenDrawer(true)}
             >
               <MenuIcon />
