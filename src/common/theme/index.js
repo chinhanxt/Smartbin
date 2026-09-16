@@ -9,7 +9,8 @@ export default (server, darkMode, direction) =>
     () =>
       createTheme({
         typography: {
-          fontFamily: 'Roboto,Segoe UI,Helvetica Neue,Arial,sans-serif',
+          fontFamily:
+            "'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         },
         palette: palette(server, darkMode),
         direction,

@@ -25,6 +25,7 @@ import MapIcon from '@mui/icons-material/Map';
 import DnsIcon from '@mui/icons-material/Dns';
 import AddIcon from '@mui/icons-material/Add';
 import TuneIcon from '@mui/icons-material/Tune';
+import SearchIcon from '@mui/icons-material/Search';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import { useDeviceReadonly } from '../common/util/permissions';
 import DeviceRow from './DeviceRow';
@@ -33,6 +34,72 @@ const useStyles = makeStyles()((theme) => ({
   toolbar: {
     display: 'flex',
     gap: theme.spacing(1),
+    paddingLeft: theme.spacing(1.5),
+    paddingRight: theme.spacing(1.5),
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(1),
+    minHeight: '56px',
+    backgroundColor: '#ffffff',
+    [theme.breakpoints.up('sm')]: {
+      paddingLeft: theme.spacing(1.5),
+      paddingRight: theme.spacing(1.5),
+      minHeight: '56px',
+    },
+  },
+  actionButton: {
+    borderRadius: '8px',
+    color: '#64748b',
+    padding: theme.spacing(1),
+    transition: 'background-color 0.15s ease-in-out, color 0.15s ease-in-out',
+    '&:hover': {
+      backgroundColor: '#f1f5f9',
+      color: '#020817',
+    },
+    '&.Mui-disabled': {
+      opacity: 0.5,
+      color: '#94a3b8',
+    },
+  },
+  filterButton: {
+    borderRadius: '8px',
+    color: '#64748b',
+    padding: '6px',
+    transition: 'background-color 0.15s ease-in-out, color 0.15s ease-in-out',
+    '&:hover': {
+      backgroundColor: '#f1f5f9',
+      color: '#020817',
+    },
+  },
+  searchRoot: {
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#ffffff',
+    height: 40,
+    transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+    '&:hover': {
+      borderColor: '#cbd5e1',
+    },
+    '&.Mui-focused': {
+      borderColor: '#1d4ed8',
+      boxShadow: '0 0 0 1px #1d4ed8',
+    },
+    '& .MuiOutlinedInput-notchedOutline': {
+      border: 'none',
+    },
+    '& input': {
+      padding: '8px 4px',
+      fontSize: '14px',
+      color: '#020817',
+      '&::placeholder': {
+        color: '#64748b',
+        opacity: 1,
+      },
+    },
+  },
+  searchIcon: {
+    color: '#64748b',
+    fontSize: 20,
+    marginLeft: theme.spacing(0.5),
   },
   filterPanel: {
     display: 'flex',
@@ -78,7 +145,11 @@ const MainToolbar = ({
 
   return (
     <Toolbar ref={toolbarRef} className={classes.toolbar}>
-      <IconButton edge="start" onClick={() => setDevicesOpen(!devicesOpen)}>
+      <IconButton
+        edge="start"
+        className={classes.actionButton}
+        onClick={() => setDevicesOpen(!devicesOpen)}
+      >
         {devicesOpen ? <MapIcon /> : <DnsIcon />}
       </IconButton>
       <OutlinedInput
@@ -88,9 +159,19 @@ const MainToolbar = ({
         onChange={(e) => setKeyword(e.target.value)}
         onFocus={() => setDevicesAnchorEl(toolbarRef.current)}
         onBlur={() => setDevicesAnchorEl(null)}
+        startAdornment={
+          <InputAdornment position="start">
+            <SearchIcon className={classes.searchIcon} />
+          </InputAdornment>
+        }
         endAdornment={
           <InputAdornment position="end">
-            <IconButton size="small" edge="end" onClick={() => setFilterAnchorEl(inputRef.current)}>
+            <IconButton
+              size="small"
+              edge="end"
+              className={classes.filterButton}
+              onClick={() => setFilterAnchorEl(inputRef.current)}
+            >
               <Badge
                 color="info"
                 variant="dot"
@@ -105,6 +186,7 @@ const MainToolbar = ({
         }
         size="small"
         fullWidth
+        className={classes.searchRoot}
       />
       <Popover
         open={!!devicesAnchorEl && !devicesOpen}
@@ -117,10 +199,16 @@ const MainToolbar = ({
         marginThreshold={0}
         slotProps={{
           paper: {
-            style: { width: `calc(${toolbarRef.current?.clientWidth}px - ${theme.spacing(4)})` },
+            style: {
+              width: `calc(${toolbarRef.current?.clientWidth}px - ${theme.spacing(4)})`,
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.08)',
+              marginTop: '4px',
+            },
           },
         }}
-        elevation={1}
+        elevation={0}
         disableAutoFocus
         disableEnforceFocus
       >
@@ -141,6 +229,17 @@ const MainToolbar = ({
           vertical: 'bottom',
           horizontal: 'left',
         }}
+        slotProps={{
+          paper: {
+            style: {
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.08)',
+              marginTop: '4px',
+            },
+          },
+        }}
+        elevation={0}
       >
         <div className={classes.filterPanel}>
           <FormControl>
@@ -212,7 +311,12 @@ const MainToolbar = ({
           </FormGroup>
         </div>
       </Popover>
-      <IconButton edge="end" onClick={() => navigate('/settings/device')} disabled={deviceReadonly}>
+      <IconButton
+        edge="end"
+        className={classes.actionButton}
+        onClick={() => navigate('/settings/device')}
+        disabled={deviceReadonly}
+      >
         <Tooltip
           open={!deviceReadonly && devicesLoaded && Object.keys(devices).length === 0}
           title={t('deviceRegisterFirst')}

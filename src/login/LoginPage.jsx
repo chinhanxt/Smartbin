@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  useMediaQuery,
   Select,
   MenuItem,
   FormControl,
@@ -10,12 +9,12 @@ import {
   Snackbar,
   IconButton,
   Tooltip,
+  Typography,
 } from '@mui/material';
 import CountryFlag from 'react-country-flag';
 import { makeStyles } from 'tss-react/mui';
 import CloseIcon from '@mui/icons-material/Close';
 import VpnLockIcon from '@mui/icons-material/VpnLock';
-import { useTheme } from '@mui/material/styles';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { sessionActions } from '../store';
@@ -28,39 +27,190 @@ import {
   nativeEnvironment,
   nativePostMessage,
 } from '../common/components/NativeInterface';
-import LogoImage from './LogoImage';
 import { useCatch } from '../reactHelper';
 import PasswordField from '../common/components/PasswordField';
 
 const useStyles = makeStyles()((theme) => ({
   options: {
     position: 'fixed',
-    top: theme.spacing(2),
-    right: theme.spacing(2),
+    top: theme.spacing(2.5),
+    right: theme.spacing(2.5),
     display: 'flex',
     flexDirection: 'row',
-    gap: theme.spacing(1),
+    gap: theme.spacing(1.5),
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  languageSelect: {
+    borderRadius: '8px',
+    backgroundColor: '#ffffff',
+    fontSize: '0.8125rem',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#e2e8f0',
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#cbd5e1',
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#1d4ed8',
+    },
+  },
+  flag: {
+    marginRight: theme.spacing(1),
+    display: 'inline-flex',
+    alignItems: 'center',
+  },
+  serverButton: {
+    color: '#64748b',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    padding: '6px',
+    '&:hover': {
+      backgroundColor: '#f1f5f9',
+      color: '#1d4ed8',
+    },
   },
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: theme.spacing(2),
+    gap: theme.spacing(2.5),
+    width: '100%',
+  },
+  brandHeader: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    marginBottom: theme.spacing(1),
+  },
+  brandIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: '12px',
+    backgroundColor: '#eff6ff',
+    border: '1px solid #dbeafe',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing(1.5),
+  },
+  brandLogoImage: {
+    maxHeight: 56,
+    maxWidth: 200,
+    width: 'auto',
+    height: 'auto',
+    marginBottom: theme.spacing(1.5),
+    objectFit: 'contain',
+  },
+  brandTitle: {
+    color: '#004b93',
+    fontWeight: 700,
+    fontSize: '1.5rem',
+    lineHeight: 1.25,
+    letterSpacing: '-0.025em',
+  },
+  brandTagline: {
+    color: '#64748b',
+    fontSize: '0.875rem',
+    marginTop: theme.spacing(0.75),
+    fontWeight: 400,
+    lineHeight: 1.4,
+  },
+  inputField: {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: '8px',
+      backgroundColor: '#ffffff',
+      transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+      '& fieldset': {
+        borderColor: '#e2e8f0',
+      },
+      '&:hover fieldset': {
+        borderColor: '#cbd5e1',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#1d4ed8',
+        borderWidth: '1.5px',
+      },
+      '&.Mui-focused': {
+        boxShadow: '0 0 0 3px rgba(29, 78, 216, 0.15)',
+      },
+      '&.Mui-error fieldset': {
+        borderColor: '#ef4444',
+      },
+    },
+    '& .MuiInputLabel-root': {
+      color: '#64748b',
+      fontSize: '0.875rem',
+      '&.Mui-focused': {
+        color: '#1d4ed8',
+      },
+      '&.Mui-error': {
+        color: '#ef4444',
+      },
+    },
+    '& .MuiFormHelperText-root': {
+      marginTop: '4px',
+      fontSize: '0.75rem',
+    },
+  },
+  submitButton: {
+    borderRadius: '8px',
+    backgroundColor: '#1d4ed8',
+    color: '#ffffff',
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    textTransform: 'none',
+    padding: '10px 16px',
+    height: '42px',
+    boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    transition: 'background-color 0.15s ease, box-shadow 0.15s ease',
+    '&:hover': {
+      backgroundColor: '#1e40af',
+      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+    },
+    '&:disabled': {
+      backgroundColor: '#93c5fd',
+      color: '#ffffff',
+      cursor: 'not-allowed',
+      opacity: 0.7,
+    },
+  },
+  openIdButton: {
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    textTransform: 'none',
+    padding: '10px 16px',
+    height: '42px',
+    boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    transition: 'background-color 0.15s ease, border-color 0.15s ease',
+    '&:hover': {
+      backgroundColor: '#f8fafc',
+      borderColor: '#cbd5e1',
+    },
   },
   extraContainer: {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: theme.spacing(4),
-    marginTop: theme.spacing(2),
-  },
-  registerButton: {
-    minWidth: 'unset',
+    gap: theme.spacing(3),
+    marginTop: theme.spacing(0.5),
   },
   link: {
     cursor: 'pointer',
-  },
-  flag: {
-    marginRight: theme.spacing(1),
+    color: '#1d4ed8',
+    fontWeight: 500,
+    fontSize: '0.875rem',
+    textDecoration: 'none',
+    transition: 'color 0.15s ease',
+    '&:hover': {
+      color: '#1e40af',
+      textDecoration: 'underline',
+    },
   },
 }));
 
@@ -68,7 +218,6 @@ const LoginPage = () => {
   const { classes } = useStyles();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const theme = useTheme();
   const t = useTranslation();
 
   const { languages, language, setLocalLanguage } = useLocalization();
@@ -85,6 +234,7 @@ const LoginPage = () => {
   const [code, setCode] = useState('');
   const [showServerTooltip, setShowServerTooltip] = useState(false);
 
+  const serverLogo = useSelector((state) => state.session.server.attributes?.logo);
   const registrationEnabled = useSelector((state) => state.session.server.registration);
   const languageEnabled = useSelector((state) => {
     const attributes = state.session.server.attributes;
@@ -165,19 +315,23 @@ const LoginPage = () => {
     <LoginLayout>
       <div className={classes.options}>
         {nativeEnvironment && changeEnabled && (
-          <IconButton color="primary" onClick={() => navigate('/change-server')}>
+          <IconButton className={classes.serverButton} onClick={() => navigate('/change-server')}>
             <Tooltip
               title={`${t('settingsServer')}: ${window.location.hostname}`}
               open={showServerTooltip}
               arrow
             >
-              <VpnLockIcon />
+              <VpnLockIcon fontSize="small" />
             </Tooltip>
           </IconButton>
         )}
         {languageEnabled && (
-          <FormControl>
-            <Select value={language} onChange={(e) => setLocalLanguage(e.target.value)}>
+          <FormControl size="small">
+            <Select
+              className={classes.languageSelect}
+              value={language}
+              onChange={(e) => setLocalLanguage(e.target.value)}
+            >
               {languageList.map((it) => (
                 <MenuItem key={it.code} value={it.code}>
                   <span className={classes.flag}>
@@ -191,12 +345,38 @@ const LoginPage = () => {
         )}
       </div>
       <div className={classes.container}>
-        {useMediaQuery(theme.breakpoints.down('lg')) && (
-          <LogoImage color={theme.palette.primary.main} />
-        )}
+        <div className={classes.brandHeader}>
+          {serverLogo ? (
+            <img className={classes.brandLogoImage} src={serverLogo} alt="Smartbin IoT" />
+          ) : (
+            <div className={classes.brandIconWrapper}>
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#004b93"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                <line x1="10" x2="10" y1="11" y2="17" />
+                <line x1="14" x2="14" y1="11" y2="17" />
+              </svg>
+            </div>
+          )}
+          <Typography className={classes.brandTitle}>Smartbin IoT</Typography>
+          <Typography className={classes.brandTagline}>
+            Nền tảng quản lý thùng rác thông minh
+          </Typography>
+        </div>
         {!openIdForced && (
           <>
             <TextField
+              className={classes.inputField}
               required
               error={failed}
               label={t('userEmail')}
@@ -208,6 +388,7 @@ const LoginPage = () => {
               helperText={failed && 'Invalid username or password'}
             />
             <PasswordField
+              className={classes.inputField}
               required
               error={failed}
               label={t('userPassword')}
@@ -219,6 +400,7 @@ const LoginPage = () => {
             />
             {codeEnabled && (
               <TextField
+                className={classes.inputField}
                 required
                 error={failed}
                 label={t('loginTotpCode')}
@@ -229,30 +411,31 @@ const LoginPage = () => {
               />
             )}
             <Button
+              className={classes.submitButton}
               onClick={handlePasswordLogin}
               type="submit"
               variant="contained"
-              color="secondary"
               disabled={!email || !password || (codeEnabled && !code)}
+              fullWidth
             >
               {t('loginLogin')}
             </Button>
           </>
         )}
         {openIdEnabled && (
-          <Button onClick={() => handleOpenIdLogin()} variant="contained" color="secondary">
+          <Button
+            className={classes.openIdButton}
+            onClick={() => handleOpenIdLogin()}
+            variant="outlined"
+            fullWidth
+          >
             {t('loginOpenId')}
           </Button>
         )}
         {!openIdForced && (
           <div className={classes.extraContainer}>
             {registrationEnabled && (
-              <Link
-                onClick={() => navigate('/register')}
-                className={classes.link}
-                underline="none"
-                variant="caption"
-              >
+              <Link onClick={() => navigate('/register')} className={classes.link} underline="none">
                 {t('loginRegister')}
               </Link>
             )}
@@ -261,7 +444,6 @@ const LoginPage = () => {
                 onClick={() => navigate('/reset-password')}
                 className={classes.link}
                 underline="none"
-                variant="caption"
               >
                 {t('loginReset')}
               </Link>

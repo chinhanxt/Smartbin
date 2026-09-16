@@ -32,6 +32,11 @@ const useStyles = makeStyles()((theme) => ({
       width: theme.dimensions.drawerWidthDesktop,
       margin: theme.spacing(1.5),
       zIndex: 3,
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.06)',
+      backgroundColor: '#ffffff',
+      overflow: 'hidden',
     },
     [theme.breakpoints.down('md')]: {
       height: '100%',
@@ -41,10 +46,13 @@ const useStyles = makeStyles()((theme) => ({
   header: {
     pointerEvents: 'auto',
     zIndex: 6,
+    backgroundColor: '#ffffff',
+    borderBottom: '1px solid #e2e8f0',
   },
   footer: {
     pointerEvents: 'auto',
     zIndex: 5,
+    backgroundColor: '#ffffff',
   },
   middle: {
     flex: 1,
@@ -61,6 +69,7 @@ const useStyles = makeStyles()((theme) => ({
     zIndex: 4,
     display: 'flex',
     minHeight: 0,
+    backgroundColor: '#ffffff',
   },
 }));
 
@@ -124,7 +133,7 @@ const MainPage = () => {
         </Suspense>
       )}
       <div className={classes.sidebar}>
-        <Paper square elevation={3} className={classes.header}>
+        <Paper square elevation={0} className={classes.header}>
           <MainToolbar
             filteredDevices={filteredDevices}
             devicesOpen={devicesOpen}
@@ -153,6 +162,7 @@ const MainPage = () => {
           )}
           <Paper
             square
+            elevation={0}
             className={classes.contentList}
             style={devicesOpen ? {} : { visibility: 'hidden' }}
           >

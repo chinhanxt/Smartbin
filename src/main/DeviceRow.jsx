@@ -7,19 +7,13 @@ import {
   ListItemAvatar,
   ListItemText,
   ListItemButton,
-  Typography,
 } from '@mui/material';
 import ErrorIcon from '@mui/icons-material/Error';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/vi';
 import { devicesActions } from '../store';
-import {
-  formatAlarm,
-  formatBoolean,
-  formatPercentage,
-  formatStatus,
-  getStatusColor,
-} from '../common/util/formatter';
+import { formatAlarm, formatBoolean } from '../common/util/formatter';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import { mapIconKey, mapIcons } from '../map/core/preloadImages';
 import { useAdministrator } from '../common/util/permissions';
@@ -31,31 +25,92 @@ import MotionBar from './components/MotionBar';
 
 dayjs.extend(relativeTime);
 
-const useStyles = makeStyles()((theme) => ({
+const useStyles = makeStyles()(() => ({
+  button: {
+    height: '100%',
+    paddingLeft: '16px',
+    paddingRight: '12px',
+    transition: 'background-color 150ms ease-in-out',
+    '&:hover': {
+      backgroundColor: '#f8fafc',
+    },
+    '&.Mui-selected': {
+      backgroundColor: '#eff6ff',
+      '&:hover': {
+        backgroundColor: '#eff6ff',
+      },
+    },
+  },
+  avatar: {
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #e2e8f0',
+    width: 38,
+    height: 38,
+  },
   icon: {
-    width: '25px',
-    height: '25px',
-    filter: 'brightness(0) invert(1)',
+    width: '20px',
+    height: '20px',
+    opacity: 0.8,
   },
-  batteryText: {
+  primaryText: {
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    color: '#020817',
+    lineHeight: 1.3,
+  },
+  secondaryRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    marginTop: '3px',
+    overflow: 'hidden',
+  },
+  secondaryValue: {
     fontSize: '0.75rem',
-    fontWeight: 'normal',
-    lineHeight: '0.875rem',
+    color: '#64748b',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
-  success: {
-    color: theme.palette.success.main,
+  statusBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    borderRadius: '9999px',
+    padding: '2px 10px',
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    lineHeight: '1rem',
+    whiteSpace: 'nowrap',
+    boxSizing: 'border-box',
   },
-  warning: {
-    color: theme.palette.warning.main,
+  statusOnline: {
+    backgroundColor: '#ecfdf5',
+    color: '#047857',
+    border: '1px solid #a7f3d0',
   },
-  error: {
-    color: theme.palette.error.main,
+  statusOffline: {
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
+    border: '1px solid #e2e8f0',
   },
-  neutral: {
-    color: theme.palette.neutral.main,
+  statusAlarm: {
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    border: '1px solid #fecaca',
   },
-  selected: {
-    backgroundColor: theme.palette.action.selected,
+  trailingIcons: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+    marginLeft: '6px',
+    flexShrink: 0,
+  },
+  iconButton: {
+    padding: '4px',
+    borderRadius: '6px',
+    '&:hover': {
+      backgroundColor: '#f1f5f9',
+    },
   },
 }));
 
@@ -91,25 +146,25 @@ const DeviceRow = ({ devices, index, style }) => {
   const primaryValue = resolveFieldValue(devicePrimary);
   const secondaryValue = resolveFieldValue(deviceSecondary);
 
-  const secondaryText = () => {
-    let status;
-    if (item.status === 'online' || !item.lastUpdate) {
-      status = formatStatus(item.status, t);
-    } else {
-      status = dayjs(item.lastUpdate).fromNow();
-    }
-    return (
-      <>
-        {secondaryValue && (
-          <>
-            {secondaryValue}
-            {' • '}
-          </>
-        )}
-        <span className={classes[getStatusColor(item.status)]}>{status}</span>
-      </>
-    );
-  };
+  const isAlarm = Boolean(position?.attributes?.alarm || item.status === 'alarm');
+
+  let badgeClass;
+  let statusBadgeText;
+
+  if (isAlarm) {
+    badgeClass = classes.statusAlarm;
+    statusBadgeText =
+      (position?.attributes?.alarm && formatAlarm(position.attributes.alarm, t)) || 'Báo động';
+  } else if (item.status === 'online') {
+    badgeClass = classes.statusOnline;
+    statusBadgeText = 'Trực tuyến';
+  } else {
+    badgeClass = classes.statusOffline;
+    statusBadgeText =
+      item.lastUpdate && dayjs(item.lastUpdate).isValid()
+        ? dayjs(item.lastUpdate).locale('vi').fromNow()
+        : 'Ngoại tuyến';
+  }
 
   return (
     <div style={style}>
@@ -118,31 +173,37 @@ const DeviceRow = ({ devices, index, style }) => {
         onClick={() => dispatch(devicesActions.selectId(item.id))}
         disabled={!admin && item.disabled}
         selected={selectedDeviceId === item.id}
-        className={selectedDeviceId === item.id ? classes.selected : null}
+        className={classes.button}
       >
-        <ListItemAvatar>
-          <Avatar>
+        <ListItemAvatar sx={{ minWidth: '48px' }}>
+          <Avatar className={classes.avatar}>
             <img className={classes.icon} src={mapIcons[mapIconKey(item.category)]} alt="" />
           </Avatar>
         </ListItemAvatar>
         <ListItemText
           primary={primaryValue}
-          secondary={secondaryText()}
-          slots={{
-            primary: Typography,
-            secondary: Typography,
-          }}
+          secondary={
+            <div className={classes.secondaryRow}>
+              {secondaryValue && <span className={classes.secondaryValue}>{secondaryValue}</span>}
+              <span className={`${classes.statusBadge} ${badgeClass}`}>{statusBadgeText}</span>
+            </div>
+          }
           slotProps={{
-            primary: { noWrap: true },
-            secondary: { noWrap: true },
+            primary: {
+              className: classes.primaryText,
+              noWrap: true,
+            },
+            secondary: {
+              component: 'div',
+            },
           }}
         />
         {position && (
-          <>
+          <div className={classes.trailingIcons}>
             {position.attributes.hasOwnProperty('alarm') && (
               <Tooltip title={`${t('eventAlarm')}: ${formatAlarm(position.attributes.alarm, t)}`}>
-                <IconButton size="small">
-                  <ErrorIcon fontSize="small" className={classes.error} />
+                <IconButton size="small" className={classes.iconButton}>
+                  <ErrorIcon fontSize="small" sx={{ color: '#ef4444' }} />
                 </IconButton>
               </Tooltip>
             )}
@@ -150,16 +211,16 @@ const DeviceRow = ({ devices, index, style }) => {
               <Tooltip
                 title={`${t('positionIgnition')}: ${formatBoolean(position.attributes.ignition, t)}`}
               >
-                <IconButton size="small">
+                <IconButton size="small" className={classes.iconButton}>
                   {position.attributes.ignition ? (
-                    <EngineIcon width={20} height={20} className={classes.success} />
+                    <EngineIcon width={18} height={18} style={{ color: '#22c55e' }} />
                   ) : (
-                    <EngineIcon width={20} height={20} className={classes.neutral} />
+                    <EngineIcon width={18} height={18} style={{ color: '#94a3b8' }} />
                   )}
                 </IconButton>
               </Tooltip>
             )}
-          </>
+          </div>
         )}
       </ListItemButton>
     </div>
