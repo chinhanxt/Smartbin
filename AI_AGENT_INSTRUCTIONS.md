@@ -1,106 +1,125 @@
-# HƯỚNG DẪN DÀNH CHO AI ASSISTANT & DEV 1 (NhanXt)
-**Nhánh Git:** `dev-NhanXt`  
-**Vai trò:** Developer 1 - Core IoT Telemetry, Traccar GPS Fleet Tracking & Station Offloading  
-**Tài liệu tham chiếu:** [quy-trinh-thu-gom-iot-traccar-ai (1).pdf](file:///home/congnghiep/nghich/Smartbin/quy-trinh-thu-gom-iot-traccar-ai%20%281%29.pdf) (Trọng tâm: **Trang 01, 02, 04, 05**)  
+# HƯỚNG DẪN DÀNH CHO AI ASSISTANT & DEV 3 (EnglandLee)
+**Nhánh Git:** `dev-EnglandLee`  
+**Vai trò:** Developer 3 - Citizen Portal, Billing Automation, Debt Reminders & Bulky Waste Service  
+**Tài liệu tham chiếu:** [quy-trinh-thu-gom-iot-traccar-ai (1).pdf](file:///home/congnghiep/nghich/Smartbin/quy-trinh-thu-gom-iot-traccar-ai%20%281%29.pdf) (Trọng tâm: **Trang 08, 09, 10, 11, 12, 13**)  
 **Quy tắc chung toàn team:** [TEAM_WORKFLOW_RULES.md](file:///home/congnghiep/nghich/Smartbin/TEAM_WORKFLOW_RULES.md)
 
 ---
 
 > [!IMPORTANT]
 > ### CHỈ THỊ BẮT BUỘC CHO TẤT CẢ AI ASSISTANT LÀM VIỆC TRÊN NHÁNH NÀY:
-> 1. Bạn đang hỗ trợ **DEV 1 (NhanXt)** trên nhánh `dev-NhanXt`.
-> 2. **CHỈ ĐƯỢC PHÉP** tạo mới và chỉnh sửa mã nguồn trong phạm vi thư mục được phân quyền cho Dev 1:
->    * `src/modules/fleet/` (Quản lý xe, lộ trình di chuyển, tài xế, trạm dỡ rác)
->    * `src/modules/iot-bins/` (Quản lý thùng rác thông minh, telemetry, trạng thái cảm biến)
->    * `src/store/fleet/` & `src/store/bins/` (Redux slices độc lập của Dev 1)
-> 3. **TUYỆT ĐỐI KHÔNG ĐƯỢC CHẠM VÀO** các thư mục thuộc phạm vi của Dev 2 (`tickets/`, `dispatch/`, `routing/`) hoặc Dev 3 (`citizen/`, `billing/`, `bulky/`).
-> 4. **TUYỆT ĐỐI KHÔNG SỬA TRỰC TIẾP** vào `src/Navigation.jsx` hay `src/store/index.js` để tránh gây xung đột Git (Merge Conflict) với Dev 2 và Dev 3. Hãy xuất route tại `src/modules/fleet/routes.jsx` và `src/modules/iot-bins/routes.jsx`.
+> 1. Bạn đang hỗ trợ **DEV 3 (EnglandLee)** trên nhánh `dev-EnglandLee`.
+> 2. **CHỈ ĐƯỢC PHÉP** tạo mới và chỉnh sửa mã nguồn trong phạm vi thư mục được phân quyền cho Dev 3:
+>    * `src/modules/citizen/` (Cổng thông tin hộ gia đình, mã thùng, phản ánh chất lượng, lịch xe đến)
+>    * `src/modules/billing/` (Bảng kê phí tháng, cổng thanh toán MoMo/QR, đối soát, luồng nhắc nợ D+3/D+7/D+14 và tạm ngừng dịch vụ)
+>    * `src/modules/bulky/` (Dịch vụ đặt thu rác cồng kềnh, AI nhận diện ảnh sofa/nệm/tủ, tính phí theo bảng giá có phiên bản, giữ chỗ và trả trước)
+>    * `src/store/citizen/` & `src/store/billing/` (Redux slices độc lập của Dev 3)
+> 3. **TUYỆT ĐỐI KHÔNG ĐƯỢC CHẠM VÀO** các thư mục thuộc phạm vi của Dev 1 (`fleet/`, `iot-bins/`) hoặc Dev 2 (`tickets/`, `dispatch/`, `routing/`).
+> 4. **TUYỆT ĐỐI KHÔNG SỬA TRỰC TIẾP** vào `src/Navigation.jsx` hay `src/store/index.js` để tránh gây xung đột Git (Merge Conflict) với Dev 1 và Dev 2. Hãy xuất route tại `src/modules/citizen/routes.jsx` và `src/modules/billing/routes.jsx`.
 
 ---
 
-## 1. MỤC TIÊU NGHIỆP VỤ CỦA DEV 1 (THEO PDF)
+## 1. MỤC TIÊU NGHIỆP VỤ CỦA DEV 3 (THEO PDF)
 
-### Trang 01 & 02: Tiếp nhận & Tiền xử lý Dữ liệu IoT
-- Lắng nghe sự kiện số đo từ cảm biến thùng rác: Mức đầy (%), cảnh báo mùi hôi, dung lượng pin, thời gian cập nhật.
-- Lọc dữ liệu lỗi: Nếu cảm biến mất mạng, pin yếu hoặc số đo nhảy bất thường, gắn nhãn `Cần xác minh` (giữ nguyên cảnh báo mở, tạo yêu cầu kiểm tra thiết bị; **không được tự ý xóa cảnh báo**).
-- Chuẩn hóa dữ liệu theo cấu trúc chuẩn để đẩy sang module Điều phối (Dev 2).
+### Trang 08: Cổng Quản lý Dành cho Người Dân (Citizen Portal)
+- Mô hình: Mỗi hộ có một thùng riêng, một hồ sơ dịch vụ độc lập.
+- Quét mã QR để mở hồ sơ hộ dân (lưu ý: QR chỉ mở hồ sơ, không tự chứng minh quyền sở hữu, cần đăng nhập xác thực).
+- Chức năng:
+  * Xem trạng thái thùng rác gia đình: Mức đầy (%), cảnh báo mùi hôi, thời gian cập nhật.
+  * Xem lịch thu gom dự kiến tiếp theo; phản ánh nếu bị bỏ sót rác, thùng bốc mùi hoặc thùng hỏng.
+  * Xem bảng kê phí tháng, tình trạng thanh toán, lịch sử đơn cồng kềnh.
 
-### Trang 03 & 04: Giám sát Đội xe Traccar GPS & Hiện trường
-- Tích hợp Traccar GPS và WebSocket để hiển thị vị trí thời gian thực của xe rác trên bản đồ (sử dụng MapLibre GL sẵn có của hệ thống).
-- Xử lý sự kiện Geofence: Phát hiện xe đi vào/đi ra khỏi vùng thu gom.
-  * **Lưu ý nghiệp vụ sống còn (Trang 04):** Sự kiện xe vào geofence và thời gian dừng đỗ **chỉ là bằng chứng hỗ trợ**, **chưa đủ điều kiện để tự động đóng phiếu thu gom**.
-- Ghi nhận sự cố hiện trường: Xe hỏng, ngõ tắc không tiếp cận được, mất sóng GPS (nghiệp vụ: mất GPS không được tự động quy kết tài xế bỏ việc).
+### Trang 09 & 10: Thu Phí Định Kỳ Hàng Tháng & Xử Lý Nợ An Toàn
+- **Tách biệt 2 khoản thu (Trang 09):** Phí thu gom thường kỳ và Phí rác cồng kềnh có mã khoản thu riêng biệt. Khách trả tiền sofa **không được tự ý cấn trừ vào nợ phí tháng**.
+- Tích hợp thanh toán: Hỗ trợ thanh toán qua mã QR, liên kết cổng thanh toán (MoMo/VNPAY) và ủy quyền trích nợ tự động.
+- Chống thu tiền trùng & Giao dịch lặp: Xử lý idempotent webhook từ cổng thanh toán; nếu phát sinh thanh toán 2 lần, tự động đưa vào danh sách đối soát hoàn tiền hoặc chuyển kỳ sau.
+- **Quy trình nhắc nợ & Tạm ngừng thu gom (Trang 10):**
+  * Lịch nhắc nợ: Ngày $D$ (hạn đóng), $D+3$ (nhắc lần 1), $D+7$ (nhắc lần 2), $D+14$ (chuyển quản lý duyệt).
+  * **QUY TẮC SỐNG CÒN (Trang 10):** Hệ thống **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG CHẶN THU GOM**. Việc tạm ngừng thu gom bắt buộc phải qua bước kiểm tra chính sách an sinh và có **Người có thẩm quyền duyệt**.
+  * **CẢNH BÁO MÔI TRƯỜNG VẪN HOẠT ĐỘNG:** Dù hộ bị tạm ngừng phục vụ vì nợ tiền rác, **cảm biến IoT vẫn tiếp tục ghi nhận mức đầy/mùi**, không được tắt cảm biến hoặc xóa lịch sử vì nợ!
 
-### Trang 05: Bàn giao rác & Kết thúc chuyến (Offloading & Weighbridge)
-- **Tách bạch 2 khái niệm:** Đóng phiếu tại điểm (thuộc Dev 2) $\neq$ Đóng chuyến xe (thuộc Dev 1).
-- Theo dõi xe đến điểm bàn giao / bãi dỡ rác / trạm trung chuyển.
-- **Quy tắc vàng (Trang 05):** Xe đến điểm bàn giao **chưa chứng minh đã dỡ rác**. Chỉ được cập nhật reset sức chứa xe sau khi có xác nhận **Phiếu cân** hoặc **Biên nhận bàn giao**.
-- Tổng hợp đối soát chuyến xe: Thời gian, quãng đường di chuyển thực tế (theo Traccar), khối lượng rác đã giao.
+### Trang 11 & 12: Đặt Thu Rác Cồng Kềnh Trả Trước (Bulky Waste Service)
+- Danh mục nhận: Sofa, nệm, bàn/tủ... Rác nguy hại/xây dựng không nhận chung.
+- Luồng dịch vụ:
+  1. Hộ dân tải ảnh chụp vật dụng, chọn địa chỉ và ngày mong muốn.
+  2. **AI nhận diện ảnh:** Nhận diện loại đồ đạc (sofa, nệm, bàn...). Khách xác nhận lại số lượng, kích thước, tầng lầu, thang máy, yêu cầu tháo dỡ.
+     * *Lưu ý (Trang 12):* Không suy đoán khối lượng tuyệt đối từ ảnh.
+  3. Kiểm tra năng lực phục vụ (xe tải cồng kềnh & tổ bốc xếp ngày đó còn trống hay không).
+  4. **Tính phí & Giữ chỗ có thời hạn:** Áp dụng bảng giá có phiên bản:
+     $$\text{Tổng phí} = \text{Phí vật dụng} + \text{Phí xe/khu vực} + \text{Phí bốc xếp/tháo dỡ} + \text{Thuế/phí} - \text{Ưu đãi}$$
+  5. **Thanh toán trả trước:** Chỉ khi thanh toán thành công mới xác nhận đơn và chuyển sang đội thu gom (Dev 2). Nếu quá hạn giữ chỗ chưa trả tiền: tự động giải phóng chỗ.
+
+### Trang 13: Xử Lý Ngoại Lệ & Hoàn Tiền
+- Đơn vị hủy / Xe hỏng: Thông báo ngay cho khách đổi ngày; nếu khách không đồng ý thì xử lý hoàn tiền đầy đủ.
+- Khách trả nợ sát giờ xe đến: Tự động hủy lệnh chặn, khôi phục trạng thái phục vụ và cập nhật vào lộ trình chuyến tiếp theo.
 
 ---
 
-## 2. RANH GIỚI FILE VÀ THƯ MỤC CỦA DEV 1
+## 2. RANH GIỚI FILE VÀ THƯ MỤC CỦA DEV 3
 
 ```
 src/
 ├── modules/
-│   ├── fleet/                   <-- [DEV 1 TOÀN QUYỀN]
-│   │   ├── components/          # Bảng xe, trạng thái xe, giám sát nhiên liệu/GPS
-│   │   ├── pages/               # FleetTrackingPage, TransferStationPage
-│   │   ├── services/            # TraccarSocketService, VehicleApiService
-│   │   └── routes.jsx           # Khai báo route riêng của Fleet
-│   └── iot-bins/                <-- [DEV 1 TOÀN QUYỀN]
-│       ├── components/          # Thẻ thùng rác, biểu đồ pin, cảnh báo mức đầy/mùi
-│       ├── pages/               # BinMonitoringPage, SensorHealthPage
-│       ├── services/            # BinTelemetryService
-│       └── routes.jsx           # Khai báo route riêng của IoT Bins
+│   ├── citizen/                 <-- [DEV 3 TOÀN QUYỀN]
+│   │   ├── components/          # HouseholdProfile, BinStatusCard, ComplaintForm
+│   │   ├── pages/               # CitizenPortalPage, CitizenHistoryPage
+│   │   └── routes.jsx           # Khai báo route riêng của Citizen
+│   ├── billing/                 <-- [DEV 3 TOÀN QUYỀN]
+│   │   ├── components/          # InvoiceTable, PaymentModal, DebtReminderList, SuspensionApprovalModal
+│   │   ├── pages/               # BillingDashboardPage, DebtManagementPage
+│   │   ├── services/            # PaymentGatewayService, DebtWorkflowService
+│   │   └── routes.jsx           # Khai báo route riêng của Billing
+│   └── bulky/                   <-- [DEV 3 TOÀN QUYỀN]
+│       ├── components/          # ItemPhotoUploader, AiRecognitionPreview, PricingCalculator, BookingSlotPicker
+│       ├── pages/               # BulkyBookingPage, BulkyOrderDetailPage
+│       └── services/            # BulkyPricingEngineService, VisionAiService
 ├── store/
-│   ├── fleet/                   <-- [DEV 1 TOÀN QUYỀN]
-│   └── bins/                    <-- [DEV 1 TOÀN QUYỀN]
+│   ├── citizen/                 <-- [DEV 3 TOÀN QUYỀN]
+│   └── billing/                 <-- [DEV 3 TOÀN QUYỀN]
 └── contracts/                   <-- [DÙNG CHUNG] Đọc interface tại đây
 ```
 
 ---
 
-## 3. GIAO ƯỚC DỮ LIỆU CẦN CUNG CẤP CHO DEV 2 & DEV 3
+## 3. GIAO ƯỚC DỮ LIỆU CẦN TIÊU THỤ VÀ CUNG CẤP
 
-Dev 1 có trách nhiệm cung cấp dữ liệu theo chuẩn sau:
+### Tiêu thụ từ DEV 1:
+- Dữ liệu mức đầy và mùi của thùng rác hộ gia đình để hiển thị lên Citizen App (`SmartBinTelemetry`).
 
-### Trạng thái Thùng rác (Bin State):
+### Cung cấp cho DEV 2:
+- Trạng thái nợ / dịch vụ của hộ gia đình:
 ```typescript
-interface SmartBinTelemetry {
-  binId: string;
+interface HouseholdServiceStatus {
   householdId: string;
-  fillLevel: number; // 0 - 100%
-  odorDetected: boolean;
-  batteryLevel: number;
-  lastUpdated: string; // ISO 8601
-  status: 'ONLINE' | 'OFFLINE' | 'SENSOR_FAULT';
-  latitude: number;
-  longitude: number;
+  serviceActive: boolean; // false nếu đã được cấp có thẩm quyền duyệt tạm ngừng
+  suspendedReason?: string;
+  suspendedAt?: string;
+  approvedBy?: string;
 }
 ```
-
-### Trạng thái Xe & Tải trọng (Vehicle State):
+- Đơn rác cồng kềnh đã chốt & thanh toán thành công:
 ```typescript
-interface WasteVehicleState {
-  vehicleId: string;
-  driverId: string;
-  plateNumber: string;
-  status: 'IDLE' | 'COLLECTING' | 'AT_TRANSFER_STATION' | 'MAINTENANCE';
-  currentWeightKg: number;
-  maxWeightKg: number;
+interface BulkyWasteOrder {
+  orderId: string;
+  householdId: string;
+  itemType: 'SOFA' | 'MATTRESS' | 'CABINET' | 'TABLE' | 'OTHER';
+  itemsCount: number;
+  pickupDate: string; // YYYY-MM-DD
+  address: string;
   latitude: number;
   longitude: number;
-  speedKmH: number;
-  isGpsLost: boolean;
-  lastReceiptId?: string; // Mã phiếu cân xác nhận dỡ rác
+  hasElevator: boolean;
+  floor: number;
+  totalPriceVnd: number;
+  isPaid: boolean;
+  paymentTransactionId: string;
+  status: 'PAID_CONFIRMED' | 'ASSIGNED' | 'COLLECTED' | 'REFUNDED';
 }
 ```
 
 ---
 
-## 4. QUY TRÌNH LÀM VIỆC TRÊN NHÁNH `dev-NhanXt`
+## 4. QUY TRÌNH LÀM VIỆC TRÊN NHÁNH `dev-EnglandLee`
 
 Trước khi bắt đầu code mỗi ngày hoặc trước khi chuẩn bị tạo Pull Request:
 ```bash
@@ -113,7 +132,7 @@ npm run lint
 npm run build
 
 # 3. Đẩy lên nhánh remote
-git push origin dev-NhanXt
+git push origin dev-EnglandLee
 ```
 
 > Hãy tuân thủ nghiêm ngặt ranh giới thư mục để đảm bảo khi tạo PR vào `main`, lệnh merge sẽ diễn ra tự động 100% không có bất kỳ conflict nào!

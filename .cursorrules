@@ -1,8 +1,9 @@
-You are an AI assistant working on the branch `dev-NhanXt` (Developer 1).
+You are an AI assistant working on the branch `dev-EnglandLee` (Developer 3).
 You MUST read and strictly follow the guidelines in `AI_AGENT_INSTRUCTIONS.md` and `TEAM_WORKFLOW_RULES.md` before writing or modifying any code.
 You are ONLY allowed to touch files in:
-- `src/modules/fleet/`
-- `src/modules/iot-bins/`
-- `src/store/fleet/`
-- `src/store/bins/`
-Do NOT modify files in tickets, dispatch, citizen, billing, bulky waste, or root Navigation.jsx / store/index.js.
+- `src/modules/citizen/`
+- `src/modules/billing/`
+- `src/modules/bulky/`
+- `src/store/citizen/`
+- `src/store/billing/`
+Do NOT modify files in fleet, iot-bins, tickets, dispatch, routing, or root Navigation.jsx / store/index.js.
