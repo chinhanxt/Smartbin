@@ -7,7 +7,15 @@ const asVnd = (value, field) => {
   return n;
 };
 
-const stable = (value) => JSON.stringify(value, Object.keys(value || {}).sort());
+const stable = (value) => {
+  if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
+  if (value && typeof value === 'object')
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stable(value[key])}`)
+      .join(',')}}`;
+  return JSON.stringify(value);
+};
 
 export function calculateQuote({
   confirmedItems = [],
@@ -46,6 +54,8 @@ export function calculateQuote({
     add('DISASSEMBLY', 'Disassembly', priceBook.disassemblyFee);
   if (handlingConditions.vehicleClass)
     add('VEHICLE_FEE', 'Vehicle class', priceBook.vehicleFees?.[handlingConditions.vehicleClass]);
+  const areaCode = typeof serviceArea === 'string' ? serviceArea : serviceArea.code;
+  add('SERVICE_AREA_FEE', 'Service area', priceBook.serviceAreaFees?.[areaCode]);
   const discountVnd = asVnd(priceBook.discountVnd || 0, 'discountVnd');
   const taxVnd = asVnd(priceBook.taxVnd || 0, 'taxVnd');
   if (discountVnd)

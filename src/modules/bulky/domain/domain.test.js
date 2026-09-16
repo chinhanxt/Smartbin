@@ -9,9 +9,8 @@ import {
 } from './constants.js';
 import { BulkyServiceError } from './errors.js';
 import { transitionOrder } from './transitions.js';
-import { evaluateChangePolicy, settleChangeProposal } from './policies.js';
+import { evaluateChangePolicy, settleChangeProposal, evaluateAiResult } from './policies.js';
 import { calculateQuote, isQuoteExpired } from './pricing.js';
-import { evaluateAiResult } from './recognition.js';
 import { toDispatchBulkyWasteOrder, createDispatchEvent } from './dispatchMapper.js';
 
 describe('bulky domain contracts', () => {
@@ -76,6 +75,23 @@ describe('bulky domain contracts', () => {
     expect(isQuoteExpired(quote, '2026-01-01T00:30:00.000Z')).toBe(true);
   });
 
+  it('hashes nested facts and includes the service-area fee', () => {
+    const input = {
+      confirmedItems: [{ catalogItemCode: 'SOFA', quantity: 1, dimensionsCm: { length: 2 } }],
+      handlingConditions: {},
+      serviceArea: { code: 'A' },
+      priceBook: { version: 'v1', items: { SOFA: 100000 }, serviceAreaFees: { A: 25000 } },
+      now: '2026-01-01T00:00:00Z',
+    };
+    const first = calculateQuote(input);
+    const second = calculateQuote({
+      ...input,
+      confirmedItems: [{ ...input.confirmedItems[0], dimensionsCm: { length: 3 } }],
+    });
+    expect(first.totalVnd).toBe(125000);
+    expect(first.confirmedInputHash).not.toBe(second.confirmedInputHash);
+  });
+
   it('preserves old booking until a change is accepted and applies cutoff policy', () => {
     const order = {
       orderStatus: ORDER_STATUS.CONFIRMED,
@@ -125,17 +141,25 @@ describe('bulky domain contracts', () => {
     });
     expect(settled.refundStatus).toBe(REFUND_STATUS.REQUESTED);
     const oldOrder = { orderStatus: ORDER_STATUS.CONFIRMED, acceptedQuote: { totalVnd: 100000 } };
-    expect(settleChangeProposal({ order: oldOrder, proposal: { totalVnd: 100000 } }).outcome).toBe(
-      'EQUAL_PRICE',
-    );
     expect(
       settleChangeProposal({
         order: oldOrder,
-        proposal: { totalVnd: 150000 },
+        proposal: { status: 'ACCEPTED', hold: { status: 'ACTIVE' }, totalVnd: 100000 },
+      }).outcome,
+    ).toBe('EQUAL_PRICE');
+    expect(
+      settleChangeProposal({
+        order: oldOrder,
+        proposal: { status: 'ACCEPTED', hold: { status: 'ACTIVE' }, totalVnd: 150000 },
         settlement: { paymentStatus: PAYMENT_STATUS.UNPAID },
       }),
     ).toMatchObject({ accepted: false, preservesCurrentBooking: true });
-    expect(settleChangeProposal({ order: oldOrder, proposal: { totalVnd: 50000 } })).toMatchObject({
+    expect(
+      settleChangeProposal({
+        order: oldOrder,
+        proposal: { status: 'ACCEPTED', hold: { status: 'ACTIVE' }, totalVnd: 50000 },
+      }),
+    ).toMatchObject({
       accepted: true,
       outcome: 'PARTIAL_REFUND_DUE',
     });
@@ -150,6 +174,7 @@ describe('bulky domain contracts', () => {
       confirmationVersion: 1,
       confirmedItems: [{ catalogItemCode: 'SOFA', quantity: 1 }],
       requestedDate: '2026-01-10',
+      confirmedServiceWindow: { date: '2026-01-10' },
       serviceLocation: { address: 'A', latitude: 1, longitude: 2 },
       handlingConditions: { hasLift: true, floorNumber: 2 },
       acceptedQuote: { totalVnd: 100000 },
@@ -160,11 +185,21 @@ describe('bulky domain contracts', () => {
       isPaid: true,
       status: 'PAID_CONFIRMED',
     });
-    expect(createDispatchEvent(order, 'UPSERT')).toMatchObject({
+    expect(createDispatchEvent(order, 'UPSERT', '2026-01-01T00:00:00.000Z')).toMatchObject({
       eventId: 'b1:1:UPSERT',
       type: 'UPSERT',
     });
-    expect(createDispatchEvent(order, 'CANCEL', '2026-01-01T00:00:00.000Z')).toMatchObject({
+    expect(
+      createDispatchEvent(
+        {
+          ...order,
+          orderStatus: ORDER_STATUS.CANCELLED,
+          cancelledFromStatus: ORDER_STATUS.CONFIRMED,
+        },
+        'CANCEL',
+        '2026-01-01T00:00:00.000Z',
+      ),
+    ).toMatchObject({
       eventId: 'b1:1:CANCEL',
       occurredAt: '2026-01-01T00:00:00.000Z',
     });

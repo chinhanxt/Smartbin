@@ -1,4 +1,27 @@
-import { CHANGE_DECISION, ORDER_STATUS, PAYMENT_STATUS, REFUND_STATUS } from './constants.js';
+import {
+  ACCEPTED_ITEM_TYPES,
+  AI_DECISION,
+  CHANGE_DECISION,
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+  REFUND_STATUS,
+} from './constants.js';
+
+export function evaluateAiResult({ itemType, confidence = 0, quantity, uncertain = false } = {}) {
+  const accepted = ACCEPTED_ITEM_TYPES.includes(itemType);
+  const manualReview = !accepted || uncertain;
+  return {
+    itemType: accepted ? itemType : 'OTHER',
+    confidence,
+    ...(Number.isInteger(quantity) ? { suggestedQuantity: quantity } : {}),
+    requiresManualReview: manualReview,
+    decision: manualReview
+      ? AI_DECISION.MANUAL_REVIEW
+      : confidence >= 0.8
+        ? AI_DECISION.SUGGESTED
+        : AI_DECISION.NEEDS_CONFIRMATION,
+  };
+}
 
 export function evaluateChangePolicy({
   order,
@@ -34,7 +57,7 @@ export function evaluateChangePolicy({
   if (action === 'CANCEL' && beforeCutoff) {
     const settled =
       order?.paymentStatus === PAYMENT_STATUS.SUCCESS ||
-      Number(order?.acceptedPayment?.amountVnd || 0) > 0;
+      order?.acceptedPayment?.status === PAYMENT_STATUS.SUCCESS;
     return {
       decision: CHANGE_DECISION.ALLOWED,
       reason: settled ? 'FULL_REFUND' : 'RELEASE_HOLD_NO_REFUND',
@@ -52,6 +75,10 @@ export function evaluateChangePolicy({
 }
 
 export const settleChangeProposal = ({ order, proposal, settlement = {} }) => {
+  const proposalStatus = proposal?.status;
+  const holdStatus = proposal?.hold?.status || proposal?.proposedHold?.status;
+  if (!['ACCEPTED', 'OFFERED'].includes(proposalStatus) || holdStatus !== 'ACTIVE')
+    return { accepted: false, preservesCurrentBooking: true, outcome: 'PROPOSAL_NOT_SETTLEABLE' };
   const difference =
     Number(proposal?.quote?.totalVnd ?? proposal?.totalVnd ?? 0) -
     Number(order?.acceptedQuote?.totalVnd ?? order?.totalPriceVnd ?? 0);
