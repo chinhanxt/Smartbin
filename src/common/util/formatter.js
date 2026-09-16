@@ -145,7 +145,6 @@ export const getStatusColor = (status) => {
     case 'online':
       return 'success';
     case 'offline':
-      return 'error';
     case 'unknown':
     default:
       return 'neutral';
