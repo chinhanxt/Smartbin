@@ -90,10 +90,6 @@ const useStyles = makeStyles()((theme) => ({
       padding: '8px 4px',
       fontSize: '14px',
       color: '#020817',
-      '&::placeholder': {
-        color: '#64748b',
-        opacity: 1,
-      },
     },
   },
   searchIcon: {
