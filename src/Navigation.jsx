@@ -3,7 +3,6 @@ import { Route, Routes, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import MainPage from './main/MainPage';
 import App from './App';
-import MobileTrackerPage from './other/MobileTrackerPage';
 import Loader from './common/components/Loader';
 import { useAsyncTask } from './reactHelper';
 import { devicesActions } from './store';
@@ -127,12 +126,8 @@ const Navigation = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/change-server" element={<ChangeServerPage />} />
-        <Route path="/client" element={<MobileTrackerPage />} />
-        <Route path="/tracker" element={<MobileTrackerPage />} />
         <Route path="/" element={<App />}>
           <Route index element={<MainPage />} />
-          <Route path="client" element={<MobileTrackerPage />} />
-          <Route path="tracker" element={<MobileTrackerPage />} />
 
           <Route path="position/:id" element={<PositionPage />} />
           <Route path="network/:positionId" element={<NetworkPage />} />

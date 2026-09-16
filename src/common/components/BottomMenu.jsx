@@ -16,7 +16,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import MapIcon from '@mui/icons-material/Map';
 import PersonIcon from '@mui/icons-material/Person';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-import MyLocationIcon from '@mui/icons-material/MyLocation';
 
 import { sessionActions } from '../../store';
 import { useTranslation } from './LocalizationProvider';
@@ -50,9 +49,6 @@ const BottomMenu = () => {
     }
     if (location.pathname === '/') {
       return 'map';
-    }
-    if (location.pathname === '/tracker' || location.pathname === '/client') {
-      return 'tracker';
     }
     return null;
   };
@@ -99,9 +95,6 @@ const BottomMenu = () => {
       case 'map':
         navigate('/');
         break;
-      case 'tracker':
-        navigate('/tracker');
-        break;
       case 'reports': {
         let id = selectedDeviceId;
         if (id == null) {
@@ -143,11 +136,6 @@ const BottomMenu = () => {
             </Badge>
           }
           value="map"
-        />
-        <BottomNavigationAction
-          label="Phát GPS"
-          icon={<MyLocationIcon />}
-          value="tracker"
         />
         {!disableReports && (
           <BottomNavigationAction

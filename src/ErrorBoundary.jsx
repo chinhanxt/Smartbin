@@ -30,9 +30,6 @@ class ErrorBoundary extends React.Component {
             <Button variant="contained" color="primary" onClick={() => window.location.reload()}>
               Tải lại trang (Reload)
             </Button>
-            <Button variant="outlined" onClick={() => { window.location.href = '/tracker'; }}>
-              Mở Bộ Phát GPS (/tracker)
-            </Button>
           </Box>
         </Box>
       );
