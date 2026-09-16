@@ -20,7 +20,7 @@ const DeviceUsersValue = ({ deviceId }) => {
   }
   return (
     <Link href="#" onClick={loadUsers}>
-      {t('reportShow')}
+      {t('sharedShow') || 'Xem'}
     </Link>
   );
 };

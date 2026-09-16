@@ -104,6 +104,100 @@ export default {
           color: theme.palette.alwaysDark.main,
         },
       }),
+      head: {
+        fontWeight: 600,
+        fontSize: '0.75rem',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        backgroundColor: '#f8fafc',
+        borderBottom: '1px solid #e2e8f0',
+        padding: '12px 16px',
+      },
+      body: {
+        fontSize: '0.875rem',
+        color: '#020817',
+        borderBottom: '1px solid #f1f5f9',
+        padding: '12px 16px',
+      },
+    },
+  },
+  MuiAccordion: {
+    defaultProps: {
+      disableGutters: true,
+      elevation: 0,
+    },
+    styleOverrides: {
+      root: {
+        borderRadius: '12px !important',
+        border: '1px solid #e2e8f0',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.04)',
+        marginBottom: '14px !important',
+        overflow: 'hidden',
+        '&:before': {
+          display: 'none',
+        },
+        '&.Mui-expanded': {
+          marginBottom: '16px !important',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.06)',
+        },
+      },
+    },
+  },
+  MuiAccordionSummary: {
+    styleOverrides: {
+      root: {
+        padding: '0 20px',
+        minHeight: '52px !important',
+        backgroundColor: '#ffffff',
+        transition: 'background-color 0.15s ease',
+        '&:hover': {
+          backgroundColor: '#f8fafc',
+        },
+        '&.Mui-expanded': {
+          borderBottom: '1px solid #e2e8f0',
+          minHeight: '52px !important',
+        },
+      },
+      content: {
+        margin: '14px 0 !important',
+        '& .MuiTypography-root': {
+          fontWeight: 600,
+          fontSize: '0.9375rem',
+          color: '#020817',
+        },
+      },
+      expandIconWrapper: {
+        color: '#64748b',
+      },
+    },
+  },
+  MuiAccordionDetails: {
+    styleOverrides: {
+      root: {
+        padding: '24px 20px',
+        backgroundColor: '#ffffff',
+      },
+    },
+  },
+  MuiTableHead: {
+    styleOverrides: {
+      root: {
+        backgroundColor: '#f8fafc',
+      },
+    },
+  },
+  MuiTableBody: {
+    styleOverrides: {
+      root: {
+        '& .MuiTableRow-root': {
+          transition: 'background-color 0.12s ease',
+          '&:hover': {
+            backgroundColor: '#f8fafc',
+          },
+        },
+      },
     },
   },
 };

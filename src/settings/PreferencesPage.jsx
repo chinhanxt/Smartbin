@@ -26,6 +26,11 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CachedIcon from '@mui/icons-material/Cached';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import MapIcon from '@mui/icons-material/Map';
+import DnsIcon from '@mui/icons-material/Dns';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import InfoIcon from '@mui/icons-material/Info';
 import { useTranslation, useTranslationKeys } from '../common/components/LocalizationProvider';
 import PageLayout from '../common/components/PageLayout';
 import SettingsMenu from './components/SettingsMenu';
@@ -110,11 +115,20 @@ const PreferencesPage = () => {
 
   return (
     <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'sharedPreferences']}>
-      <Container maxWidth="xs" className={classes.container}>
+      <Container maxWidth="md" className={classes.container}>
+        <div style={{ marginBottom: '20px' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: '#020817', mb: 0.5 }}>
+            {t('sharedPreferences')}
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748b' }}>
+            Tùy chỉnh bản đồ, định dạng thiết bị và các thông số vận hành hệ thống thu gom
+          </Typography>
+        </div>
         {!readonly && (
           <>
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <MapIcon sx={{ mr: 1.5, color: '#1d4ed8', fontSize: 20 }} />
                 <Typography variant="subtitle1">{t('mapTitle')}</Typography>
               </AccordionSummary>
               <AccordionDetails className={classes.details}>
@@ -299,6 +313,7 @@ const PreferencesPage = () => {
             </Accordion>
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <DnsIcon sx={{ mr: 1.5, color: '#1d4ed8', fontSize: 20 }} />
                 <Typography variant="subtitle1">{t('deviceTitle')}</Typography>
               </AccordionSummary>
               <AccordionDetails className={classes.details}>
@@ -322,6 +337,7 @@ const PreferencesPage = () => {
             </Accordion>
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <VolumeUpIcon sx={{ mr: 1.5, color: '#1d4ed8', fontSize: 20 }} />
                 <Typography variant="subtitle1">{t('sharedSound')}</Typography>
               </AccordionSummary>
               <AccordionDetails className={classes.details}>
@@ -352,6 +368,7 @@ const PreferencesPage = () => {
         )}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <VpnKeyIcon sx={{ mr: 1.5, color: '#1d4ed8', fontSize: 20 }} />
             <Typography variant="subtitle1">{t('userToken')}</Typography>
           </AccordionSummary>
           <AccordionDetails className={classes.details}>
@@ -401,6 +418,7 @@ const PreferencesPage = () => {
           <>
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <InfoIcon sx={{ mr: 1.5, color: '#1d4ed8', fontSize: 20 }} />
                 <Typography variant="subtitle1">{t('sharedInfoTitle')}</Typography>
               </AccordionSummary>
               <AccordionDetails className={classes.details}>

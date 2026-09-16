@@ -51,7 +51,7 @@ const SettingsMenu = () => {
   return (
     <List disablePadding sx={{ py: 1 }}>
       <ListSubheader disableSticky sx={subheaderStyle}>
-        {t('sharedPreferences') || 'Cá nhân'}
+        Cá nhân & Tùy chọn
       </ListSubheader>
       <MenuItem
         title={t('sharedPreferences')}
@@ -82,7 +82,7 @@ const SettingsMenu = () => {
         <>
           <Divider sx={{ my: 1, mx: 1.5, borderColor: '#e2e8f0' }} />
           <ListSubheader disableSticky sx={subheaderStyle}>
-            {t('deviceTitle') || 'Thiết bị & Giám sát'}
+            Thiết bị & Giám sát
           </ListSubheader>
           <MenuItem
             title={t('deviceTitle')}
@@ -132,7 +132,7 @@ const SettingsMenu = () => {
           <>
             <Divider sx={{ my: 1, mx: 1.5, borderColor: '#e2e8f0' }} />
             <ListSubheader disableSticky sx={subheaderStyle}>
-              {t('sharedMaintenance') || 'Vận hành & Nâng cao'}
+              Vận hành & Bảo trì
             </ListSubheader>
             {!features.disableComputedAttributes && (
               <MenuItem
@@ -171,7 +171,7 @@ const SettingsMenu = () => {
         <>
           <Divider sx={{ my: 1, mx: 1.5, borderColor: '#e2e8f0' }} />
           <ListSubheader disableSticky sx={subheaderStyle}>
-            {t('settingsServer') || 'Quản trị hệ thống'}
+            Quản trị hệ thống
           </ListSubheader>
           <MenuItem
             title={t('settingsUsers')}

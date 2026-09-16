@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { IconButton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { IconButton, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import LocationSearchingIcon from '@mui/icons-material/LocationSearching';
 import ReportFilter from './components/ReportFilter';
@@ -166,28 +166,38 @@ const CombinedReportPage = () => {
             </TableHead>
             <TableBody>
               {!loading ? (
-                items.flatMap((item) =>
-                  item.events.map((event, index) => (
-                    <TableRow key={event.id}>
-                      <TableCell className={classes.columnAction} padding="none">
-                        {(event.positionId &&
-                          (selected?.event === event ? (
-                            <IconButton size="small" onClick={() => setSelected(null)}>
-                              <GpsFixedIcon fontSize="small" />
-                            </IconButton>
-                          ) : (
-                            <IconButton size="small" onClick={() => setSelected({ item, event })}>
-                              <LocationSearchingIcon fontSize="small" />
-                            </IconButton>
-                          ))) ||
-                          ''}
-                      </TableCell>
-                      <TableCell>{index ? '' : devices[item.deviceId].name}</TableCell>
-                      {columns.map((key) => (
-                        <TableCell key={key}>{formatValue(item, event, key)}</TableCell>
-                      ))}
-                    </TableRow>
-                  )),
+                items.length > 0 ? (
+                  items.flatMap((item) =>
+                    item.events.map((event, index) => (
+                      <TableRow key={event.id}>
+                        <TableCell className={classes.columnAction} padding="none">
+                          {(event.positionId &&
+                            (selected?.event === event ? (
+                              <IconButton size="small" onClick={() => setSelected(null)}>
+                                <GpsFixedIcon fontSize="small" />
+                              </IconButton>
+                            ) : (
+                              <IconButton size="small" onClick={() => setSelected({ item, event })}>
+                                <LocationSearchingIcon fontSize="small" />
+                              </IconButton>
+                            ))) ||
+                            ''}
+                        </TableCell>
+                        <TableCell>{index ? '' : devices[item.deviceId].name}</TableCell>
+                        {columns.map((key) => (
+                          <TableCell key={key}>{formatValue(item, event, key)}</TableCell>
+                        ))}
+                      </TableRow>
+                    )),
+                  )
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length + 2} align="center" sx={{ py: 6 }}>
+                      <Typography variant="body2" color="textSecondary">
+                        Chưa có dữ liệu báo cáo. Vui lòng chọn thiết bị, khoảng thời gian và bấm &quot;Xem báo cáo&quot;.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
                 )
               ) : (
                 <TableShimmer columns={columns.length + 2} />

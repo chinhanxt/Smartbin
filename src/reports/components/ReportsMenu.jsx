@@ -62,7 +62,7 @@ const ReportsMenu = () => {
   return (
     <List disablePadding sx={{ py: 1 }}>
       <ListSubheader disableSticky sx={subheaderStyle}>
-        {t('reportTitle') || 'Lộ trình & Hoạt động'}
+        Lộ trình & Hoạt động
       </ListSubheader>
       <MenuItem
         title={t('reportCombined')}
@@ -104,7 +104,7 @@ const ReportsMenu = () => {
       <Divider sx={{ my: 1, mx: 1.5, borderColor: '#e2e8f0' }} />
 
       <ListSubheader disableSticky sx={subheaderStyle}>
-        {t('reportSummary') || 'Phân tích & Vùng'}
+        Phân tích & Thống kê
       </ListSubheader>
       <MenuItem
         title={t('reportSummary')}
@@ -128,7 +128,7 @@ const ReportsMenu = () => {
       <Divider sx={{ my: 1, mx: 1.5, borderColor: '#e2e8f0' }} />
 
       <ListSubheader disableSticky sx={subheaderStyle}>
-        {t('settingsServer') || 'Hệ thống'}
+        Hệ thống & Kiểm toán
       </ListSubheader>
       <MenuItem
         title={t('sharedLogs')}
