@@ -1,16 +1,13 @@
 version: '3.8'
 
 services:
-  smartbin-web:
+  smartbin-hrm:
     build:
       context: .
       dockerfile: Dockerfile
-    image: smartbin-web:latest
-    container_name: smartbin-web-app
+    container_name: smartbin-hrm-microservice
     ports:
-      - "3000:80"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "3004:80"
     restart: unless-stopped
     environment:
       - NODE_ENV=production

@@ -1,48 +1,28 @@
-# ==============================================================================
-# Multi-stage Dockerfile: Smartbin Central Web Application Microservice
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
-# Stage 1: Build Production Bundle with Node.js
-# ------------------------------------------------------------------------------
+# Multi-stage Dockerfile for SmartBin HRM & Fleet Management Microservice
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
-# Cache dependencies layer
+# Install dependencies
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install
 
-# Copy source code and build
+# Build static SPA
 COPY . .
 RUN npm run build
 
-# ------------------------------------------------------------------------------
-# Stage 2: Production Web Server with Nginx Alpine
-# ------------------------------------------------------------------------------
-FROM nginx:alpine AS runner
+# Production Nginx runtime
+FROM nginx:alpine
+LABEL maintainer="SmartBin Team <tech@smartbin.gov.vn>"
+LABEL service="smartbin-hrm-service"
+LABEL version="1.0.0"
 
-LABEL maintainer="Smartbin Team <chinhan@smartbin.gov.vn>"
-LABEL service="smartbin-web-app"
-LABEL description="Smartbin Central Management & Telemetry Web Microservice"
-LABEL version="2.5.0"
-
-# Remove default nginx assets
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copy custom Nginx configuration
+COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy production assets from builder stage
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# Expose HTTP port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1/healthz || exit 1
 
 STOPSIGNAL SIGQUIT
-
 CMD ["nginx", "-g", "daemon off;"]
