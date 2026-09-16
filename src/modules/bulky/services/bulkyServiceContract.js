@@ -1,0 +1,22 @@
+export const BULKY_CAPABILITIES = Object.freeze({
+  VIEW_BULKY_ORDERS: 'VIEW_BULKY_ORDERS',
+  MANAGE_BULKY_ORDERS: 'MANAGE_BULKY_ORDERS',
+});
+
+export const BULKY_ERROR_CODES = Object.freeze({
+  UNAUTHENTICATED: 'UNAUTHENTICATED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  VALIDATION: 'VALIDATION',
+  CONFLICT: 'CONFLICT',
+  SLOT_EXPIRED: 'SLOT_EXPIRED',
+  UNAVAILABLE: 'UNAVAILABLE',
+  OFFLINE: 'OFFLINE',
+  UNKNOWN: 'UNKNOWN',
+});
+
+export const BULKY_STORAGE_KEYS = Object.freeze({
+  REPOSITORY: 'smartbin:bulky:v1:repository',
+  CACHE_PREFIX: 'smartbin:bulky:v1:cache:',
+  DRAFTS_PREFIX: 'smartbin:bulky:v1:offline-drafts:',
+});
