@@ -1,3 +1,4 @@
+import { createSelector } from '@reduxjs/toolkit';
 import { BULKY_CAPABILITIES } from '../services/bulkyServiceContract.js';
 import { ORDER_STATUS, PAYMENT_STATUS, REFUND_STATUS } from '../domain/constants.js';
 
@@ -13,10 +14,13 @@ export const selectBulkyCatalog = (state) => selectBulkyState(state).catalog || 
 
 export const selectBulkyDraft = (state) => selectBulkyState(state).draft || null;
 
-export const selectBulkyOrders = (state) => {
-  const bulky = selectBulkyState(state);
-  return (bulky.orderIds || []).map((id) => bulky.ordersById[id]).filter(Boolean);
-};
+export const selectBulkyOrderIds = (state) => selectBulkyState(state).orderIds || [];
+export const selectBulkyOrdersById = (state) => selectBulkyState(state).ordersById || {};
+
+export const selectBulkyOrders = createSelector(
+  [selectBulkyOrderIds, selectBulkyOrdersById],
+  (orderIds, ordersById) => orderIds.map((id) => ordersById[id]).filter(Boolean),
+);
 
 export const selectBulkyOrderById = (state, orderId) =>
   selectBulkyState(state).ordersById?.[orderId] || null;
