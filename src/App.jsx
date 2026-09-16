@@ -92,35 +92,71 @@ export default function App() {
     setLogs((prev) => [{ time: timeStr, text, success, id: Date.now() + Math.random() }, ...prev.slice(0, 49)]);
   }, []);
 
-  // 1. Auto IP detection
+  const [deviceIndex, setDeviceIndex] = useState(() => {
+    return Number(localStorage.getItem('smartbin_device_index')) || 1;
+  });
+  const [clientIp, setClientIp] = useState('');
+
+  // Client token helper for persistent device identification
+  const getOrCreateClientToken = () => {
+    let tok = localStorage.getItem('smartbin_client_token');
+    if (!tok) {
+      tok = 'dev_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+      localStorage.setItem('smartbin_client_token', tok);
+    }
+    return tok;
+  };
+
+  // 1. Auto IP & Multi-device Discrimination (e.g. 171.236.48.232-01, 171.236.48.232-02)
   useEffect(() => {
     let cancelled = false;
 
     const fetchIp = async () => {
-      let clientIp = null;
+      const clientToken = getOrCreateClientToken();
+      let resolvedDeviceId = null;
+      let resolvedIp = null;
+      let resolvedIndex = 1;
+
       try {
-        const res = await fetch('/client-ip');
+        const res = await fetch(`/client-ip?token=${encodeURIComponent(clientToken)}`);
         if (res.ok) {
           const data = await res.json();
-          if (data?.ip && data.ip !== '127.0.0.1' && data.ip !== '::1') {
-            clientIp = data.ip;
+          if (data?.deviceId) {
+            resolvedDeviceId = data.deviceId;
+            resolvedIp = data.ip;
+            resolvedIndex = data.deviceIndex || 1;
           }
         }
       } catch {}
 
-      if (!clientIp) {
+      if (!resolvedDeviceId) {
         try {
           const res = await fetch('https://api.ipify.org?format=json');
           if (res.ok) {
             const data = await res.json();
-            if (data?.ip) clientIp = data.ip;
+            if (data?.ip) {
+              resolvedIp = data.ip;
+              let suffix = localStorage.getItem('smartbin_device_suffix');
+              if (!suffix) {
+                suffix = String(Math.floor(10 + Math.random() * 90));
+                localStorage.setItem('smartbin_device_suffix', suffix);
+              }
+              resolvedDeviceId = `${data.ip}-${suffix}`;
+            }
           }
         } catch {}
       }
 
-      if (!cancelled && clientIp) {
-        setDeviceId(clientIp);
-        localStorage.setItem('smartbin_device_id', clientIp);
+      if (!cancelled && resolvedDeviceId) {
+        const isCustom = localStorage.getItem('smartbin_is_custom_id') === 'true';
+        if (!isCustom) {
+          setDeviceId(resolvedDeviceId);
+          localStorage.setItem('smartbin_device_id', resolvedDeviceId);
+        }
+        setClientIp(resolvedIp || '');
+        setDeviceIndex(resolvedIndex);
+        localStorage.setItem('smartbin_device_index', resolvedIndex.toString());
+
         if (latestPosRef.current && transmitPositionRef.current) {
           transmitPositionRef.current(latestPosRef.current);
         }
@@ -400,19 +436,24 @@ export default function App() {
           </div>
 
           <div className="p-5 space-y-4">
-            {/* Device ID (Automatic IP) */}
+            {/* Device ID (Automatic IP + Device Index) */}
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Mã thiết bị (IP tự động)
+                  Mã thiết bị (Tự động phân biệt)
                 </p>
                 <p className="text-lg font-extrabold text-slate-900 font-mono tracking-tight">
-                  {deviceId || 'Đang nhận diện IP...'}
+                  {deviceId || 'Đang nhận diện...'}
                 </p>
+                {clientIp && (
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    IP mạng: <span className="font-mono">{clientIp}</span> • Máy số: <strong className="text-emerald-700">#{deviceIndex}</strong>
+                  </p>
+                )}
               </div>
               <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                 <Smartphone className="w-3.5 h-3.5" />
-                {isMobile ? 'GPS Di Động' : 'Mạng IP'}
+                {isMobile ? `iPhone #${deviceIndex}` : `Thiết bị #${deviceIndex}`}
               </span>
             </div>
 
