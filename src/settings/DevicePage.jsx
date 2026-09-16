@@ -23,7 +23,6 @@ import SettingsMenu from './components/SettingsMenu';
 import useCommonDeviceAttributes from '../common/attributes/useCommonDeviceAttributes';
 import { useCatch } from '../reactHelper';
 import useSettingsStyles from './common/useSettingsStyles';
-import QrCodeDialog from '../common/components/QrCodeDialog';
 import fetchOrThrow from '../common/util/fetchOrThrow';
 
 const DevicePage = () => {
@@ -39,7 +38,6 @@ const DevicePage = () => {
   const uniqueId = searchParams.get('uniqueId');
 
   const [item, setItem] = useState(uniqueId ? { uniqueId } : null);
-  const [showQr, setShowQr] = useState(false);
   const [imageFile, setImageFile] = useState(null);
 
   const handleFileInput = useCatch(async (newFile) => {
@@ -153,9 +151,6 @@ const DevicePage = () => {
                 label={t('sharedDisabled')}
                 disabled={!manager}
               />
-              <Button variant="outlined" color="primary" onClick={() => setShowQr(true)}>
-                {t('sharedQrCode')}
-              </Button>
             </AccordionDetails>
           </Accordion>
           {item.id && (
@@ -180,7 +175,6 @@ const DevicePage = () => {
           />
         </>
       )}
-      <QrCodeDialog open={showQr} onClose={() => setShowQr(false)} />
     </EditItemView>
   );
 };

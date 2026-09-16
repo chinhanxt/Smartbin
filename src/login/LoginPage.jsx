@@ -10,13 +10,11 @@ import {
   Snackbar,
   IconButton,
   Tooltip,
-  Divider,
 } from '@mui/material';
 import CountryFlag from 'react-country-flag';
 import { makeStyles } from 'tss-react/mui';
 import CloseIcon from '@mui/icons-material/Close';
 import VpnLockIcon from '@mui/icons-material/VpnLock';
-import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useTheme } from '@mui/material/styles';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -32,7 +30,6 @@ import {
 } from '../common/components/NativeInterface';
 import LogoImage from './LogoImage';
 import { useCatch } from '../reactHelper';
-import QrCodeDialog from '../common/components/QrCodeDialog';
 import PasswordField from '../common/components/PasswordField';
 
 const useStyles = makeStyles()((theme) => ({
@@ -87,7 +84,6 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [showServerTooltip, setShowServerTooltip] = useState(false);
-  const [showQr, setShowQr] = useState(false);
 
   const registrationEnabled = useSelector((state) => state.session.server.registration);
   const languageEnabled = useSelector((state) => {
@@ -177,11 +173,6 @@ const LoginPage = () => {
             >
               <VpnLockIcon />
             </Tooltip>
-          </IconButton>
-        )}
-        {!nativeEnvironment && (
-          <IconButton color="primary" onClick={() => setShowQr(true)}>
-            <QrCode2Icon />
           </IconButton>
         )}
         {languageEnabled && (
@@ -277,17 +268,7 @@ const LoginPage = () => {
             )}
           </div>
         )}
-        <Divider sx={{ my: 1 }}>hoặc</Divider>
-        <Button
-          onClick={() => navigate('/tracker')}
-          variant="outlined"
-          color="primary"
-          sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
-        >
-          📱 Mở Bộ Phát Smartbin (Tài Xế / Xe Rác)
-        </Button>
       </div>
-      <QrCodeDialog open={showQr} onClose={() => setShowQr(false)} />
       <Snackbar
         open={!!announcement && !announcementShown}
         message={announcement}

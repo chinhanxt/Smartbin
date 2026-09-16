@@ -7,13 +7,9 @@ import {
   Button,
   Container,
   createFilterOptions,
-  Dialog,
-  DialogActions,
-  DialogContent,
   TextField,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Scanner } from '@yudiel/react-qr-scanner';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import Loader from '../common/components/Loader';
 import { errorsActions } from '../store';
@@ -34,29 +30,18 @@ const officialServers = [
 const useStyles = makeStyles()((theme) => ({
   icon: {
     textAlign: 'center',
-    fontSize: '10rem',
-    color: theme.palette.neutral.main,
+    fontSize: theme.spacing(6),
+    color: theme.palette.neutral?.main || theme.palette.text.secondary,
+    margin: theme.spacing(0, 'auto', 1),
   },
   container: {
     textAlign: 'center',
     padding: theme.spacing(5, 3),
   },
-  field: {
-    margin: theme.spacing(3, 0),
-  },
   buttons: {
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
     display: 'flex',
-    justifyContent: 'space-evenly',
-    '& > *': {
-      flexBasis: '30%',
-    },
-  },
-  scannerVideo: {
-    width: '100%',
-    maxWidth: '400px',
-    height: 'auto',
+    gap: theme.spacing(2),
+    padding: theme.spacing(2, 0),
   },
 }));
 
@@ -70,7 +55,6 @@ const ChangeServerPage = () => {
   const [loading, setLoading] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [inputValue, setInputValue] = useState(currentServer);
-  const [scannerOpen, setScannerOpen] = useState(false);
 
   const validateUrl = (url) => {
     try {
@@ -90,17 +74,6 @@ const ChangeServerPage = () => {
       window.appInterface.postMessage(`server|${normalized}`);
     } else {
       window.location.replace(normalized);
-    }
-  };
-
-  const handleScanResult = (codes) => {
-    if (codes && codes.length) {
-      const value = codes[0].rawValue || codes[0].value || '';
-      if (value) {
-        setInputValue(value);
-        setInvalid(!validateUrl(value));
-        setScannerOpen(false);
-      }
     }
   };
 
@@ -134,11 +107,6 @@ const ChangeServerPage = () => {
           <Button color="primary" variant="outlined" onClick={() => navigate(-1)}>
             {t('sharedCancel')}
           </Button>
-          {Boolean(navigator?.mediaDevices?.getUserMedia) && (
-            <Button color="primary" variant="outlined" onClick={() => setScannerOpen(true)}>
-              {t('sharedQrCode')}
-            </Button>
-          )}
           <Button
             color="primary"
             variant="contained"
@@ -151,20 +119,6 @@ const ChangeServerPage = () => {
           </Button>
         </div>
       </Container>
-
-      <Dialog fullWidth maxWidth="sm" open={scannerOpen} onClose={() => setScannerOpen(false)}>
-        <DialogContent>
-          <Scanner
-            constraints={{ facingMode: 'environment' }}
-            onScan={handleScanResult}
-            onError={(error) => dispatch(errorsActions.push(String(error)))}
-            className={classes.scannerVideo}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setScannerOpen(false)}>{t('sharedCancel')}</Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 };

@@ -9,12 +9,6 @@ import {
   ListItemButton,
   Typography,
 } from '@mui/material';
-import BatteryFullIcon from '@mui/icons-material/BatteryFull';
-import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
-import Battery60Icon from '@mui/icons-material/Battery60';
-import BatteryCharging60Icon from '@mui/icons-material/BatteryCharging60';
-import Battery20Icon from '@mui/icons-material/Battery20';
-import BatteryCharging20Icon from '@mui/icons-material/BatteryCharging20';
 import ErrorIcon from '@mui/icons-material/Error';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -162,31 +156,6 @@ const DeviceRow = ({ devices, index, style }) => {
                   ) : (
                     <EngineIcon width={20} height={20} className={classes.neutral} />
                   )}
-                </IconButton>
-              </Tooltip>
-            )}
-            {position.attributes.hasOwnProperty('batteryLevel') && (
-              <Tooltip
-                title={`${t('positionBatteryLevel')}: ${formatPercentage(position.attributes.batteryLevel)}`}
-              >
-                <IconButton size="small">
-                  {(position.attributes.batteryLevel > 70 &&
-                    (position.attributes.charge ? (
-                      <BatteryChargingFullIcon fontSize="small" className={classes.success} />
-                    ) : (
-                      <BatteryFullIcon fontSize="small" className={classes.success} />
-                    ))) ||
-                    (position.attributes.batteryLevel > 30 &&
-                      (position.attributes.charge ? (
-                        <BatteryCharging60Icon fontSize="small" className={classes.warning} />
-                      ) : (
-                        <Battery60Icon fontSize="small" className={classes.warning} />
-                      ))) ||
-                    (position.attributes.charge ? (
-                      <BatteryCharging20Icon fontSize="small" className={classes.error} />
-                    ) : (
-                      <Battery20Icon fontSize="small" className={classes.error} />
-                    ))}
                 </IconButton>
               </Tooltip>
             )}
