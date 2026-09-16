@@ -32,6 +32,9 @@ const SocketController = () => {
 
   const authenticated = useSelector((state) => Boolean(state.session.user));
   const includeLogs = useSelector((state) => state.session.includeLogs);
+  const devices = useSelector((state) => state.devices.items);
+  const devicesRef = useRef(devices);
+  devicesRef.current = devices;
 
   const socketRef = useRef();
   const reconnectTimeoutRef = useRef();
@@ -101,7 +104,7 @@ const SocketController = () => {
       dispatch(sessionActions.updateSocket(false));
       if (event.code === logoutCode) return;
       try {
-        const devicesResponse = await fetch('/api/devices');
+        const devicesResponse = await fetch('/api/devices?all=true');
         if (socketRef.current !== socket) return;
         if (devicesResponse.ok) {
           dispatch(devicesActions.update(await devicesResponse.json()));
@@ -132,6 +135,14 @@ const SocketController = () => {
       }
       if (data.positions) {
         dispatch(sessionActions.updatePositions(data.positions));
+        if (data.positions.some((p) => !devicesRef.current || !devicesRef.current[p.deviceId])) {
+          fetch('/api/devices?all=true')
+            .then((r) => r.ok && r.json())
+            .then((devs) => {
+              if (devs) dispatch(devicesActions.update(devs));
+            })
+            .catch(() => {});
+        }
       }
       if (data.events) {
         handleEventsRef.current(data.events);
@@ -153,7 +164,7 @@ const SocketController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/devices', { signal });
+        const response = await fetchOrThrow('/api/devices?all=true', { signal });
         dispatch(devicesActions.refresh(await response.json()));
         nativePostMessage('authenticated');
         connectSocket();

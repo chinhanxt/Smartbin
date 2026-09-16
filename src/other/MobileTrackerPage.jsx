@@ -17,6 +17,8 @@ import {
   Paper,
   Tooltip,
   Badge,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import SosIcon from '@mui/icons-material/Warning';
 import StatusIcon from '@mui/icons-material/History';
@@ -56,13 +58,24 @@ const MobileTrackerPage = () => {
   const [lastSentTime, setLastSentTime] = useState(null);
   const [sentCount, setSentCount] = useState(0);
   
-  // Battery state (Universal: real Web Battery API with automatic realistic decay for iOS Safari/WebKit)
+  // Battery state (Universal: real Web Battery API on Android, quick-adjust modal for iOS Safari)
   const [batteryLevel, setBatteryLevel] = useState(() => {
-    const saved = localStorage.getItem('smartbin_battery_sim');
+    // Clear stale '60' legacy value from earlier tests
+    const legacy = localStorage.getItem('smartbin_battery_sim');
+    if (legacy === '60') {
+      localStorage.removeItem('smartbin_battery_sim');
+    }
+    const saved = localStorage.getItem('smartbin_battery_level');
     return saved ? Number(saved) : 85;
   });
-  const [isCharging, setIsCharging] = useState(false);
+  const [isCharging, setIsCharging] = useState(() => localStorage.getItem('smartbin_is_charging') === 'true');
   const [hasRealBattery, setHasRealBattery] = useState(false);
+  const [showBatteryModal, setShowBatteryModal] = useState(false);
+  const [tempBatteryInput, setTempBatteryInput] = useState(() => {
+    const saved = localStorage.getItem('smartbin_battery_level');
+    return saved ? Number(saved) : 85;
+  });
+  const [tempChargingInput, setTempChargingInput] = useState(false);
   
   // Logs
   const [logs, setLogs] = useState([]);
@@ -188,12 +201,16 @@ const MobileTrackerPage = () => {
 
     const handleBatteryUpdate = () => {
       if (batteryObj && !isCancelled) {
-        setBatteryLevel(Math.round(batteryObj.level * 100));
-        setIsCharging(batteryObj.charging);
+        const lvl = Math.round(batteryObj.level * 100);
+        const chg = Boolean(batteryObj.charging);
+        setBatteryLevel(lvl);
+        setIsCharging(chg);
+        setTempBatteryInput(lvl);
+        setTempChargingInput(chg);
       }
     };
 
-    if (typeof navigator !== 'undefined' && navigator.getBattery) {
+    if (typeof navigator !== 'undefined' && typeof navigator.getBattery === 'function') {
       navigator.getBattery().then((battery) => {
         if (isCancelled) return;
         batteryObj = battery;
@@ -222,10 +239,10 @@ const MobileTrackerPage = () => {
     const timer = setInterval(() => {
       setBatteryLevel((prev) => {
         const next = Math.max(15, (prev || 85) - 1);
-        localStorage.setItem('smartbin_battery_sim', next.toString());
+        localStorage.setItem('smartbin_battery_level', next.toString());
         return next;
       });
-    }, 120000);
+    }, 180000);
 
     return () => clearInterval(timer);
   }, [hasRealBattery]);
@@ -814,40 +831,72 @@ const MobileTrackerPage = () => {
 
             {/* Battery status card */}
             <Box
+              onClick={() => {
+                if (!hasRealBattery) {
+                  setTempBatteryInput(batteryLevel);
+                  setTempChargingInput(isCharging);
+                  setShowBatteryModal(true);
+                }
+              }}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                mb: 2.5,
+                mb: !hasRealBattery ? 1 : 2.5,
                 p: 1.5,
                 borderRadius: 2,
                 backgroundColor: '#f8fafc',
                 border: '1px solid #e2e8f0',
+                cursor: !hasRealBattery ? 'pointer' : 'default',
+                transition: 'all 0.2s',
+                '&:hover': !hasRealBattery
+                  ? {
+                      borderColor: '#10b981',
+                      backgroundColor: '#f0fdf4',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+                    }
+                  : {},
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
                 <BatteryIcon sx={{ color: isCharging ? '#059669' : '#0284c7', fontSize: 24 }} />
                 <Box>
-                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
-                    Mức pin gửi máy chủ
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                      Mức pin gửi máy chủ
+                    </Typography>
+                    {!hasRealBattery && (
+                      <Typography variant="caption" sx={{ color: '#0284c7', fontSize: '0.7rem', fontWeight: 700 }}>
+                        (Chạm để chỉnh)
+                      </Typography>
+                    )}
+                  </Box>
                   <Typography variant="body2" sx={{ fontWeight: 800, color: '#0f172a' }}>
-                    {batteryLevel}% {isCharging ? '(Đang sạc)' : ''}
+                    {batteryLevel}% {isCharging ? '(Đang cắm sạc ⚡)' : ''}
                   </Typography>
                 </Box>
               </Box>
               <Chip
                 size="small"
-                label={hasRealBattery ? 'Pin thực tế' : 'Pin tự động'}
+                label={hasRealBattery ? 'Pin thực tế' : 'Chỉnh % (iOS)'}
                 sx={{
                   height: 22,
                   fontSize: '0.7rem',
                   fontWeight: 600,
-                  backgroundColor: hasRealBattery ? '#ecfdf5' : '#f1f5f9',
-                  color: hasRealBattery ? '#059669' : '#475569',
+                  backgroundColor: hasRealBattery ? '#ecfdf5' : '#eff6ff',
+                  color: hasRealBattery ? '#059669' : '#1d4ed8',
+                  border: `1px solid ${hasRealBattery ? '#a7f3d0' : '#bfdbfe'}`,
                 }}
               />
             </Box>
+
+            {!hasRealBattery && (
+              <Box sx={{ mb: 2.5, px: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>
+                  📱 Apple iOS chặn tự đọc pin. Chạm vào ô pin trên để nhập nhanh <strong>43%</strong> giống trên máy bạn nhé!
+                </Typography>
+              </Box>
+            )}
 
             {/* Status & SOS Action Area */}
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, alignItems: 'stretch' }}>
@@ -1196,6 +1245,110 @@ const MobileTrackerPage = () => {
             }}
           >
             Đã hiểu & Tiếp tục
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* POPUP: Cập nhật mức pin thực tế (Dành cho iOS Safari / WebKit) */}
+      <Dialog
+        open={showBatteryModal}
+        onClose={() => setShowBatteryModal(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              backgroundColor: '#ffffff',
+              color: '#0f172a',
+              borderRadius: 3.5,
+              border: '1px solid #e2e8f0',
+              m: 2,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0369a1', pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Cập nhật mức pin thực tế</span>
+          <IconButton size="small" onClick={() => setShowBatteryModal(false)}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
+          <Alert severity="info" sx={{ fontSize: '0.8rem', borderRadius: 2 }}>
+            <strong>Apple iOS</strong> chặn các website tự đọc pin phần cứng để bảo vệ riêng tư. Bạn có thể chọn nhanh hoặc nhập đúng % pin trên máy bạn để hệ thống đồng bộ chuẩn xác:
+          </Alert>
+
+          <Box>
+            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block', mb: 1 }}>
+              Chọn nhanh % pin hiện tại:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {[20, 35, 43, 50, 65, 80, 100].map((val) => (
+                <Chip
+                  key={val}
+                  label={`${val}%`}
+                  onClick={() => setTempBatteryInput(val)}
+                  color={tempBatteryInput === val ? 'primary' : 'default'}
+                  variant={tempBatteryInput === val ? 'filled' : 'outlined'}
+                  clickable
+                  sx={{ fontWeight: 700 }}
+                />
+              ))}
+            </Box>
+          </Box>
+
+          <TextField
+            label="Mức pin chính xác (%)"
+            type="number"
+            value={tempBatteryInput}
+            onChange={(e) => setTempBatteryInput(Math.min(100, Math.max(1, Number(e.target.value) || 1)))}
+            inputProps={{ min: 1, max: 100 }}
+            fullWidth
+            size="small"
+            slotProps={{
+              inputLabel: { sx: { color: '#64748b', fontWeight: 600 } },
+              input: { sx: { color: '#0f172a', backgroundColor: '#f8fafc', borderRadius: 1.5 } },
+            }}
+          />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={tempChargingInput}
+                onChange={(e) => setTempChargingInput(e.target.checked)}
+                color="success"
+              />
+            }
+            label="Thiết bị đang cắm sạc pin ⚡"
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setShowBatteryModal(false)} sx={{ color: '#64748b', fontWeight: 600 }}>
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setBatteryLevel(tempBatteryInput);
+              setIsCharging(tempChargingInput);
+              localStorage.setItem('smartbin_battery_level', tempBatteryInput.toString());
+              localStorage.setItem('smartbin_is_charging', tempChargingInput.toString());
+              setShowBatteryModal(false);
+              showToast(`Đã đồng bộ mức pin ${tempBatteryInput}% về máy chủ!`, 'success');
+              addLog(`Đã cập nhật pin: ${tempBatteryInput}% ${tempChargingInput ? '(Đang sạc)' : ''}`);
+              if (latestPosRef.current && transmitPositionRef.current) {
+                transmitPositionRef.current(latestPosRef.current);
+              }
+            }}
+            sx={{
+              backgroundColor: '#059669',
+              color: '#ffffff',
+              fontWeight: 700,
+              borderRadius: 2,
+              '&:hover': { backgroundColor: '#047857' },
+            }}
+          >
+            Lưu & Gửi ngay
           </Button>
         </DialogActions>
       </Dialog>

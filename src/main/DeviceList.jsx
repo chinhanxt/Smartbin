@@ -33,11 +33,26 @@ const DeviceList = ({ devices }) => {
 
   useAsyncTask(
     async ({ signal }) => {
-      const response = await fetchOrThrow('/api/devices', { signal });
+      const response = await fetchOrThrow('/api/devices?all=true', { signal });
       dispatch(devicesActions.refresh(await response.json()));
     },
     [dispatch],
   );
+
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch('/api/devices?all=true');
+        if (response.ok) {
+          const list = await response.json();
+          dispatch(devicesActions.update(list));
+        }
+      } catch {
+        // ignore
+      }
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [dispatch]);
 
   return (
     <List

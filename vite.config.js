@@ -46,6 +46,60 @@ const clientIpPlugin = () => ({
   },
 });
 
+let isSyncingPermissions = false;
+async function syncDevicePermissions() {
+  if (isSyncingPermissions) return;
+  isSyncingPermissions = true;
+  try {
+    const authHeader = 'Basic ' + Buffer.from('admin@xathongminh.gov.vn:AdminPassword123!').toString('base64');
+    const res = await fetch('http://localhost:8082/api/devices?all=true', {
+      headers: { Authorization: authHeader },
+    });
+    if (res.ok) {
+      const devices = await res.json();
+      for (const dev of devices) {
+        // Link to admin user (userId: 1)
+        await fetch('http://localhost:8082/api/permissions', {
+          method: 'POST',
+          headers: {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: 1, deviceId: dev.id }),
+        }).catch(() => {});
+
+        // Link to SOS notification (notificationId: 1)
+        await fetch('http://localhost:8082/api/permissions', {
+          method: 'POST',
+          headers: {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ deviceId: dev.id, notificationId: 1 }),
+        }).catch(() => {});
+      }
+    }
+  } catch {
+    // Ignore during boot
+  } finally {
+    isSyncingPermissions = false;
+  }
+}
+
+const autoPermissionPlugin = () => ({
+  name: 'auto-permission-sync',
+  configureServer(server) {
+    setTimeout(syncDevicePermissions, 2000);
+    const timer = setInterval(syncDevicePermissions, 5000);
+    server.httpServer?.on('close', () => clearInterval(timer));
+  },
+  configurePreviewServer(server) {
+    setTimeout(syncDevicePermissions, 2000);
+    const timer = setInterval(syncDevicePermissions, 5000);
+    server.httpServer?.on('close', () => clearInterval(timer));
+  },
+});
+
 export default defineConfig(() => ({
   server: {
     port: 3000,
@@ -56,6 +110,11 @@ export default defineConfig(() => ({
       '/gps': {
         target: 'http://localhost:5055',
         rewrite: (path) => path.replace(/^\/gps/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', () => {
+            setTimeout(syncDevicePermissions, 500);
+          });
+        },
       },
     },
   },
@@ -65,6 +124,7 @@ export default defineConfig(() => ({
   },
   plugins: [
     clientIpPlugin(),
+    autoPermissionPlugin(),
     svgr(),
     react(),
     VitePWA({
