@@ -246,7 +246,7 @@ export function BulkyRequestWizard({
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
                     Ảnh đã chọn ({formData.imageMetadata.length}):
                   </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                     {formData.imageMetadata.map((meta, i) => (
                       <Chip
                         key={i}
