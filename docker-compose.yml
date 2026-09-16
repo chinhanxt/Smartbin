@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  smartbin-mobile-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smartbin-mobile-tracker:latest
+    container_name: smartbin-mobile-tracker-app
+    ports:
+      - "3001:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
