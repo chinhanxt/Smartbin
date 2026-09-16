@@ -4,6 +4,48 @@ import svgr from 'vite-plugin-svgr';
 import { VitePWA } from 'vite-plugin-pwa';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
+const clientIpPlugin = () => ({
+  name: 'client-ip',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const url = req.url ? req.url.split('?')[0] : '';
+      if (req.method === 'GET' && (url === '/client-ip' || url === '/client-ip/')) {
+        const rawIp =
+          req.headers['cf-connecting-ip'] ||
+          req.headers['x-real-ip'] ||
+          req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+          req.socket?.remoteAddress ||
+          '127.0.0.1';
+        const ip = String(rawIp).replace(/^::ffff:/, '');
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ ip }));
+        return;
+      }
+      next();
+    });
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const url = req.url ? req.url.split('?')[0] : '';
+      if (req.method === 'GET' && (url === '/client-ip' || url === '/client-ip/')) {
+        const rawIp =
+          req.headers['cf-connecting-ip'] ||
+          req.headers['x-real-ip'] ||
+          req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+          req.socket?.remoteAddress ||
+          '127.0.0.1';
+        const ip = String(rawIp).replace(/^::ffff:/, '');
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ ip }));
+        return;
+      }
+      next();
+    });
+  },
+});
+
 export default defineConfig(() => ({
   server: {
     port: 3000,
@@ -22,12 +64,13 @@ export default defineConfig(() => ({
     chunkSizeWarningLimit: 1100,
   },
   plugins: [
+    clientIpPlugin(),
     svgr(),
     react(),
     VitePWA({
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
       workbox: {
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /^\/client-ip/],
         globPatterns: ['**/*.{js,css,html,woff,woff2,mp3}'],
       },
       manifest: {

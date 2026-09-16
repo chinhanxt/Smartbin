@@ -17,23 +17,13 @@ import {
   Paper,
   Tooltip,
   Badge,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Slider,
-  Switch,
-  FormControlLabel,
 } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
 import SosIcon from '@mui/icons-material/Warning';
 import StatusIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BatteryIcon from '@mui/icons-material/BatteryChargingFull';
-import BatteryStdIcon from '@mui/icons-material/BatteryStd';
-import SpeedIcon from '@mui/icons-material/Speed';
 import SensorsIcon from '@mui/icons-material/Sensors';
 import RecyclingIcon from '@mui/icons-material/Recycling';
 import CopyIcon from '@mui/icons-material/ContentCopy';
@@ -41,40 +31,35 @@ import CloseIcon from '@mui/icons-material/Close';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import LaptopIcon from '@mui/icons-material/Laptop';
 import PhoneIphoneIcon from '@mui/icons-material/PhoneIphone';
-import ShuffleIcon from '@mui/icons-material/Shuffle';
 import { QRCode } from 'react-qr-code';
-
-const PRESET_DEVICES = [
-  { id: '81891318', name: 'Xe Rác Môi Trường Xã 01' },
-  { id: '81891319', name: 'Xe Rác Môi Trường Xã 02' },
-  { id: 'BIN-001', name: 'Thùng Rác Thông Minh 01' },
-];
 
 const MobileTrackerPage = () => {
   // Device detection: Mobile phone has true satellite GPS; Desktop has network GeoIP
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // State
-  const [deviceId, setDeviceId] = useState(() => localStorage.getItem('smartbin_device_id') || '81891318');
+  const [deviceId, setDeviceId] = useState(() => {
+    const saved = localStorage.getItem('smartbin_device_id');
+    if (saved && saved !== '81891318' && saved !== '81891319' && saved !== 'BIN-001') {
+      return saved;
+    }
+    return '171.236.48.232';
+  });
   const [serverUrl, setServerUrl] = useState(() => localStorage.getItem('smartbin_server_url') || '/gps');
   const [intervalSec, setIntervalSec] = useState(() => Number(localStorage.getItem('smartbin_interval')) || 5);
   
-  // Continuous tracking: On mobile, active by default. On desktop, paused by default to prevent GeoIP jitter.
-  const [isTracking, setIsTracking] = useState(() => {
-    const saved = localStorage.getItem('smartbin_tracking_enabled');
-    if (saved !== null) return saved === 'true';
-    return isMobile;
-  });
+  // Continuous tracking: active by default to auto-connect on location permission
+  const [isTracking, setIsTracking] = useState(true);
   
   // Real-time telemetry data
   const [currentPosition, setCurrentPosition] = useState(null);
   const [lastSentTime, setLastSentTime] = useState(null);
   const [sentCount, setSentCount] = useState(0);
   
-  // Battery state (Universal: real Web Battery API with intelligent fallback for iOS Safari/Zalo)
+  // Battery state (Universal: real Web Battery API with automatic realistic decay for iOS Safari/WebKit)
   const [batteryLevel, setBatteryLevel] = useState(() => {
     const saved = localStorage.getItem('smartbin_battery_sim');
-    return saved ? Number(saved) : 95;
+    return saved ? Number(saved) : 85;
   });
   const [isCharging, setIsCharging] = useState(false);
   const [hasRealBattery, setHasRealBattery] = useState(false);
@@ -89,7 +74,6 @@ const MobileTrackerPage = () => {
   const [showSosSuccessModal, setShowSosSuccessModal] = useState(false);
   
   // UI feedback & network status
-  const [isConnecting, setIsConnecting] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [gpsError, setGpsError] = useState(null);
@@ -101,6 +85,15 @@ const MobileTrackerPage = () => {
   const intervalTimerRef = useRef(null);
   const latestPosRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const transmitPositionRef = useRef(null);
+  const deviceIdRef = useRef(deviceId);
+  deviceIdRef.current = deviceId;
+  const batteryLevelRef = useRef(batteryLevel);
+  batteryLevelRef.current = batteryLevel;
+  const isChargingRef = useRef(isCharging);
+  isChargingRef.current = isCharging;
+  const serverUrlRef = useRef(serverUrl);
+  serverUrlRef.current = serverUrl;
 
   // Sync background color with body
   useEffect(() => {
@@ -136,24 +129,106 @@ const MobileTrackerPage = () => {
     setLogs((prev) => [{ time: timeStr, text, success, id: Date.now() + Math.random() }, ...prev.slice(0, 49)]);
   }, []);
 
-  // Monitor battery (Web Battery API with fallback)
+  // 1. Auto Device ID from Device IP
   useEffect(() => {
-    if (navigator.getBattery) {
+    let isCancelled = false;
+
+    const fetchClientIp = async () => {
+      let clientIp = null;
+      try {
+        const res = await fetch('/client-ip');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.ip && data.ip !== '127.0.0.1' && data.ip !== '::1') {
+            clientIp = data.ip;
+          }
+        }
+      } catch {
+        // Fallback to external provider
+      }
+
+      if (!clientIp) {
+        try {
+          const res = await fetch('https://api.ipify.org?format=json');
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ip) {
+              clientIp = data.ip;
+            }
+          }
+        } catch {
+          // Ignored
+        }
+      }
+
+      if (!isCancelled && clientIp) {
+        const isCustom = localStorage.getItem('smartbin_is_custom_id') === 'true';
+        const saved = localStorage.getItem('smartbin_device_id');
+        if (!isCustom || !saved || saved === '81891318' || saved === '81891319' || saved === 'BIN-001') {
+          setDeviceId(clientIp);
+          localStorage.setItem('smartbin_device_id', clientIp);
+          if (latestPosRef.current && transmitPositionRef.current) {
+            transmitPositionRef.current(latestPosRef.current);
+          }
+        }
+      }
+    };
+
+    fetchClientIp();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  // 2. Real-time automatic battery detection (Web Battery API for Android Chrome)
+  useEffect(() => {
+    let batteryObj = null;
+    let isCancelled = false;
+
+    const handleBatteryUpdate = () => {
+      if (batteryObj && !isCancelled) {
+        setBatteryLevel(Math.round(batteryObj.level * 100));
+        setIsCharging(batteryObj.charging);
+      }
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.getBattery) {
       navigator.getBattery().then((battery) => {
+        if (isCancelled) return;
+        batteryObj = battery;
         setHasRealBattery(true);
-        setBatteryLevel(Math.round(battery.level * 100));
-        setIsCharging(battery.charging);
-        battery.addEventListener('levelchange', () => {
-          setBatteryLevel(Math.round(battery.level * 100));
-        });
-        battery.addEventListener('chargingchange', () => {
-          setIsCharging(battery.charging);
-        });
+        handleBatteryUpdate();
+        battery.addEventListener('levelchange', handleBatteryUpdate);
+        battery.addEventListener('chargingchange', handleBatteryUpdate);
       }).catch(() => {
-        setHasRealBattery(false);
+        if (!isCancelled) setHasRealBattery(false);
       });
     }
+
+    return () => {
+      isCancelled = true;
+      if (batteryObj) {
+        batteryObj.removeEventListener('levelchange', handleBatteryUpdate);
+        batteryObj.removeEventListener('chargingchange', handleBatteryUpdate);
+      }
+    };
   }, []);
+
+  // Automatic realistic battery estimate for iOS Safari / WebKit (decay 1% gradually)
+  useEffect(() => {
+    if (hasRealBattery) return;
+
+    const timer = setInterval(() => {
+      setBatteryLevel((prev) => {
+        const next = Math.max(15, (prev || 85) - 1);
+        localStorage.setItem('smartbin_battery_sim', next.toString());
+        return next;
+      });
+    }, 120000);
+
+    return () => clearInterval(timer);
+  }, [hasRealBattery]);
 
   // Screen WakeLock for continuous operation
   const requestWakeLock = async () => {
@@ -178,7 +253,7 @@ const MobileTrackerPage = () => {
   };
 
   // Transmit telemetry to server
-  const transmitPosition = useCallback(async (pos, isSos = false, isInstant = false) => {
+  const transmitPosition = useCallback(async (pos, isSos = false) => {
     if (!pos || !pos.coords) return;
     const { latitude, longitude, accuracy, speed, heading, altitude } = pos.coords;
     const speedKnots = speed != null ? (speed * 1.94384).toFixed(2) : 0;
@@ -186,9 +261,12 @@ const MobileTrackerPage = () => {
     
     // Always use fresh monotonic timestamp in seconds so Traccar server never drops packets
     const timestamp = Math.round(Date.now() / 1000);
+    const activeDeviceId = (deviceIdRef.current || '171.236.48.232').trim();
+    const currentBatt = batteryLevelRef.current != null ? batteryLevelRef.current : 85;
+    const currentCharging = isChargingRef.current;
 
     const queryParams = new URLSearchParams({
-      id: deviceId.trim(),
+      id: activeDeviceId,
       lat: latitude.toFixed(6),
       lon: longitude.toFixed(6),
       timestamp: timestamp.toString(),
@@ -196,15 +274,15 @@ const MobileTrackerPage = () => {
       bearing: (heading || 0).toFixed(1),
       altitude: (altitude || 0).toFixed(1),
       accuracy: (accuracy || 0).toFixed(1),
-      batt: (batteryLevel != null ? batteryLevel : 95).toString(),
-      charge: isCharging ? 'true' : 'false',
+      batt: currentBatt.toString(),
+      charge: currentCharging ? 'true' : 'false',
     });
 
     if (isSos) {
       queryParams.append('alarm', 'sos');
     }
 
-    const endpoint = serverUrl.trim() || '/gps';
+    const endpoint = serverUrlRef.current.trim() || '/gps';
     const fullUrl = `${endpoint}?${queryParams.toString()}`;
 
     try {
@@ -213,7 +291,7 @@ const MobileTrackerPage = () => {
         setSentCount((c) => c + 1);
         setLastSentTime(new Date());
         const accuracyText = accuracy > 1000 ? `±${(accuracy / 1000).toFixed(1)}km (IP mạng)` : `±${Math.round(accuracy)}m`;
-        const info = `${isSos ? '🚨 [SOS KHẨN CẤP] ' : ''}Gửi (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) • ${accuracyText} • ${speedKmh} km/h • Pin: ${batteryLevel}%`;
+        const info = `${isSos ? '🚨 [SOS KHẨN CẤP] ' : ''}Gửi (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) • ${accuracyText} • ${speedKmh} km/h • Pin: ${currentBatt}%`;
         addLog(info, true);
         if (isSos) {
           setShowSosSuccessModal(true);
@@ -225,13 +303,20 @@ const MobileTrackerPage = () => {
     } catch (err) {
       addLog(`Mất kết nối mạng: ${err.message}`, false);
     }
-  }, [deviceId, serverUrl, batteryLevel, isCharging, addLog]);
+  }, [addLog]);
+
+  transmitPositionRef.current = transmitPosition;
 
   // Position updates
   const handlePositionSuccess = useCallback((pos) => {
     setGpsError(null);
+    const isFirstPosition = latestPosRef.current === null;
     setCurrentPosition(pos);
     latestPosRef.current = pos;
+    // As soon as GPS position is received, immediately transmit and connect!
+    if (isFirstPosition) {
+      transmitPositionRef.current?.(pos);
+    }
   }, []);
 
   const handlePositionError = useCallback((err) => {
@@ -247,13 +332,14 @@ const MobileTrackerPage = () => {
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
       showToast('Trình duyệt không hỗ trợ Geolocation!', 'error');
+      setGpsError('Trình duyệt không hỗ trợ Geolocation!');
       return;
     }
 
     setIsTracking(true);
     localStorage.setItem('smartbin_tracking_enabled', 'true');
     requestWakeLock();
-    addLog('Smartbin: Khởi động phát sóng định vị...', true);
+    addLog('Smartbin: Tự động kết nối & phát sóng định vị...', true);
 
     // Watch position
     if (watchIdRef.current !== null) {
@@ -267,11 +353,11 @@ const MobileTrackerPage = () => {
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     );
 
-    // Initial position fetch
+    // Initial position fetch & instant connect transmission
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         handlePositionSuccess(pos);
-        transmitPosition(pos);
+        transmitPositionRef.current?.(pos);
       },
       handlePositionError,
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
@@ -281,10 +367,10 @@ const MobileTrackerPage = () => {
     if (intervalTimerRef.current) clearInterval(intervalTimerRef.current);
     intervalTimerRef.current = setInterval(() => {
       if (latestPosRef.current) {
-        transmitPosition(latestPosRef.current);
+        transmitPositionRef.current?.(latestPosRef.current);
       }
     }, Math.max(2000, intervalSec * 1000));
-  }, [handlePositionSuccess, handlePositionError, transmitPosition, intervalSec, addLog]);
+  }, [handlePositionSuccess, handlePositionError, intervalSec, addLog]);
 
   const stopTracking = useCallback(() => {
     setIsTracking(false);
@@ -301,64 +387,15 @@ const MobileTrackerPage = () => {
     addLog('Smartbin: Đã tạm dừng phát định vị', false);
   }, [addLog]);
 
-  // Auto-start on mount if mobile or if tracking was enabled
+  // Auto-start on mount (auto-connect on location permission)
   useEffect(() => {
-    if (isTracking) {
-      startTracking();
-    }
+    startTracking();
     return () => {
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
       if (intervalTimerRef.current) clearInterval(intervalTimerRef.current);
       releaseWakeLock();
     };
-  }, [isTracking, startTracking]);
-
-  // "Kết nối" Button: Instant response without 10s freeze
-  const handleConnect = async () => {
-    if (!navigator.geolocation) {
-      showToast('Thiết bị không hỗ trợ định vị GPS', 'error');
-      return;
-    }
-
-    setIsConnecting(true);
-
-    // If we already have a location in memory, transmit INSTANTLY (< 50ms)
-    if (latestPosRef.current) {
-      await transmitPosition(latestPosRef.current, false, true);
-      showToast('⚡ Smartbin: Đã kết nối & đồng bộ vị trí tức thì!', 'success');
-      setIsConnecting(false);
-      
-      // Concurrently request background accuracy update
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          handlePositionSuccess(pos);
-          transmitPosition(pos, false);
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 6000, maximumAge: 3000 }
-      );
-    } else {
-      // First time acquire
-      showToast('Smartbin: Đang dò sóng GPS vệ tinh...', 'info');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          handlePositionSuccess(pos);
-          transmitPosition(pos, false);
-          showToast('⚡ Smartbin: Đã kết nối & gửi vị trí thành công!', 'success');
-          setIsConnecting(false);
-        },
-        (err) => {
-          handlePositionError(err);
-          setIsConnecting(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
-      );
-    }
-
-    if (!isTracking) {
-      startTracking();
-    }
-  };
+  }, [startTracking]);
 
   // SOS Emergency button: High priority burst transmission
   const handleSendSos = () => {
@@ -397,25 +434,20 @@ const MobileTrackerPage = () => {
     );
   };
 
-  // Generate random device ID
-  const handleGenerateRandomId = () => {
-    const randomId = 'BIN-' + Math.floor(100000 + Math.random() * 900000);
-    setDeviceId(randomId);
-    showToast(`Đã tạo mã ngẫu nhiên: ${randomId}`, 'info');
-  };
-
   // Save settings handler
   const handleSaveSettings = () => {
     localStorage.setItem('smartbin_device_id', deviceId.trim());
+    localStorage.setItem('smartbin_is_custom_id', 'true');
     localStorage.setItem('smartbin_server_url', serverUrl.trim());
     localStorage.setItem('smartbin_interval', intervalSec.toString());
-    localStorage.setItem('smartbin_battery_sim', batteryLevel.toString());
     setShowSettings(false);
     showToast('Smartbin: Đã lưu thông số thiết bị thành công!', 'success');
     if (isTracking) {
       startTracking();
     }
   };
+
+  const isConnected = isTracking && currentPosition !== null;
 
   return (
     <Box
@@ -660,10 +692,10 @@ const MobileTrackerPage = () => {
             >
               <Box>
                 <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Mã thiết bị Smartbin
+                  Mã thiết bị (IP tự động)
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 800, color: '#0f172a', fontSize: '1.2rem', fontFamily: 'monospace' }}>
-                  {deviceId}
+                  {deviceId || 'Đang lấy IP...'}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -806,7 +838,7 @@ const MobileTrackerPage = () => {
               </Box>
               <Chip
                 size="small"
-                label={hasRealBattery ? 'Pin phần cứng' : 'Pin thiết bị Smartbin'}
+                label={hasRealBattery ? 'Pin thực tế' : 'Pin tự động'}
                 sx={{
                   height: 22,
                   fontSize: '0.7rem',
@@ -817,40 +849,86 @@ const MobileTrackerPage = () => {
               />
             </Box>
 
-            {/* 2 Main Action Buttons: "Kết nối" & "SOS" */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <Button
-                variant="contained"
-                disabled={isConnecting}
-                onClick={handleConnect}
-                startIcon={<SendIcon />}
+            {/* Status & SOS Action Area */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, alignItems: 'stretch' }}>
+              {/* Clean text / chip / badge status */}
+              <Box
                 sx={{
-                  backgroundColor: '#059669',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  textTransform: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.8,
+                  minHeight: 48,
+                  px: 1.5,
+                  py: 1,
                   borderRadius: 2.5,
-                  py: 1.4,
-                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
-                  '&:hover': { backgroundColor: '#047857' },
+                  backgroundColor: isConnected ? '#ecfdf5' : '#fffbeb',
+                  border: `1.5px solid ${isConnected ? '#a7f3d0' : '#fde68a'}`,
+                  boxShadow: isConnected ? '0 2px 8px rgba(16, 185, 129, 0.12)' : 'none',
+                  transition: 'all 0.3s ease',
+                  textAlign: 'center',
                 }}
               >
-                {isConnecting ? 'Đang gửi...' : 'Kết nối'}
-              </Button>
+                {isConnected ? (
+                  <>
+                    <CheckCircleIcon sx={{ fontSize: 20, color: '#059669' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#065f46', fontSize: '0.85rem' }}>
+                      ✓ Đã kết nối
+                    </Typography>
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: '#10b981',
+                        boxShadow: '0 0 8px #10b981',
+                        animation: 'pulse 1.8s infinite',
+                        '@keyframes pulse': {
+                          '0%': { transform: 'scale(0.95)', opacity: 0.7 },
+                          '50%': { transform: 'scale(1.25)', opacity: 1 },
+                          '100%': { transform: 'scale(0.95)', opacity: 0.7 },
+                        },
+                      }}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <MyLocationIcon
+                      sx={{
+                        fontSize: 18,
+                        color: '#d97706',
+                        animation: 'pulse 1.5s infinite',
+                        '@keyframes pulse': {
+                          '0%': { transform: 'scale(0.95)', opacity: 0.7 },
+                          '50%': { transform: 'scale(1.2)', opacity: 1 },
+                          '100%': { transform: 'scale(0.95)', opacity: 0.7 },
+                        },
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 700, color: '#b45309', lineHeight: 1.2, fontSize: '0.75rem' }}
+                    >
+                      Đang kết nối GPS vệ tinh...
+                    </Typography>
+                  </>
+                )}
+              </Box>
 
+              {/* Primary emergency action button */}
               <Button
                 variant="contained"
                 onClick={handleSendSos}
                 startIcon={<SosIcon />}
                 sx={{
+                  minHeight: 48,
                   backgroundColor: '#dc2626',
                   color: '#ffffff',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   fontSize: '0.95rem',
                   textTransform: 'none',
                   borderRadius: 2.5,
-                  py: 1.4,
+                  py: 1.2,
                   boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)',
                   '&:hover': { backgroundColor: '#b91c1c' },
                 }}
@@ -1147,41 +1225,13 @@ const MobileTrackerPage = () => {
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: '12px !important' }}>
-          {/* Preset Device Picker & Random Generator */}
+          {/* Device ID field */}
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700 }}>
-                CHỌN HOẶC NHẬP MÃ THIẾT BỊ
-              </Typography>
-              <Button
-                size="small"
-                onClick={handleGenerateRandomId}
-                startIcon={<ShuffleIcon sx={{ fontSize: '14px !important' }} />}
-                sx={{ textTransform: 'none', fontSize: '0.72rem', py: 0.2, color: '#059669', fontWeight: 700 }}
-              >
-                Sinh mã ngẫu nhiên
-              </Button>
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-              {PRESET_DEVICES.map((dev) => (
-                <Chip
-                  key={dev.id}
-                  label={dev.id}
-                  clickable
-                  variant={deviceId === dev.id ? 'filled' : 'outlined'}
-                  color={deviceId === dev.id ? 'success' : 'default'}
-                  onClick={() => setDeviceId(dev.id)}
-                  sx={{ fontWeight: 700, fontSize: '0.75rem' }}
-                />
-              ))}
-            </Box>
-
             <TextField
-              label="Mã định danh thiết bị (Device ID)"
+              label="Mã định danh thiết bị (IP tự động)"
               value={deviceId}
               onChange={(e) => setDeviceId(e.target.value)}
-              helperText="Mỗi điện thoại/xe bắt buộc phải có 1 mã riêng biệt để không bị trùng lặp"
+              helperText="Tự động nhận diện theo địa chỉ IP của thiết bị mạng"
               fullWidth
               variant="outlined"
               size="small"
@@ -1192,34 +1242,6 @@ const MobileTrackerPage = () => {
               }}
             />
           </Box>
-
-          {/* Battery level simulation if real battery API unavailable */}
-          {!hasRealBattery && (
-            <Box sx={{ p: 1.5, backgroundColor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
-              <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, display: 'block', mb: 0.5 }}>
-                MỨC PIN THIẾT BỊ GỬI VỀ MÁY CHỦ: {batteryLevel}%
-              </Typography>
-              <Slider
-                value={batteryLevel}
-                onChange={(_, val) => setBatteryLevel(val)}
-                min={1}
-                max={100}
-                valueLabelDisplay="auto"
-                sx={{ color: '#059669', mb: 0.5 }}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isCharging}
-                    onChange={(e) => setIsCharging(e.target.checked)}
-                    color="success"
-                    size="small"
-                  />
-                }
-                label={<Typography variant="caption" sx={{ fontWeight: 600, color: '#475569' }}>Thiết bị đang cắm sạc</Typography>}
-              />
-            </Box>
-          )}
 
           {/* Interval */}
           <TextField
