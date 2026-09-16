@@ -1,0 +1,18 @@
+services:
+  smart-trashcan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smart-trashcan-3d:latest
+    container_name: smart-trashcan-microservice
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    environment:
+      - NODE_ENV=production
