@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Navigation,
-  Battery,
-  BatteryCharging,
   Settings,
   History,
   AlertTriangle,
@@ -43,24 +41,10 @@ export default function App() {
   const [lastSentTime, setLastSentTime] = useState(null);
   const [sentCount, setSentCount] = useState(0);
 
-  // Battery
-  const [batteryLevel, setBatteryLevel] = useState(() => {
-    localStorage.removeItem('smartbin_battery_sim'); // clean legacy
-    const saved = localStorage.getItem('smartbin_battery_level');
-    return saved ? Number(saved) : 85;
-  });
-  const [isCharging, setIsCharging] = useState(() => localStorage.getItem('smartbin_is_charging') === 'true');
-  const [hasRealBattery, setHasRealBattery] = useState(false);
-
   // Modals
   const [showSettings, setShowSettings] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
-  const [showBatteryModal, setShowBatteryModal] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
-
-  // Battery modal temporary values
-  const [tempBatteryInput, setTempBatteryInput] = useState(batteryLevel);
-  const [tempChargingInput, setTempChargingInput] = useState(isCharging);
 
   // Logs & Toasts
   const [logs, setLogs] = useState([]);
@@ -75,10 +59,6 @@ export default function App() {
   const transmitPositionRef = useRef(null);
   const deviceIdRef = useRef(deviceId);
   deviceIdRef.current = deviceId;
-  const batteryLevelRef = useRef(batteryLevel);
-  batteryLevelRef.current = batteryLevel;
-  const isChargingRef = useRef(isCharging);
-  isChargingRef.current = isCharging;
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
@@ -167,57 +147,6 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // 2. Hardware Battery Detection (Android Chrome / Chromium)
-  useEffect(() => {
-    let batteryObj = null;
-    let cancelled = false;
-
-    const handleBatteryUpdate = () => {
-      if (batteryObj && !cancelled) {
-        const lvl = Math.round(batteryObj.level * 100);
-        const chg = Boolean(batteryObj.charging);
-        setBatteryLevel(lvl);
-        setIsCharging(chg);
-        setTempBatteryInput(lvl);
-        setTempChargingInput(chg);
-      }
-    };
-
-    if (typeof navigator !== 'undefined' && typeof navigator.getBattery === 'function') {
-      navigator.getBattery().then((b) => {
-        if (cancelled) return;
-        batteryObj = b;
-        setHasRealBattery(true);
-        handleBatteryUpdate();
-        b.addEventListener('levelchange', handleBatteryUpdate);
-        b.addEventListener('chargingchange', handleBatteryUpdate);
-      }).catch(() => {
-        if (!cancelled) setHasRealBattery(false);
-      });
-    }
-
-    return () => {
-      cancelled = true;
-      if (batteryObj) {
-        batteryObj.removeEventListener('levelchange', handleBatteryUpdate);
-        batteryObj.removeEventListener('chargingchange', handleBatteryUpdate);
-      }
-    };
-  }, []);
-
-  // 3. Realistic decay on iOS (-1% every 3 mins)
-  useEffect(() => {
-    if (hasRealBattery) return;
-    const timer = setInterval(() => {
-      setBatteryLevel((prev) => {
-        const next = Math.max(12, (prev || 85) - 1);
-        localStorage.setItem('smartbin_battery_level', next.toString());
-        return next;
-      });
-    }, 180000);
-    return () => clearInterval(timer);
-  }, [hasRealBattery]);
-
   // Transmit Telemetry
   const transmitPosition = useCallback(async (pos, isSos = false) => {
     if (!pos?.coords) return;
@@ -226,8 +155,6 @@ export default function App() {
     const speedKmh = speed != null ? (speed * 3.6).toFixed(1) : '0.0';
     const timestamp = Math.round(Date.now() / 1000);
     const activeDeviceId = (deviceIdRef.current || '171.236.48.232').trim();
-    const currentBatt = batteryLevelRef.current != null ? batteryLevelRef.current : 85;
-    const currentCharging = isChargingRef.current;
 
     const queryParams = new URLSearchParams({
       id: activeDeviceId,
@@ -238,8 +165,6 @@ export default function App() {
       bearing: (heading || 0).toFixed(1),
       altitude: (altitude || 0).toFixed(1),
       accuracy: (accuracy || 0).toFixed(1),
-      batt: currentBatt.toString(),
-      charge: currentCharging ? 'true' : 'false',
     });
 
     if (isSos) queryParams.append('alarm', 'sos');
@@ -253,7 +178,7 @@ export default function App() {
         setSentCount((c) => c + 1);
         setLastSentTime(new Date());
         const accText = accuracy > 1000 ? `±${(accuracy / 1000).toFixed(1)}km` : `±${Math.round(accuracy)}m`;
-        const logMsg = `${isSos ? '🚨 [SOS] ' : ''}Toạ độ (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) • ${accText} • ${speedKmh} km/h • Pin: ${currentBatt}%`;
+        const logMsg = `${isSos ? '🚨 [SOS] ' : ''}Toạ độ (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) • ${accText} • ${speedKmh} km/h`;
         addLog(logMsg, true);
         if (isSos) {
           setShowSosModal(true);
@@ -494,59 +419,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Battery Status Card */}
-            <div>
-              <div
-                onClick={() => {
-                  if (!hasRealBattery) {
-                    setTempBatteryInput(batteryLevel);
-                    setTempChargingInput(isCharging);
-                    setShowBatteryModal(true);
-                  }
-                }}
-                className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
-                  !hasRealBattery
-                    ? 'bg-slate-50 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 cursor-pointer shadow-sm'
-                    : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCharging ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>
-                    {isCharging ? <BatteryCharging className="w-5 h-5" /> : <Battery className="w-5 h-5" />}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        Pin thiết bị
-                      </p>
-                      {!hasRealBattery && (
-                        <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-1 rounded">
-                          (Chạm chỉnh)
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-base font-extrabold text-slate-900">
-                      {batteryLevel}% {isCharging && <span className="text-emerald-600 font-semibold text-xs ml-1">(Đang cắm sạc ⚡)</span>}
-                    </p>
-                  </div>
-                </div>
-
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
-                  hasRealBattery
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                    : 'bg-blue-50 text-blue-800 border-blue-200'
-                }`}>
-                  {hasRealBattery ? 'Pin tự động' : 'Chỉnh % (iOS)'}
-                </span>
-              </div>
-
-              {!hasRealBattery && (
-                <p className="text-[11px] text-slate-500 mt-1.5 px-1">
-                  💡 Apple iOS chặn tự đọc pin. Chạm vào ô pin trên để gõ nhanh <strong className="text-slate-700">43%</strong> giống trên máy bạn nhé!
-                </p>
-              )}
-            </div>
-
             {/* Status & Action */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               {/* Connected Status Badge */}
@@ -573,91 +445,6 @@ export default function App() {
           <p className="mt-0.5 font-mono text-[11px]">Server: {serverUrl}</p>
         </footer>
       </div>
-
-      {/* Battery Adjustment Modal (for iOS) */}
-      {showBatteryModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-slate-900 text-base">Cập nhật mức pin điện thoại</h3>
-              <button onClick={() => setShowBatteryModal(false)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs leading-relaxed">
-              <strong>Apple iOS Safari</strong> chặn trang web tự đọc pin phần cứng. Bạn có thể chọn nhanh hoặc gõ đúng % pin trên điện thoại:
-            </div>
-
-            <div>
-              <p className="text-xs font-bold text-slate-500 mb-2">Chọn nhanh % pin:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[20, 35, 43, 50, 65, 80, 100].map((val) => (
-                  <button
-                    key={val}
-                    onClick={() => setTempBatteryInput(val)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      tempBatteryInput === val
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {val}%
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-500 block mb-1">Mức pin chính xác (%)</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={tempBatteryInput}
-                onChange={(e) => setTempBatteryInput(Math.min(100, Math.max(1, Number(e.target.value) || 1)))}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-
-            <label className="flex items-center gap-2.5 cursor-pointer py-1">
-              <input
-                type="checkbox"
-                checked={tempChargingInput}
-                onChange={(e) => setTempChargingInput(e.target.checked)}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
-              />
-              <span className="text-xs font-bold text-slate-700">Điện thoại đang cắm sạc pin ⚡</span>
-            </label>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setShowBatteryModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50"
-              >
-                Đóng
-              </button>
-              <button
-                onClick={() => {
-                  setBatteryLevel(tempBatteryInput);
-                  setIsCharging(tempChargingInput);
-                  localStorage.setItem('smartbin_battery_level', tempBatteryInput.toString());
-                  localStorage.setItem('smartbin_is_charging', tempChargingInput.toString());
-                  setShowBatteryModal(false);
-                  showToast(`Đã đồng bộ pin ${tempBatteryInput}% về máy chủ!`, 'success');
-                  addLog(`Đã cập nhật pin: ${tempBatteryInput}% ${tempChargingInput ? '(Đang sạc)' : ''}`);
-                  if (latestPosRef.current && transmitPositionRef.current) {
-                    transmitPositionRef.current(latestPosRef.current);
-                  }
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20"
-              >
-                Lưu & Gửi ngay
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Settings Modal */}
       {showSettings && (
