@@ -27,6 +27,7 @@ import {
 import { switchBulkyUser } from '../store/bulkySlice.js';
 import { BULKY_PERSONAS } from '../services/bulkyServiceContract.js';
 import { ORDER_STATUS, PAYMENT_STATUS, REFUND_STATUS } from '../domain/constants.js';
+import { SofaIcon, PlusIcon, ClipboardIcon } from '../components/BulkyIcons.jsx';
 
 export function BulkyOrdersPage({ thunks }) {
   const navigate = useNavigate();
@@ -407,12 +408,12 @@ export function BulkyOrdersPage({ thunks }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '2rem',
+                color: '#1d4ed8',
                 mx: 'auto',
                 mb: 2,
               }}
             >
-              🛋️
+              <SofaIcon size={32} />
             </Box>
             <Typography variant="h6" color="#0f172a" fontWeight="bold" gutterBottom>
               Chưa có đơn thu gom rác cồng kềnh nào
@@ -498,10 +499,10 @@ export function BulkyOrdersPage({ thunks }) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '1.2rem',
+                            color: '#1d4ed8',
                           }}
                         >
-                          🛋️
+                          <SofaIcon size={20} />
                         </Box>
                         <Box>
                           <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0f172a' }}>
@@ -518,7 +519,7 @@ export function BulkyOrdersPage({ thunks }) {
                       <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
                         {isUnderReview && (
                           <Chip
-                            label="⚡ Cần điều phối duyệt"
+                            label="Cần điều phối duyệt"
                             color="warning"
                             size="small"
                             sx={{ fontWeight: 600 }}

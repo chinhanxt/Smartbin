@@ -36,6 +36,14 @@ import {
   selectRoleNotifications,
   selectUnreadNotificationsCount,
 } from '../store/selectors.js';
+import {
+  SofaIcon,
+  ClipboardIcon,
+  PlusIcon,
+  UserIcon,
+  SettingsIcon,
+  TruckIcon,
+} from './BulkyIcons.jsx';
 
 function formatRelativeTime(dateString) {
   if (!dateString) return '';
@@ -105,7 +113,7 @@ export function BulkyHeader({ thunks }) {
         dispatch(markNotificationReadAction(notif.id));
       }
     }
-    setNotifAnchorEl(null);
+    handleCloseNotif();
     if (notif.orderId) {
       navigate(`/bulky/orders/${notif.orderId}`);
     }
@@ -113,12 +121,14 @@ export function BulkyHeader({ thunks }) {
 
   const getRoleBadge = (role) => {
     switch (role) {
+      case 'CITIZEN':
+        return { label: 'Cư Dân', color: 'primary', icon: <UserIcon size={13} /> };
       case 'DISPATCHER':
-        return { label: 'Điều Phối Viên', color: 'warning', icon: '🚛' };
-      case 'ADMIN':
-        return { label: 'Quản Trị Viên', color: 'error', icon: '⚙️' };
+        return { label: 'Điều Phối Viên', color: 'secondary', icon: <SettingsIcon size={13} /> };
+      case 'COLLECTOR':
+        return { label: 'Tài Xế Thu Gom', color: 'success', icon: <TruckIcon size={13} /> };
       default:
-        return { label: 'Người Dân', color: 'primary', icon: '👤' };
+        return { label: 'Người Dân', color: 'primary', icon: <UserIcon size={13} /> };
     }
   };
 
@@ -137,7 +147,7 @@ export function BulkyHeader({ thunks }) {
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: 64 }}>
+          <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: 60 }}>
             {/* Brand Logo & Title */}
             <Box
               sx={{
@@ -150,29 +160,29 @@ export function BulkyHeader({ thunks }) {
             >
               <Box
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: 38,
+                  height: 38,
                   borderRadius: 2,
                   backgroundColor: '#eff6ff',
-                  border: '1px solid #bfdbfe',
+                  border: '1px solid #dbeafe',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.4rem',
+                  color: '#1d4ed8',
                 }}
               >
-                🛋️
+                <SofaIcon size={20} />
               </Box>
               <Box>
                 <Typography
                   variant="subtitle1"
                   fontWeight="bold"
-                  sx={{ color: '#1e3a8a', lineHeight: 1.2 }}
+                  sx={{ color: '#0f172a', lineHeight: 1.2 }}
                 >
                   Smartbin • Thu Gom Rác Cồng Kềnh
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#64748b' }}>
-                  Phân hệ Cư Dân &amp; Bàn Điều Phối
+                  Dịch vụ thu gom đồ cũ &amp; phế thải đô thị
                 </Typography>
               </Box>
             </Box>
@@ -182,33 +192,37 @@ export function BulkyHeader({ thunks }) {
               <Button
                 variant={location.pathname === '/bulky/orders' ? 'contained' : 'text'}
                 size="small"
+                startIcon={<ClipboardIcon size={15} />}
                 onClick={() => navigate('/bulky/orders')}
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
-                  borderRadius: 1.5,
+                  borderRadius: 2,
+                  px: 2,
                   ...(location.pathname === '/bulky/orders'
-                    ? { backgroundColor: '#1d4ed8', color: '#ffffff' }
-                    : { color: '#475569' }),
+                    ? { backgroundColor: '#1d4ed8', color: '#ffffff', boxShadow: 'none' }
+                    : { color: '#475569', '&:hover': { backgroundColor: '#f1f5f9' } }),
                 }}
               >
-                📋 Đơn thu gom
+                Đơn thu gom
               </Button>
 
               <Button
                 variant={location.pathname === '/bulky/booking' ? 'contained' : 'outlined'}
                 size="small"
+                startIcon={<PlusIcon size={15} />}
                 onClick={() => navigate('/bulky/booking')}
                 sx={{
                   textTransform: 'none',
                   fontWeight: 600,
-                  borderRadius: 1.5,
+                  borderRadius: 2,
+                  px: 2,
                   ...(location.pathname === '/bulky/booking'
-                    ? { backgroundColor: '#1d4ed8', color: '#ffffff' }
-                    : { borderColor: '#cbd5e1', color: '#1d4ed8' }),
+                    ? { backgroundColor: '#1d4ed8', color: '#ffffff', boxShadow: 'none' }
+                    : { borderColor: '#e2e8f0', color: '#1d4ed8', '&:hover': { borderColor: '#1d4ed8', backgroundColor: '#eff6ff' } }),
                 }}
               >
-                ➕ Đặt lịch mới
+                Đặt lịch mới
               </Button>
 
               {/* Notification Bell */}

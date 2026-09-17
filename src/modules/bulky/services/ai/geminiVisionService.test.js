@@ -15,7 +15,7 @@ describe('geminiVisionService', () => {
     expect(res.requiresManualReview).toBe(false);
     expect(res.items[0].itemType).toBe('SOFA');
     expect(res.items[0].displayName).toContain('Sofa');
-    expect(res.aiModelUsed).toBe('gemini-preset-classifier');
+    expect(res.aiModelUsed).toBe('Trí tuệ nhân tạo (AI)');
   });
 
   it('recognizes preset mattress correctly', async () => {
@@ -88,7 +88,7 @@ describe('geminiVisionService', () => {
     expect(global.fetch).toHaveBeenCalled();
     expect(res.decision).toBe(AI_DECISION.SUGGESTED);
     expect(res.items[0].displayName).toBe('Sofa da 2 chỗ');
-    expect(res.aiModelUsed).toBe('Google Gemini 2.5 Flash Vision');
+    expect(res.aiModelUsed).toBe('Trí tuệ nhân tạo (AI)');
   });
 
   it('flags hazardous waste as MANUAL_REVIEW when detected by Gemini', async () => {

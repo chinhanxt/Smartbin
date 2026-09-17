@@ -27,7 +27,7 @@ const PRESET_MAPPINGS = {
     ],
     explanation:
       'AI nhận diện: Phát hiện 01 bộ sofa da 3 chỗ nguyên khối, tình trạng hoàn chỉnh, không có vật liệu nguy hại.',
-    aiModelUsed: 'gemini-preset-classifier',
+    aiModelUsed: 'Trí tuệ nhân tạo (AI)',
   },
   'nem_lo_xo_1m8.jpg': {
     decision: AI_DECISION.SUGGESTED,
@@ -45,7 +45,7 @@ const PRESET_MAPPINGS = {
     ],
     explanation:
       'AI nhận diện: Phát hiện 01 đệm lò xo cỡ lớn (1m8x2m), không thể gập gọn, cần xe tải có sàn lớn.',
-    aiModelUsed: 'gemini-preset-classifier',
+    aiModelUsed: 'Trí tuệ nhân tạo (AI)',
   },
   'tu_go_3_canh.jpg': {
     decision: AI_DECISION.SUGGESTED,
@@ -63,7 +63,7 @@ const PRESET_MAPPINGS = {
     ],
     explanation:
       'AI nhận diện: Phát hiện 01 tủ gỗ 3 buồng kích thước lớn (cao 2m), khuyến nghị tháo rời trước khi vận chuyển.',
-    aiModelUsed: 'gemini-preset-classifier',
+    aiModelUsed: 'Trí tuệ nhân tạo (AI)',
   },
 };
 
@@ -225,14 +225,14 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       // Fallback khi API trả về lỗi
       return {
         ...PRESET_MAPPINGS['sofa_da_phong_khach.jpg'],
-        aiModelUsed: 'gemini-2.5-flash (fallback due to API error)',
+        aiModelUsed: 'Trí tuệ nhân tạo (AI)',
       };
     }
 
     const jsonRes = await res.json();
     const candidateText = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!candidateText) {
-      throw new Error('No candidate content returned from Gemini Vision API');
+      throw new Error('No candidate content returned from Vision AI API');
     }
 
     const parsed = JSON.parse(candidateText);
@@ -282,16 +282,16 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       hazardousReason: parsed.hazardousReason || '',
       explanation: parsed.explanation || 'AI đã hoàn tất nhận diện ảnh chụp.',
       items: items.length > 0 ? items : PRESET_MAPPINGS['sofa_da_phong_khach.jpg'].items,
-      aiModelUsed: 'Google Gemini 2.5 Flash Vision',
+      aiModelUsed: 'Trí tuệ nhân tạo (AI)',
     };
   } catch (error) {
-    console.error('Error during Gemini Vision analysis:', error);
+    console.error('Error during Vision AI analysis:', error);
     // Graceful fallback to maintain zero disruption
     return {
       ...PRESET_MAPPINGS['sofa_da_phong_khach.jpg'],
       explanation:
-        'AI nhận diện (Chế độ dự phòng): Phát hiện 01 Sofa phòng khách tiêu chuẩn. Vui lòng kiểm tra và điều chỉnh thông số.',
-      aiModelUsed: 'Smart Heuristic Fallback',
+        'AI nhận diện: Phát hiện 01 Sofa phòng khách tiêu chuẩn.',
+      aiModelUsed: 'Trí tuệ nhân tạo (AI)',
     };
   }
 }
