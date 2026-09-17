@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes, useSearchParams } from 'react-router-dom';
+import { Route, Routes, Navigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import MainPage from './main/MainPage';
 import App from './App';
@@ -130,7 +130,14 @@ const Navigation = () => {
         <Route path="/change-server" element={<ChangeServerPage />} />
         <Route path="/client" element={<MobileTrackerPage />} />
         <Route path="/tracker" element={<MobileTrackerPage />} />
-        <Route path="/" element={<App />}>
+
+        {/* Module Routes Registry (Dispatch & Tickets) - Public & Standalone */}
+        {moduleRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={route.element} />
+        ))}
+        <Route path="/" element={<Navigate to="/dispatch" replace />} />
+
+        <Route path="/app" element={<App />}>
           <Route index element={<MainPage />} />
           <Route path="client" element={<MobileTrackerPage />} />
           <Route path="tracker" element={<MobileTrackerPage />} />
@@ -142,11 +149,6 @@ const Navigation = () => {
           <Route path="geofences" element={<GeofencesPage />} />
           <Route path="emulator" element={<EmulatorPage />} />
           <Route path="stream" element={<StreamPage />} />
-
-          {/* Module Routes Registry (Dev 1, Dev 2, Dev 3) */}
-          {moduleRoutes.map((route) => (
-            <Route key={route.path} path={route.path} element={route.element} />
-          ))}
 
           <Route path="settings">
             <Route path=":type/:id/share" element={<SharePage />} />
