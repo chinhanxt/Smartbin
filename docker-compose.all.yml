@@ -26,13 +26,16 @@ services:
       - smart-trashcan
       - smartbin-core
 
-  # 1. Web App Giám Sát & Báo Cáo Bản Đồ (Nhánh webapp)
+  # 1. App Mobile Định Vị & Phát Tín Hiệu GPS (Nhánh webapp)
   smartbin-webapp:
     image: smartbin-webapp:latest
     container_name: smartbin-webapp-service
     restart: unless-stopped
     ports:
       - "3005:80"
+      - "3001:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 15s

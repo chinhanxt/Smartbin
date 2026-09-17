@@ -13,7 +13,7 @@ Cổng điều hành hợp nhất (**Single Pane of Glass**) cho toàn bộ hệ
 | STT | Dịch Vụ Microservice | Nhánh Git | Cổng Host | Docker Container | Docker Image |
 | :---: | :--- | :--- | :---: | :--- | :--- |
 | **0** | **Smartbin Portal Hub** *(Trang này)* | `portal` | **`3080`** | `smartbin-portal` | `smartbin-portal:latest` |
-| **1** | **Web App Giám Sát & Báo Cáo** | `webapp` | **`3005`** | `smartbin-webapp-service` | `smartbin-webapp:latest` |
+| **1** | **App Mobile Định Vị & Phát GPS** | `webapp` | **`3005` / `3001`** | `smartbin-webapp-service` | `smartbin-webapp:latest` |
 | **2** | **Cổng Dịch Vụ Cư Dân** | `smartbin-citizen-service` | **`3002`** | `smartbin-citizen-microservice` | `smartbin-citizen-service:latest` |
 | **3** | **Quản Trị & Thu Phí Dịch Vụ** | `smartbin-admin-billing-service` | **`3003`** | `smartbin-admin-billing-microservice` | `smartbin-admin-billing-service:latest` |
 | **4** | **Quản Lý Nhân Sự & Ca Trực** | `smartbin-hrm-service` | **`3004`** | `smartbin-hrm-microservice` | `smartbin-hrm-service:latest` |
@@ -51,8 +51,8 @@ docker compose -f docker-compose.all.yml up -d
 # 0. Portal Hub (Port 3080)
 docker run -d --name smartbin-portal -p 3080:80 smartbin-portal:latest
 
-# 1. Web App Giám Sát (Port 3005)
-docker run -d --name smartbin-webapp-service -p 3005:80 smartbin-webapp:latest
+# 1. App Mobile Định Vị & Phát GPS (Port 3005 / 3001)
+docker run -d --name smartbin-webapp-service -p 3005:80 -p 3001:80 smartbin-webapp:latest
 
 # 2. Cổng Cư Dân (Port 3002)
 docker run -d --name smartbin-citizen-service -p 3002:80 smartbin-citizen-service:latest
