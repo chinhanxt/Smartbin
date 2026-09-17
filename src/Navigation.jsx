@@ -131,14 +131,15 @@ const Navigation = () => {
         <Route path="/client" element={<MobileTrackerPage />} />
         <Route path="/tracker" element={<MobileTrackerPage />} />
 
-        {/* Module Routes Registry (Dispatch & Tickets) - Public & Standalone */}
+        {/* Module Routes Registry (Public & Standalone) */}
         {moduleRoutes.map((route) => (
           <Route key={route.path} path={route.path} element={route.element} />
         ))}
-        <Route path="/" element={<Navigate to="/dispatch" replace />} />
+        <Route path="/dispatch" element={<Navigate to="/" replace />} />
 
-        <Route path="/app" element={<App />}>
+        <Route path="/" element={<App />}>
           <Route index element={<MainPage />} />
+          <Route path="app" element={<MainPage />} />
           <Route path="client" element={<MobileTrackerPage />} />
           <Route path="tracker" element={<MobileTrackerPage />} />
 

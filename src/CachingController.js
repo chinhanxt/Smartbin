@@ -16,8 +16,10 @@ const CachingController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/geofences', { signal });
-        dispatch(geofencesActions.refresh(await response.json()));
+        try {
+          const response = await fetch('/api/geofences', { signal });
+          if (response.ok) dispatch(geofencesActions.refresh(await response.json()));
+        } catch {}
       }
     },
     [authenticated, dispatch],
@@ -26,8 +28,10 @@ const CachingController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/groups', { signal });
-        dispatch(groupsActions.refresh(await response.json()));
+        try {
+          const response = await fetch('/api/groups', { signal });
+          if (response.ok) dispatch(groupsActions.refresh(await response.json()));
+        } catch {}
       }
     },
     [authenticated, dispatch],
@@ -36,8 +40,10 @@ const CachingController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/drivers', { signal });
-        dispatch(driversActions.refresh(await response.json()));
+        try {
+          const response = await fetch('/api/drivers', { signal });
+          if (response.ok) dispatch(driversActions.refresh(await response.json()));
+        } catch {}
       }
     },
     [authenticated, dispatch],
@@ -46,8 +52,10 @@ const CachingController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/maintenance', { signal });
-        dispatch(maintenancesActions.refresh(await response.json()));
+        try {
+          const response = await fetch('/api/maintenance', { signal });
+          if (response.ok) dispatch(maintenancesActions.refresh(await response.json()));
+        } catch {}
       }
     },
     [authenticated, dispatch],
@@ -56,8 +64,10 @@ const CachingController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/calendars', { signal });
-        dispatch(calendarsActions.refresh(await response.json()));
+        try {
+          const response = await fetch('/api/calendars', { signal });
+          if (response.ok) dispatch(calendarsActions.refresh(await response.json()));
+        } catch {}
       }
     },
     [authenticated, dispatch],

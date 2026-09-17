@@ -65,10 +65,11 @@ const MotionController = () => {
         query.append('type', 'deviceMoving');
         query.append('type', 'deviceStopped');
 
-        const response = await fetchOrThrow(`/api/reports/events?${query.toString()}`, {
+        const response = await fetch(`/api/reports/events?${query.toString()}`, {
           headers: { Accept: 'application/json' },
           signal,
         });
+        if (!response.ok) return;
         const events = await response.json();
 
         const groupedEvents = {};

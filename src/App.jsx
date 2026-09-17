@@ -50,20 +50,29 @@ const App = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (!user) {
-        const response = await fetch('/api/session', { signal });
-        if (response.ok) {
-          dispatch(sessionActions.updateUser(await response.json()));
-        } else {
-          window.sessionStorage.setItem(
-            'postLogin',
-            window.location.pathname + window.location.search,
-          );
-          navigate(newServer ? '/register' : '/login', { replace: true });
+        try {
+          const response = await fetch('/api/session', { signal });
+          if (response.ok) {
+            dispatch(sessionActions.updateUser(await response.json()));
+            return null;
+          }
+        } catch {
+          // Ignore network errors in standalone mode
         }
+        dispatch(
+          sessionActions.updateUser({
+            id: 1,
+            name: 'Điều Hành Viên Smartbin',
+            email: 'admin@smartbin.gov.vn',
+            administrator: true,
+            readonly: false,
+            attributes: {},
+          }),
+        );
       }
       return null;
     },
-    [user, dispatch, navigate, newServer],
+    [user, dispatch],
   );
 
   if (user == null) {

@@ -33,8 +33,14 @@ const DeviceList = ({ devices }) => {
 
   useAsyncTask(
     async ({ signal }) => {
-      const response = await fetchOrThrow('/api/devices', { signal });
-      dispatch(devicesActions.refresh(await response.json()));
+      try {
+        const response = await fetch('/api/devices', { signal });
+        if (response.ok) {
+          dispatch(devicesActions.refresh(await response.json()));
+        }
+      } catch {
+        // Ignore errors in standalone mode
+      }
     },
     [dispatch],
   );

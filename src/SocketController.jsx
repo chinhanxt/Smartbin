@@ -111,9 +111,7 @@ const SocketController = () => {
         if (positionsResponse.ok) {
           dispatch(sessionActions.updatePositions(await positionsResponse.json()));
         }
-        if (devicesResponse.status === 401 || positionsResponse.status === 401) {
-          navigate('/login');
-        }
+        // Keep standalone session active without redirecting to login
       } catch {
         // ignore errors
       }
@@ -153,8 +151,14 @@ const SocketController = () => {
   useAsyncTask(
     async ({ signal }) => {
       if (authenticated) {
-        const response = await fetchOrThrow('/api/devices', { signal });
-        dispatch(devicesActions.refresh(await response.json()));
+        try {
+          const response = await fetch('/api/devices', { signal });
+          if (response.ok) {
+            dispatch(devicesActions.refresh(await response.json()));
+          }
+        } catch {
+          // ignore devices fetch error
+        }
         nativePostMessage('authenticated');
         connectSocket();
         return () => {
