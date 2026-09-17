@@ -68,3 +68,9 @@ export function validateCanProceedToQuote({ confirmedItems = [], aiResult = {} }
 
   return { allowed: true };
 }
+
+export function validateStepLogistics(draft = {}) {
+  const locErrors = validateRequestLocation(draft);
+  const condErrors = validateHandlingConditions(draft?.handlingConditions);
+  return { ...locErrors, ...condErrors };
+}

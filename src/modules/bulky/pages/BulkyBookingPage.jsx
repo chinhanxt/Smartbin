@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Typography, Container, Alert } from '@mui/material';
+import { Box, Typography, Container, Alert, Button } from '@mui/material';
 import { BulkyRequestWizard } from '../features/request/BulkyRequestWizard.jsx';
 import { selectBulkyDraft, selectCanManageBulky } from '../store/selectors.js';
+import { analyzeBulkyWasteWithGemini } from '../services/ai/geminiVisionService.js';
 
 export function BulkyBookingPage({
   serviceLocations = [
@@ -42,18 +43,7 @@ export function BulkyBookingPage({
     if (services?.recognition?.analyzeImages) {
       return services.recognition.analyzeImages(input);
     }
-    return {
-      decision: 'SUGGESTED',
-      requiresManualReview: false,
-      items: [
-        {
-          itemType: 'SOFA',
-          displayName: 'Sofa da 3 chỗ',
-          suggestedQuantity: 1,
-          dimensionsCm: { length: 200, width: 90, height: 85 },
-        },
-      ],
-    };
+    return analyzeBulkyWasteWithGemini(input);
   };
 
   const handleSubmit = async (formData) => {
@@ -91,40 +81,83 @@ export function BulkyBookingPage({
 
   if (!canManage) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">
-          Bạn không có quyền quản lý đơn đặt thu gom rác cồng kềnh (Yêu cầu quyền
-          MANAGE_BULKY_ORDERS).
-        </Alert>
-      </Container>
+      <Box sx={{ minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', color: '#0f172a', py: { xs: 2, sm: 4 } }}>
+        <Container maxWidth="md">
+          <Alert severity="error">
+            Bạn không có quyền quản lý đơn đặt thu gom rác cồng kềnh (Yêu cầu quyền
+            MANAGE_BULKY_ORDERS).
+          </Alert>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-          Đặt Lịch Thu Gom Rác Cồng Kềnh
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Quy trình 5 bước minh bạch — Định giá tự động và hỗ trợ nhận diện AI
-        </Typography>
-      </Box>
+    <Box sx={{ minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', color: '#0f172a', py: { xs: 2, sm: 4 } }}>
+      <Container maxWidth="md">
+        {/* Navigation Breadcrumb */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Button
+            onClick={() => navigate('/bulky/orders')}
+            sx={{
+              textTransform: 'none',
+              color: '#64748b',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              '&:hover': { color: '#1d4ed8', backgroundColor: '#eff6ff' },
+            }}
+          >
+            ← Danh sách đơn thu gom
+          </Button>
+          <Box
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 0.8,
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 2,
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+            }}
+          >
+            <span>🏛️</span> Dịch Vụ Công Xã Thông Minh
+          </Box>
+        </Box>
 
-      {submitError && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {submitError}
-        </Alert>
-      )}
+        {/* Page Title */}
+        <Box sx={{ mb: 3.5, textAlign: 'center' }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            fontWeight="bold"
+            sx={{ color: '#0f172a', letterSpacing: '-0.02em' }}
+          >
+            Đặt Lịch Thu Gom Rác Cồng Kềnh
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#64748b', maxWidth: 540, mx: 'auto' }}>
+            Quy trình minh bạch — Định giá tự động từ bảng giá chuẩn và hỗ trợ nhận diện AI thông minh
+          </Typography>
+        </Box>
 
-      <BulkyRequestWizard
-        serviceLocations={serviceLocations}
-        initialDraft={currentDraft}
-        onAnalyzeImages={handleAnalyzeImages}
-        onSubmit={handleSubmit}
-        isOffline={isOffline}
-      />
-    </Container>
+        {submitError && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            {submitError}
+          </Alert>
+        )}
+
+        <BulkyRequestWizard
+          serviceLocations={serviceLocations}
+          initialDraft={currentDraft}
+          onAnalyzeImages={handleAnalyzeImages}
+          onSubmit={handleSubmit}
+          isOffline={isOffline}
+        />
+      </Container>
+    </Box>
   );
 }
 

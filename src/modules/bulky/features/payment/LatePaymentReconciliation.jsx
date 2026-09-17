@@ -9,14 +9,23 @@ export function LatePaymentReconciliation({
   if (!resolution) return null;
 
   return (
-    <Card variant="outlined" sx={{ p: 2, borderColor: 'warning.main', bgcolor: 'warning.lighter' }}>
+    <Card
+      variant="outlined"
+      sx={{
+        p: 2,
+        borderColor: '#f59e0b',
+        backgroundColor: '#fffbeb',
+        borderRadius: 2.5,
+        boxShadow: '0 1px 3px rgba(245, 158, 11, 0.1)',
+      }}
+    >
       <CardContent>
         <Stack spacing={2}>
           <Box>
-            <Typography variant="h6" color="warning.dark">
+            <Typography variant="h6" fontWeight="bold" sx={{ color: '#b45309' }}>
               Xử Lý Thanh Toán Muộn (Hết Hạn Giữ Chỗ)
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: '#92400e', mt: 0.5 }}>
               Giao dịch thanh toán thành công nhưng vị trí giữ chỗ ban đầu đã hết hạn trước khi hoàn
               tất giao dịch.
             </Typography>

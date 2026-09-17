@@ -17,6 +17,9 @@ const EVENT_LABELS = {
   QUOTE_AND_HOLD_RESERVED: 'Nhận báo giá và giữ chỗ',
   ORDER_CONFIRMED_PAID: 'Thanh toán thành công & Lên lịch xe gom',
   ORDER_CANCELLED: 'Đã hủy đơn thu gom',
+  ORDER_RESCHEDULED: 'Đã đổi ngày thu gom thành công',
+  RESCHEDULE_REQUESTED: 'Đã gửi yêu cầu đổi ngày (Đang duyệt)',
+  CANCEL_REQUESTED: 'Đã gửi yêu cầu hủy đơn (Đang duyệt)',
   LATE_PAYMENT_RECEIVED: 'Nhận thanh toán muộn (Cần xác nhận lịch)',
   PAYMENT_FAILED: 'Thanh toán thất bại',
 };
@@ -25,9 +28,18 @@ export function OrderTimeline({ timeline = [] }) {
   if (!timeline || !timeline.length) return null;
 
   return (
-    <Card variant="outlined" sx={{ p: 2 }}>
+    <Card
+      variant="outlined"
+      sx={{
+        p: 2,
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
+        borderRadius: 2.5,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}
+    >
       <CardContent>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }} gutterBottom>
           Lịch Sử Sự Kiện
         </Typography>
         <List dense disablePadding>
@@ -50,24 +62,48 @@ export function OrderTimeline({ timeline = [] }) {
                         alignItems: 'center',
                       }}
                     >
-                      <Typography variant="body2" fontWeight="medium">
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#0f172a' }}>
                         {label}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" sx={{ color: '#64748b' }}>
                         {timeStr}
                       </Typography>
                     </Box>
                   }
                   secondary={
-                    item.reason ? (
-                      <Typography variant="caption" color="text.secondary">
-                        Lý do: {item.reason}
-                      </Typography>
-                    ) : item.transactionReference ? (
-                      <Typography variant="caption" color="text.secondary">
-                        Mã giao dịch: {item.transactionReference}
-                      </Typography>
-                    ) : null
+                    <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                      {item.requestedDate && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="primary.main"
+                          fontWeight="medium"
+                          sx={{ display: 'block' }}
+                        >
+                          Ngày thu gom mới: {item.requestedDate}
+                        </Typography>
+                      )}
+                      {item.reason && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
+                          Lý do: {item.reason}
+                        </Typography>
+                      )}
+                      {item.transactionReference && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
+                          Mã giao dịch: {item.transactionReference}
+                        </Typography>
+                      )}
+                    </Box>
                   }
                 />
               </ListItem>

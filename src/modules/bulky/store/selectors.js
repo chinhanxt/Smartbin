@@ -10,6 +10,16 @@ export const selectCanReadBulky = (state) =>
 export const selectCanManageBulky = (state) =>
   Boolean(selectBulkyState(state).capabilities?.includes(BULKY_CAPABILITIES.MANAGE_BULKY_ORDERS));
 
+export const selectCanDispatchBulky = (state) =>
+  Boolean(selectBulkyState(state).capabilities?.includes(BULKY_CAPABILITIES.DISPATCH_BULKY_ORDERS));
+
+export const selectActiveBulkyUser = (state) => selectBulkyState(state).activeUser || null;
+
+export const selectIsDispatcher = (state) => {
+  const user = selectActiveBulkyUser(state);
+  return user?.role === 'DISPATCHER' || user?.role === 'ADMIN' || selectCanDispatchBulky(state);
+};
+
 export const selectBulkyCatalog = (state) => selectBulkyState(state).catalog || [];
 
 export const selectBulkyDraft = (state) => selectBulkyState(state).draft || null;

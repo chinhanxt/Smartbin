@@ -128,4 +128,67 @@ describe('BulkyOrderDetailPage', () => {
     expect(screen.getByText(/Tiến Trình Hoàn Tiền/i)).toBeInTheDocument();
     expect(screen.getByText(/Đã gửi yêu cầu hoàn tiền/i)).toBeInTheDocument();
   });
+
+  it('renders dispatcher simulation card and multi-module trace when change request is UNDER_REVIEW', () => {
+    const underReviewOrder = {
+      ...baseOrder,
+      changeRequest: {
+        changeRequestId: 'cr-test-1',
+        type: 'RESCHEDULE',
+        status: 'UNDER_REVIEW',
+        requestedDate: '2026-09-25',
+        reason: 'Khách đổi giờ sát giờ gom',
+      },
+      lastDispatchEvent: {
+        eventId: 'ord-1:1:UPSERT',
+        type: 'UPSERT',
+        confirmationVersion: 1,
+        occurredAt: '2026-09-17T09:00:00.000Z',
+      },
+    };
+
+    renderWithStore(<BulkyOrderDetailPage />, {
+      initialState: {
+        ordersById: { 'ord-1': underReviewOrder },
+      },
+    });
+
+    expect(screen.getByText(/BÀN ĐIỀU PHỐI VIÊN \(MÔ PHỎNG TEST\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Duyệt yêu cầu \(Chấp thuận\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Từ chối yêu cầu \(Bác bỏ\)/i })).toBeInTheDocument();
+    expect(screen.getByText(/Tích Hợp Đa Phân Hệ/i)).toBeInTheDocument();
+    expect(screen.getByText(/ord-1:1:UPSERT/i)).toBeInTheDocument();
+  });
+
+  it('allows dispatcher to trigger accept change offer', async () => {
+    let accepted = false;
+    const mockThunks = {
+      acceptChangeOffer: ({ changeRequestId }) => async () => {
+        if (changeRequestId === 'cr-test-2') accepted = true;
+      },
+    };
+
+    const underReviewOrder = {
+      ...baseOrder,
+      changeRequest: {
+        changeRequestId: 'cr-test-2',
+        type: 'CANCEL',
+        status: 'UNDER_REVIEW',
+        reason: 'Khách muốn hủy đơn',
+      },
+    };
+
+    renderWithStore(<BulkyOrderDetailPage thunks={mockThunks} />, {
+      initialState: {
+        ordersById: { 'ord-1': underReviewOrder },
+      },
+    });
+
+    const acceptBtn = screen.getByRole('button', { name: /Duyệt yêu cầu \(Chấp thuận\)/i });
+    fireEvent.click(acceptBtn);
+
+    await waitFor(() => {
+      expect(accepted).toBe(true);
+    });
+  });
 });

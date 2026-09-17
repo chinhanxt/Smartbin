@@ -4,6 +4,7 @@ import {
   validateRequestItems,
   validateHandlingConditions,
   validateCanProceedToQuote,
+  validateStepLogistics,
 } from './requestValidation.js';
 
 describe('requestValidation', () => {
@@ -82,6 +83,26 @@ describe('requestValidation', () => {
         aiResult: { requiresManualReview: false },
       });
       expect(allowed.allowed).toBe(true);
+    });
+  });
+
+  describe('validateStepLogistics', () => {
+    it('combines location and handling condition validations', () => {
+      const invalid = validateStepLogistics({
+        serviceLocationId: '',
+        requestedDate: '',
+        handlingConditions: { floorNumber: -1 },
+      });
+      expect(invalid.serviceLocationId).toBeDefined();
+      expect(invalid.requestedDate).toBeDefined();
+      expect(invalid.floorNumber).toBeDefined();
+
+      const valid = validateStepLogistics({
+        serviceLocationId: 'loc-1',
+        requestedDate: '2026-09-20',
+        handlingConditions: { floorNumber: 2, hasLift: true },
+      });
+      expect(Object.keys(valid)).toHaveLength(0);
     });
   });
 });

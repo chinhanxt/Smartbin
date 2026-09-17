@@ -1,6 +1,18 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { BULKY_PERSONAS, BULKY_STORAGE_KEYS } from '../services/bulkyServiceContract.js';
+
+export const getInitialActiveUser = () => {
+  try {
+    if (typeof window !== 'undefined' && window?.localStorage) {
+      const raw = window.localStorage.getItem(BULKY_STORAGE_KEYS.ACTIVE_USER);
+      if (raw) return JSON.parse(raw);
+    }
+  } catch {}
+  return BULKY_PERSONAS[0];
+};
 
 const initialState = {
+  activeUser: null,
   capabilities: [],
   catalog: [],
   draft: null,
@@ -23,6 +35,16 @@ export const bulkySlice = createSlice({
   reducers: {
     setBulkyCapabilities(state, action) {
       state.capabilities = action.payload || [];
+    },
+    switchBulkyUser(state, action) {
+      const persona = action.payload || BULKY_PERSONAS[0];
+      state.activeUser = persona;
+      state.capabilities = persona.capabilities || [];
+      try {
+        if (typeof window !== 'undefined' && window?.localStorage) {
+          window.localStorage.setItem(BULKY_STORAGE_KEYS.ACTIVE_USER, JSON.stringify(persona));
+        }
+      } catch {}
     },
     setBulkyDraft(state, action) {
       state.draft = action.payload;
@@ -127,6 +149,7 @@ export const bulkySlice = createSlice({
 
 export const {
   setBulkyCapabilities,
+  switchBulkyUser,
   setBulkyDraft,
   clearBulkyDraft,
   setRequestLoading,

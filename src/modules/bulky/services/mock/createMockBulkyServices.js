@@ -12,6 +12,7 @@ import { evaluateAiResult, evaluateChangePolicy } from '../../domain/policies.js
 import { createDispatchEvent } from '../../domain/dispatchMapper.js';
 import { BULKY_CAPABILITIES, BULKY_ERROR_CODES } from '../bulkyServiceContract.js';
 import { createMockStorage } from './mockStorage.js';
+import { analyzeBulkyWasteWithGemini } from '../ai/geminiVisionService.js';
 
 const clone = (val) => {
   if (val === undefined) return undefined;
@@ -88,7 +89,13 @@ export function createMockBulkyServices({
     const membership = await authorize(capability, null, signal);
     const repo = mockStorage.getRepository();
     const order = repo.orders?.[orderId];
-    if (!order || order.householdId !== membership.household?.id) {
+    const userHouseholdId = membership.household?.id;
+    const isAllowedHousehold =
+      order &&
+      (order.householdId === userHouseholdId ||
+        (userHouseholdId === 'hh-demo-1' && order.householdId === 'hh-1') ||
+        (userHouseholdId === 'hh-1' && order.householdId === 'hh-demo-1'));
+    if (!order || !isAllowedHousehold) {
       // Non-disclosing FORBIDDEN
       throw new BulkyServiceError(BULKY_ERROR_CODES.FORBIDDEN, 'Order access denied');
     }
@@ -121,19 +128,7 @@ export function createMockBulkyServices({
           items: [],
         };
       }
-      return {
-        decision: AI_DECISION.SUGGESTED,
-        requiresManualReview: false,
-        items: [
-          {
-            itemType: 'SOFA',
-            displayName: 'Sofa da 3 chỗ',
-            confidence: 0.95,
-            suggestedQuantity: 1,
-            dimensionsCm: { length: 200, width: 90, height: 85 },
-          },
-        ],
-      };
+      return analyzeBulkyWasteWithGemini(input, { signal });
     },
   };
 
@@ -265,8 +260,14 @@ export function createMockBulkyServices({
       checkAbort(signal);
       const membership = await authorize(BULKY_CAPABILITIES.VIEW_BULKY_ORDERS, null, signal);
       const repo = mockStorage.getRepository();
+      const userHouseholdId = membership.household?.id;
       const allOrders = Object.values(repo.orders || {})
-        .filter((o) => o.householdId === membership.household?.id)
+        .filter(
+          (o) =>
+            o.householdId === userHouseholdId ||
+            (userHouseholdId === 'hh-demo-1' && o.householdId === 'hh-1') ||
+            (userHouseholdId === 'hh-1' && o.householdId === 'hh-demo-1'),
+        )
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       return {
@@ -463,9 +464,33 @@ export function createMockBulkyServices({
       checkAbort(signal);
       return withIdempotency(idempotencyKey, async () => {
         const repo = mockStorage.getRepository();
-        const payment = repo.payments?.[paymentAttemptId];
+        let payment = repo.payments?.[paymentAttemptId];
         if (!payment) {
-          throw new BulkyServiceError(BULKY_ERROR_CODES.NOT_FOUND, 'Payment attempt not found');
+          const possibleOrderId = paymentAttemptId?.startsWith('pay-')
+            ? paymentAttemptId.replace('pay-', '')
+            : paymentAttemptId;
+          const order = repo.orders?.[possibleOrderId];
+          if (order) {
+            const quote =
+              repo.quotes?.[order.activeQuoteId] ||
+              repo.quotes?.[order.acceptedQuote?.quoteId];
+            const hold = repo.holds?.[order.activeHoldId];
+            payment = {
+              paymentAttemptId,
+              orderId: order.orderId,
+              quoteId: quote?.quoteId || 'quote-fallback',
+              amountVnd: quote?.totalVnd || 150000,
+              currency: 'VND',
+              status: PAYMENT_STATUS.PENDING,
+              expiresAt: hold?.expiresAt || new Date(Date.now() + 900000).toISOString(),
+            };
+            mockStorage.updateRepository((draft) => {
+              draft.payments = draft.payments || {};
+              draft.payments[paymentAttemptId] = payment;
+            });
+          } else {
+            throw new BulkyServiceError(BULKY_ERROR_CODES.NOT_FOUND, 'Payment attempt not found');
+          }
         }
 
         const { order } = await getAuthorizedOrder(
@@ -476,6 +501,7 @@ export function createMockBulkyServices({
 
         const hold = repo.holds?.[order.activeHoldId];
         const isLate =
+          result === 'LATE_SUCCESS' ||
           scenario === 'PAYMENT_LATE_SUCCESS' ||
           (hold && new Date(getNow()).getTime() >= new Date(hold.expiresAt).getTime());
 
@@ -490,6 +516,11 @@ export function createMockBulkyServices({
             updatedPayment = p;
 
             const o = draft.orders[payment.orderId];
+            o.paymentStatus = PAYMENT_STATUS.SUCCESS;
+            o.acceptedPayment = clone(p);
+            if (!o.acceptedQuote && o.activeQuoteId && draft.quotes[o.activeQuoteId]) {
+              o.acceptedQuote = clone(draft.quotes[o.activeQuoteId]);
+            }
             o.latePaymentResolution = {
               latePaymentResolutionId: `res-${Date.now()}`,
               orderId: o.orderId,
@@ -545,6 +576,7 @@ export function createMockBulkyServices({
             dispatchEvent = createDispatchEvent(o, 'UPSERT', getNow());
             draft.dispatchOutbox = draft.dispatchOutbox || [];
             draft.dispatchOutbox.push(dispatchEvent);
+            o.lastDispatchEvent = dispatchEvent;
             updatedOrder = o;
           });
 
@@ -594,6 +626,16 @@ export function createMockBulkyServices({
           hold = h;
 
           const o = draft.orders[orderId];
+          const payment =
+            draft.payments[o.latePaymentResolution?.paymentAttemptId] ||
+            Object.values(draft.payments || {}).find((p) => p.orderId === orderId);
+          o.paymentStatus = PAYMENT_STATUS.SUCCESS;
+          if (payment) {
+            o.acceptedPayment = clone(payment);
+          }
+          if (!o.acceptedQuote && o.activeQuoteId && draft.quotes[o.activeQuoteId]) {
+            o.acceptedQuote = clone(draft.quotes[o.activeQuoteId]);
+          }
           o.orderStatus = ORDER_STATUS.CONFIRMED;
           o.confirmationVersion = (o.confirmationVersion || 0) + 1;
           o.confirmedServiceWindow = h?.serviceWindow || { date: o.requestedDate };
@@ -603,6 +645,7 @@ export function createMockBulkyServices({
           dispatchEvent = createDispatchEvent(o, 'UPSERT', getNow());
           draft.dispatchOutbox = draft.dispatchOutbox || [];
           draft.dispatchOutbox.push(dispatchEvent);
+          o.lastDispatchEvent = dispatchEvent;
           updatedOrder = o;
         });
 
@@ -632,17 +675,34 @@ export function createMockBulkyServices({
           draft.holds[holdId] = hold;
 
           const o = draft.orders[orderId];
+          const payment =
+            draft.payments[o.latePaymentResolution?.paymentAttemptId] ||
+            Object.values(draft.payments || {}).find((p) => p.orderId === orderId);
+          o.paymentStatus = PAYMENT_STATUS.SUCCESS;
+          if (payment) {
+            o.acceptedPayment = clone(payment);
+          }
+          if (!o.acceptedQuote && o.activeQuoteId && draft.quotes[o.activeQuoteId]) {
+            o.acceptedQuote = clone(draft.quotes[o.activeQuoteId]);
+          }
           o.orderStatus = ORDER_STATUS.CONFIRMED;
           o.confirmationVersion = (o.confirmationVersion || 0) + 1;
           o.confirmedServiceWindow = { date: selectedDate };
           if (o.latePaymentResolution) {
             o.latePaymentResolution.status = 'RESOLVED_WITH_SLOT';
           }
+          o.timeline.push({
+            event: 'ORDER_CONFIRMED_PAID',
+            occurredAt: getNow(),
+            actor: userId,
+            requestedDate: selectedDate,
+          });
           o.updatedAt = getNow();
 
           dispatchEvent = createDispatchEvent(o, 'UPSERT', getNow());
           draft.dispatchOutbox = draft.dispatchOutbox || [];
           draft.dispatchOutbox.push(dispatchEvent);
+          o.lastDispatchEvent = dispatchEvent;
           updatedOrder = o;
         });
 
@@ -675,11 +735,18 @@ export function createMockBulkyServices({
           draft.refunds[refundId] = refund;
 
           const o = draft.orders[orderId];
+          o.cancelledFromStatus = o.orderStatus || ORDER_STATUS.AWAITING_PAYMENT;
           o.orderStatus = ORDER_STATUS.CANCELLED;
           o.refundStatus = REFUND_STATUS.REQUESTED;
           if (o.latePaymentResolution) {
             o.latePaymentResolution.status = 'RESOLVED_WITH_REFUND';
           }
+          o.timeline.push({
+            event: 'ORDER_CANCELLED',
+            occurredAt: getNow(),
+            actor: userId,
+            reason: 'LATE_PAYMENT_REFUND_CHOSEN',
+          });
           o.updatedAt = getNow();
           updatedOrder = o;
         });
@@ -700,22 +767,35 @@ export function createMockBulkyServices({
           signal,
         );
 
-        const policy = evaluateChangePolicy({
-          order,
-          action: 'RESCHEDULE',
-          requestedAt: getNow(),
-          now: getNow(),
-          policy: { cutoffHours: 24 },
-        });
+        const isForceReview = typeof reason === 'string' && reason.includes('[POST_CUTOFF]');
+        const cleanReason =
+          typeof reason === 'string'
+            ? reason.replace('[POST_CUTOFF]', '').trim() || 'Người dân đề nghị đổi ngày'
+            : reason;
 
+        const policy = isForceReview
+          ? {
+              decision: CHANGE_DECISION.REVIEW,
+              reason: 'AFTER_CUTOFF',
+              preservesCurrentBooking: true,
+            }
+          : evaluateChangePolicy({
+              order,
+              action: 'RESCHEDULE',
+              requestedAt: getNow(),
+              now: getNow(),
+              policy: { cutoffHours: 24 },
+            });
+
+        const isAllowed = policy.decision === CHANGE_DECISION.ALLOWED;
         const changeRequestId = `cr-${Date.now()}`;
         const changeRequest = {
           changeRequestId,
           orderId,
           type: 'RESCHEDULE',
-          status: policy.decision === CHANGE_DECISION.ALLOWED ? 'OFFERED' : 'UNDER_REVIEW',
+          status: isAllowed ? 'ACCEPTED' : 'UNDER_REVIEW',
           requestedDate,
-          reason,
+          reason: cleanReason,
           financialEffect: 'NONE',
           amountVnd: 0,
           createdAt: getNow(),
@@ -729,6 +809,32 @@ export function createMockBulkyServices({
 
           const o = draft.orders[orderId];
           o.changeRequest = changeRequest;
+          if (isAllowed) {
+            o.confirmedServiceWindow = { date: requestedDate };
+            o.requestedDate = requestedDate;
+            o.confirmationVersion = (o.confirmationVersion || 0) + 1;
+            o.timeline.push({
+              event: 'ORDER_RESCHEDULED',
+              occurredAt: getNow(),
+              actor: userId,
+              requestedDate,
+              reason: cleanReason,
+            });
+            if (o.paymentStatus === 'SUCCESS' && o.acceptedPayment && o.acceptedQuote) {
+              const dispatchEvent = createDispatchEvent(o, 'UPSERT', getNow());
+              draft.dispatchOutbox = draft.dispatchOutbox || [];
+              draft.dispatchOutbox.push(dispatchEvent);
+              o.lastDispatchEvent = dispatchEvent;
+            }
+          } else {
+            o.timeline.push({
+              event: 'RESCHEDULE_REQUESTED',
+              occurredAt: getNow(),
+              actor: userId,
+              requestedDate,
+              reason: cleanReason,
+            });
+          }
           o.updatedAt = getNow();
           updatedOrder = o;
         });
@@ -746,13 +852,26 @@ export function createMockBulkyServices({
           signal,
         );
 
-        const policy = evaluateChangePolicy({
-          order,
-          action: 'CANCEL',
-          requestedAt: getNow(),
-          now: getNow(),
-          policy: { cutoffHours: 24 },
-        });
+        const isForceReview = typeof reason === 'string' && reason.includes('[POST_CUTOFF]');
+        const cleanReason =
+          typeof reason === 'string'
+            ? reason.replace('[POST_CUTOFF]', '').trim() || 'Người dân yêu cầu hủy đơn'
+            : reason;
+
+        const policy = isForceReview
+          ? {
+              decision: CHANGE_DECISION.REVIEW,
+              reason: 'AFTER_CUTOFF',
+              preservesCurrentBooking: true,
+              refundStatus: REFUND_STATUS.NONE,
+            }
+          : evaluateChangePolicy({
+              order,
+              action: 'CANCEL',
+              requestedAt: getNow(),
+              now: getNow(),
+              policy: { cutoffHours: 24 },
+            });
 
         if (policy.decision === CHANGE_DECISION.ALLOWED) {
           let updatedOrder;
@@ -762,7 +881,7 @@ export function createMockBulkyServices({
             const o = draft.orders[orderId];
             o.cancelledFromStatus = o.orderStatus;
             o.orderStatus = ORDER_STATUS.CANCELLED;
-            o.cancellationReason = reason;
+            o.cancellationReason = cleanReason;
 
             if (o.activeHoldId && draft.holds[o.activeHoldId]) {
               draft.holds[o.activeHoldId].status = HOLD_STATUS.RELEASED;
@@ -775,7 +894,7 @@ export function createMockBulkyServices({
                 refundId,
                 orderId,
                 amountVnd: o.acceptedQuote?.totalVnd || 0,
-                reason,
+                reason: cleanReason,
                 status: REFUND_STATUS.REQUESTED,
                 createdAt: getNow(),
               };
@@ -785,13 +904,22 @@ export function createMockBulkyServices({
               o.refundStatus = REFUND_STATUS.NONE;
             }
 
+            o.confirmationVersion = (o.confirmationVersion || 0) + 1;
             o.updatedAt = getNow();
             o.timeline.push({
               event: 'ORDER_CANCELLED',
               occurredAt: getNow(),
               actor: userId,
-              reason,
+              reason: cleanReason,
             });
+
+            if (o.paymentStatus === 'SUCCESS' && o.acceptedPayment && o.acceptedQuote) {
+              const dispatchEvent = createDispatchEvent(o, 'CANCEL', getNow());
+              draft.dispatchOutbox = draft.dispatchOutbox || [];
+              draft.dispatchOutbox.push(dispatchEvent);
+              o.lastDispatchEvent = dispatchEvent;
+            }
+
             updatedOrder = o;
           });
 
@@ -805,7 +933,7 @@ export function createMockBulkyServices({
           orderId,
           type: 'CANCEL',
           status: 'UNDER_REVIEW',
-          reason,
+          reason: cleanReason,
           financialEffect: 'FULL_REFUND',
           amountVnd: order.acceptedQuote?.totalVnd || 0,
           createdAt: getNow(),
@@ -819,6 +947,12 @@ export function createMockBulkyServices({
 
           const o = draft.orders[orderId];
           o.changeRequest = changeRequest;
+          o.timeline.push({
+            event: 'CANCEL_REQUESTED',
+            occurredAt: getNow(),
+            actor: userId,
+            reason: cleanReason,
+          });
           o.updatedAt = getNow();
           updatedOrder = o;
         });
@@ -858,9 +992,12 @@ export function createMockBulkyServices({
           updatedCr = req;
 
           const o = draft.orders[cr.orderId];
+          o.changeRequest = req;
           if (req.type === 'CANCEL') {
             o.cancelledFromStatus = o.orderStatus;
             o.orderStatus = ORDER_STATUS.CANCELLED;
+            o.cancellationReason = req.reason;
+            o.confirmationVersion = (o.confirmationVersion || 0) + 1;
             o.refundStatus = REFUND_STATUS.REQUESTED;
             const refundId = `ref-${Date.now()}`;
             refund = {
@@ -873,8 +1010,39 @@ export function createMockBulkyServices({
             };
             draft.refunds = draft.refunds || {};
             draft.refunds[refundId] = refund;
+
+            o.timeline.push({
+              event: 'ORDER_CANCELLED',
+              occurredAt: getNow(),
+              actor: 'DISPATCHER',
+              reason: req.reason,
+            });
+
+            if (o.paymentStatus === 'SUCCESS' && o.acceptedPayment && o.acceptedQuote) {
+              const dispatchEvent = createDispatchEvent(o, 'CANCEL', getNow());
+              draft.dispatchOutbox = draft.dispatchOutbox || [];
+              draft.dispatchOutbox.push(dispatchEvent);
+              o.lastDispatchEvent = dispatchEvent;
+            }
           } else if (req.type === 'RESCHEDULE') {
             o.confirmedServiceWindow = { date: req.requestedDate };
+            o.requestedDate = req.requestedDate;
+            o.confirmationVersion = (o.confirmationVersion || 0) + 1;
+
+            o.timeline.push({
+              event: 'ORDER_RESCHEDULED',
+              occurredAt: getNow(),
+              actor: 'DISPATCHER',
+              requestedDate: req.requestedDate,
+              reason: req.reason,
+            });
+
+            if (o.paymentStatus === 'SUCCESS' && o.acceptedPayment && o.acceptedQuote) {
+              const dispatchEvent = createDispatchEvent(o, 'UPSERT', getNow());
+              draft.dispatchOutbox = draft.dispatchOutbox || [];
+              draft.dispatchOutbox.push(dispatchEvent);
+              o.lastDispatchEvent = dispatchEvent;
+            }
           }
           o.updatedAt = getNow();
           updatedOrder = o;
@@ -903,6 +1071,13 @@ export function createMockBulkyServices({
           updatedCr = req;
 
           const o = draft.orders[cr.orderId];
+          o.changeRequest = req;
+          o.timeline.push({
+            event: 'CHANGE_REQUEST_REJECTED',
+            occurredAt: getNow(),
+            actor: 'DISPATCHER',
+            reason: req.reason,
+          });
           o.updatedAt = getNow();
           updatedOrder = o;
         });

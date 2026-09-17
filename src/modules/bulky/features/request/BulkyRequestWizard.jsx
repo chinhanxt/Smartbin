@@ -13,30 +13,57 @@ import {
   Card,
   CardContent,
   FormControl,
-  InputLabel,
+  FormLabel,
   Select,
   FormControlLabel,
   Switch,
   CircularProgress,
   Stack,
   Divider,
+  IconButton,
 } from '@mui/material';
 import {
   validateRequestLocation,
   validateRequestItems,
   validateHandlingConditions,
   validateCanProceedToQuote,
+  validateStepLogistics,
 } from './requestValidation.js';
 import { ACCEPTED_ITEM_TYPES } from '../../domain/constants.js';
 
 const STEPS = [
-  'Địa điểm & Ngày',
-  'Ảnh đồ vật',
-  'AI Nhận diện',
-  'Xác nhận đồ',
-  'Điều kiện bốc xếp',
-  'Xem lại & Gửi',
+  'Ảnh đồ vật & AI Quét',
+  'Địa điểm & Bốc xếp',
+  'Xem lại & Báo giá',
 ];
+
+const ITEM_ICONS = {
+  SOFA: '🛋️',
+  MATTRESS: '🛏️',
+  WARDROBE: '🚪',
+  CABINET: '🚪',
+  TABLE: '🪑',
+  APPLIANCE: '🧊',
+  OTHER: '📦',
+};
+
+const ITEM_TYPE_LABELS = {
+  SOFA: '🛋️ Sofa / Ghế dài phòng khách',
+  MATTRESS: '🛏️ Nệm / Đệm giường ngủ',
+  CABINET: '🚪 Tủ quần áo / Kệ tủ các loại',
+  TABLE: '🪑 Bàn / Ghế các loại (Bàn ăn, Ghế ngồi...)',
+  OTHER: '📦 Đồ cồng kềnh khác',
+};
+
+function getItemVisual(item) {
+  const name = (item.displayName || '').toLowerCase();
+  if (name.includes('ghế') || name.includes('chair')) return { icon: '🪑', label: 'Ghế' };
+  if (name.includes('bàn') || name.includes('table')) return { icon: '🪵', label: 'Bàn' };
+  if (name.includes('sofa') || name.includes('salon')) return { icon: '🛋️', label: 'Sofa' };
+  if (name.includes('nệm') || name.includes('đệm') || name.includes('mattress')) return { icon: '🛏️', label: 'Nệm' };
+  if (name.includes('tủ') || name.includes('cabinet') || name.includes('wardrobe')) return { icon: '🚪', label: 'Tủ' };
+  return { icon: ITEM_ICONS[item.catalogItemCode] || '📦', label: item.catalogItemCode };
+}
 
 export function BulkyRequestWizard({
   serviceLocations = [],
@@ -49,6 +76,14 @@ export function BulkyRequestWizard({
   const [errors, setErrors] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(initialDraft?.recognitionResult || null);
+  const [apiKey, setApiKey] = useState(
+    () =>
+      (typeof localStorage !== 'undefined' && localStorage.getItem('smartbin_gemini_api_key')) ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) ||
+      '',
+  );
+  const [showKeyConfig, setShowKeyConfig] = useState(false);
+  const [keySavedMessage, setKeySavedMessage] = useState(false);
 
   const [formData, setFormData] = useState({
     serviceLocationId: initialDraft?.serviceLocation?.id || initialDraft?.serviceLocationId || '',
@@ -59,7 +94,7 @@ export function BulkyRequestWizard({
       : [
           {
             catalogItemCode: 'SOFA',
-            displayName: 'Sofa',
+            displayName: 'Sofa da 3 chỗ',
             quantity: 1,
             dimensionsCm: { length: 200, width: 90, height: 85 },
           },
@@ -72,18 +107,71 @@ export function BulkyRequestWizard({
     },
   });
 
+  // Fast testing preset images
+  const samplePresets = [
+    {
+      name: 'Sofa da phòng khách',
+      icon: '🛋️',
+      meta: { filename: 'sofa_da_phong_khach.jpg', sizeBytes: 1024 * 380, mimeType: 'image/jpeg' },
+    },
+    {
+      name: 'Nệm lò xo đôi 1m8',
+      icon: '🛏️',
+      meta: { filename: 'nem_lo_xo_1m8.jpg', sizeBytes: 1024 * 450, mimeType: 'image/jpeg' },
+    },
+    {
+      name: 'Tủ quần áo gỗ 3 cánh',
+      icon: '🚪',
+      meta: { filename: 'tu_go_3_canh.jpg', sizeBytes: 1024 * 620, mimeType: 'image/jpeg' },
+    },
+  ];
+
+  const handleAddPresetPhoto = (presetMeta) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageMetadata: [...prev.imageMetadata, presetMeta],
+    }));
+    if (errors.images) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.images;
+        return next;
+      });
+    }
+  };
+
+  const handleRemovePhoto = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageMetadata: prev.imageMetadata.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Helper date setter
+  const setQuickDate = (daysFromNow) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    const dateStr = d.toISOString().split('T')[0];
+    setFormData((prev) => ({ ...prev, requestedDate: dateStr }));
+    if (errors.requestedDate) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.requestedDate;
+        return next;
+      });
+    }
+  };
+
   const handleNext = async () => {
     let stepErrors = {};
     if (activeStep === 0) {
-      stepErrors = validateRequestLocation(formData);
-    } else if (activeStep === 1) {
       if (!formData.imageMetadata.length) {
         stepErrors.images = 'Vui lòng cung cấp ít nhất 1 ảnh đồ vật';
       }
-    } else if (activeStep === 2) {
-      // AI step: if analyzing, wait
-    } else if (activeStep === 3) {
-      stepErrors = validateRequestItems(formData.confirmedItems);
+      const itemErrors = validateRequestItems(formData.confirmedItems);
+      if (itemErrors.confirmedItems) {
+        stepErrors.confirmedItems = itemErrors.confirmedItems;
+      }
       const quoteCheck = validateCanProceedToQuote({
         confirmedItems: formData.confirmedItems,
         aiResult: aiResult || {},
@@ -91,8 +179,8 @@ export function BulkyRequestWizard({
       if (!quoteCheck.allowed) {
         stepErrors.quoteCheck = quoteCheck.reason;
       }
-    } else if (activeStep === 4) {
-      stepErrors = validateHandlingConditions(formData.handlingConditions);
+    } else if (activeStep === 1) {
+      stepErrors = validateStepLogistics(formData);
     }
 
     if (Object.keys(stepErrors).length > 0) {
@@ -119,17 +207,25 @@ export function BulkyRequestWizard({
     if (!onAnalyzeImages) return;
     setIsAnalyzing(true);
     try {
-      const res = await onAnalyzeImages({ images: formData.imageMetadata });
+      const res = await onAnalyzeImages({
+        images: formData.imageMetadata,
+        apiKey: apiKey?.trim(),
+      });
       setAiResult(res);
-      if (res.items && res.items.length > 0) {
+      if (res?.items && res.items.length > 0) {
+        const hasDisassemblyNeeded = res.items.some((it) => it.disassemblyNeeded);
         setFormData((prev) => ({
           ...prev,
           confirmedItems: res.items.map((item) => ({
-            catalogItemCode: item.itemType,
+            catalogItemCode: item.catalogItemCode || item.itemType || 'OTHER',
             displayName: item.displayName || item.itemType,
             quantity: item.suggestedQuantity || 1,
             dimensionsCm: item.dimensionsCm || { length: 150, width: 80, height: 80 },
           })),
+          handlingConditions: {
+            ...prev.handlingConditions,
+            requiresDisassembly: hasDisassemblyNeeded || prev.handlingConditions.requiresDisassembly,
+          },
         }));
       }
     } catch {
@@ -140,9 +236,9 @@ export function BulkyRequestWizard({
   };
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto', p: 2 }}>
+    <Box sx={{ width: '100%', maxWidth: 760, mx: 'auto' }}>
       {isOffline && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
           <Typography variant="body2">
             Đang ở chế độ ngoại tuyến — <strong>Bản nháp lưu cục bộ</strong>. Yêu cầu sẽ được gửi
             lên hệ thống khi có kết nối lại.
@@ -150,74 +246,104 @@ export function BulkyRequestWizard({
         </Alert>
       )}
 
-      <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-        {STEPS.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+      {/* Stepper Card with Modern Progress Bar */}
+      <Card
+        sx={{
+          mb: 3,
+          borderRadius: 3,
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          overflow: 'hidden',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        <Box sx={{ height: 4, width: '100%', backgroundColor: '#f1f5f9' }}>
+          <Box
+            sx={{
+              height: '100%',
+              width: `${((activeStep + 1) / STEPS.length) * 100}%`,
+              backgroundColor: '#1d4ed8',
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </Box>
+        <Box sx={{ p: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+            }}
+          >
+            <Typography variant="caption" fontWeight={700} color="#1d4ed8" sx={{ letterSpacing: '0.05em' }}>
+              BƯỚC {activeStep + 1} / {STEPS.length}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+              {STEPS[activeStep]}
+            </Typography>
+          </Box>
+          <Stepper activeStep={activeStep} alternativeLabel sx={{ '& .MuiStepLabel-label': { fontSize: '0.8rem', mt: 0.5 } }}>
+            {STEPS.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </Box>
+      </Card>
 
-      <Card variant="outlined" sx={{ p: 2, mb: 3 }}>
-        <CardContent>
-          {/* STEP 0: Location and Date */}
+      {/* Wizard Step Content Card */}
+      <Card
+        sx={{
+          p: { xs: 2.5, sm: 3.5 },
+          mb: 3,
+          borderRadius: 3,
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+          backgroundColor: '#ffffff',
+        }}
+      >
+        <CardContent sx={{ p: 0 }}>
+          {/* STEP 0: Photos & Real-time AI Vision & Confirmed Items */}
           {activeStep === 0 && (
             <Stack spacing={3}>
-              <Typography variant="h6">1. Chọn địa điểm và ngày thu gom</Typography>
-              <FormControl fullWidth error={Boolean(errors.serviceLocationId)}>
-                <InputLabel id="service-location-label">Địa điểm thu gom</InputLabel>
-                <Select
-                  labelId="service-location-label"
-                  label="Địa điểm thu gom"
-                  value={formData.serviceLocationId}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, serviceLocationId: e.target.value }))
-                  }
-                >
-                  {serviceLocations.map((loc) => (
-                    <MenuItem key={loc.id} value={loc.id}>
-                      {loc.address} (Khu vực: {loc.serviceArea?.code || 'Tiêu chuẩn'})
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors.serviceLocationId && (
-                  <Typography variant="caption" color="error">
-                    {errors.serviceLocationId}
-                  </Typography>
-                )}
-              </FormControl>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }}>
+                  1. Chụp ảnh & AI quét đồ trực tiếp
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#64748b' }}>
+                  Tải ảnh đồ cũ để Gemini AI tự động quét danh mục hoặc thêm đồ thủ công trực tiếp bên dưới.
+                </Typography>
+              </Box>
 
-              <TextField
-                type="date"
-                label="Ngày thu gom mong muốn"
-                slotProps={{ inputLabel: { shrink: true } }}
-                fullWidth
-                value={formData.requestedDate}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, requestedDate: e.target.value }))
-                }
-                error={Boolean(errors.requestedDate)}
-                helperText={errors.requestedDate}
-              />
-            </Stack>
-          )}
-
-          {/* STEP 1: Photos & Metadata */}
-          {activeStep === 1 && (
-            <Stack spacing={3}>
-              <Typography variant="h6">2. Cung cấp hình ảnh đồ cồng kềnh</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Chụp ảnh rõ nét các góc của đồ cồng kềnh để AI phân tích kích thước và ước lượng xe
-                gom phù hợp.
-              </Typography>
-
-              <Alert severity="info">
-                Lưu ý: Để đảm bảo bảo mật và hiệu năng, chỉ thông tin mô tả an toàn của ảnh được lưu
-                trữ.
-              </Alert>
-
-              <Button variant="outlined" component="label" sx={{ py: 2, borderStyle: 'dashed' }}>
-                Tải ảnh lên từ thiết bị
+              {/* Upload Dropzone */}
+              <Box
+                component="label"
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  p: 3.5,
+                  borderRadius: 2.5,
+                  border: '2px dashed #cbd5e1',
+                  backgroundColor: '#f8fafc',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    borderColor: '#1d4ed8',
+                    backgroundColor: '#eff6ff',
+                  },
+                }}
+              >
+                <Box sx={{ fontSize: '2.5rem', mb: 1 }}>📸</Box>
+                <Typography variant="subtitle1" fontWeight="bold" color="#1e293b">
+                  Tải ảnh lên từ thiết bị (hoặc chụp ảnh)
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#64748b', mt: 0.5 }}>
+                  Hỗ trợ định dạng JPG, PNG, WebP (Tối đa 10MB)
+                </Typography>
                 <input
                   type="file"
                   hidden
@@ -225,15 +351,41 @@ export function BulkyRequestWizard({
                   accept="image/*"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    const metas = files.map((f) => ({
-                      filename: f.name,
-                      sizeBytes: f.size,
-                      mimeType: f.type,
-                    }));
-                    setFormData((prev) => ({ ...prev, imageMetadata: metas }));
+                    if (!files.length) return;
+
+                    files.forEach((f) => {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const dataUrl = ev.target?.result;
+                        const base64 =
+                          typeof dataUrl === 'string' ? dataUrl.split('base64,')[1] : null;
+                        setFormData((prev) => ({
+                          ...prev,
+                          imageMetadata: [
+                            ...prev.imageMetadata,
+                            {
+                              filename: f.name,
+                              sizeBytes: f.size,
+                              mimeType: f.type || 'image/jpeg',
+                              dataUrl,
+                              base64,
+                            },
+                          ],
+                        }));
+                      };
+                      reader.readAsDataURL(f);
+                    });
+
+                    if (errors.images) {
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.images;
+                        return next;
+                      });
+                    }
                   }}
                 />
-              </Button>
+              </Box>
 
               {errors.images && (
                 <Typography variant="caption" color="error">
@@ -241,199 +393,670 @@ export function BulkyRequestWizard({
                 </Typography>
               )}
 
+              {/* 1-Click Tester Presets */}
+              <Box sx={{ p: 2, borderRadius: 2, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#0f172a', mb: 1 }}>
+                  ✨ Thử nghiệm nhanh (Mẫu ảnh chụp sẵn):
+                </Typography>
+                <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  {samplePresets.map((preset, idx) => (
+                    <Button
+                      key={idx}
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleAddPresetPhoto(preset.meta)}
+                      sx={{
+                        textTransform: 'none',
+                        fontSize: '0.8rem',
+                        borderColor: '#cbd5e1',
+                        color: '#334155',
+                        backgroundColor: '#ffffff',
+                        '&:hover': { borderColor: '#1d4ed8', backgroundColor: '#eff6ff' },
+                      }}
+                    >
+                      {preset.icon} + {preset.name}
+                    </Button>
+                  ))}
+                </Stack>
+              </Box>
+
+              {/* Photos List Preview */}
               {formData.imageMetadata.length > 0 && (
                 <Box>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1, color: '#0f172a' }}>
                     Ảnh đã chọn ({formData.imageMetadata.length}):
                   </Typography>
-                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                  <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
                     {formData.imageMetadata.map((meta, i) => (
                       <Chip
                         key={i}
+                        avatar={
+                          meta.dataUrl ? (
+                            <Box
+                              component="img"
+                              src={meta.dataUrl}
+                              alt={meta.filename}
+                              sx={{
+                                width: 24,
+                                height: 24,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          ) : undefined
+                        }
                         label={`${meta.filename} (${Math.round(meta.sizeBytes / 1024)} KB)`}
+                        onDelete={() => handleRemovePhoto(i)}
+                        sx={{
+                          borderRadius: 2,
+                          backgroundColor: '#f1f5f9',
+                          fontWeight: 500,
+                        }}
                       />
                     ))}
                   </Stack>
                 </Box>
               )}
-            </Stack>
-          )}
 
-          {/* STEP 2: AI Suggestion */}
-          {activeStep === 2 && (
-            <Stack spacing={3}>
-              <Typography variant="h6">3. AI Phân tích & Nhận diện đồ cồng kềnh</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Hệ thống AI sẽ gợi ý loại đồ và kích thước tiêu chuẩn. Kết quả AI chỉ mang tính tham
-                khảo, bạn có toàn quyền chỉnh sửa ở bước kế tiếp.
-              </Typography>
-
-              <Button
-                variant="contained"
-                onClick={handleRunAi}
-                disabled={isAnalyzing}
-                startIcon={isAnalyzing ? <CircularProgress size={18} color="inherit" /> : null}
+              {/* AI Engine Status Banner & Action Button */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 1.5,
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: 2,
+                  p: 2,
+                }}
               >
-                {isAnalyzing ? 'Đang phân tích...' : 'Bắt đầu phân tích AI'}
-              </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ fontSize: '1.4rem' }}>⚡</Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: '#166534', fontWeight: 700 }}>
+                      Google Gemini 2.5 Flash Vision
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#15803d', display: 'block' }}>
+                      Tự động phân loại đồ vật, đo kích thước và phát hiện chất thải cấm
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Button
+                    size="small"
+                    onClick={() => setShowKeyConfig((prev) => !prev)}
+                    sx={{ textTransform: 'none', fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}
+                  >
+                    {showKeyConfig ? 'Đóng cấu hình ▴' : 'Khóa API ▾'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    disabled={isAnalyzing}
+                    onClick={handleRunAi}
+                    startIcon={isAnalyzing ? <CircularProgress size={16} color="inherit" /> : null}
+                    sx={{
+                      backgroundColor: '#16a34a',
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      px: 2.5,
+                      py: 0.8,
+                      borderRadius: 2,
+                      '&:hover': { backgroundColor: '#15803d' },
+                    }}
+                  >
+                    {isAnalyzing ? 'Đang phân tích...' : '✨ Quét ảnh với AI'}
+                  </Button>
+                </Box>
+              </Box>
+
+              {showKeyConfig && (
+                <Box sx={{ p: 2, borderRadius: 2, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <Typography variant="caption" fontWeight="bold" sx={{ color: '#475569' }}>
+                    KHÓA API GOOGLE GEMINI:
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="Nhập khóa API Gemini (AQ.Ab8...)"
+                    />
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        if (typeof localStorage !== 'undefined') {
+                          localStorage.setItem('smartbin_gemini_api_key', apiKey.trim());
+                        }
+                        setKeySavedMessage(true);
+                        setTimeout(() => setKeySavedMessage(false), 3000);
+                      }}
+                      sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      Lưu Khóa
+                    </Button>
+                  </Stack>
+                  {keySavedMessage && (
+                    <Typography variant="caption" color="success.main" sx={{ mt: 0.5, display: 'block' }}>
+                      ✓ Đã lưu khóa API vào bộ nhớ trình duyệt.
+                    </Typography>
+                  )}
+                </Box>
+              )}
 
               {errors.ai && <Alert severity="error">{errors.ai}</Alert>}
 
               {aiResult && (
-                <Box sx={{ mt: 2 }}>
-                  {aiResult.requiresManualReview ? (
-                    <Alert severity="warning">
-                      <strong>Cần nhân viên hỗ trợ xem xét:</strong> AI phát hiện đồ vật có thể
-                      ngoài danh mục tiêu chuẩn hoặc không thể nhận diện rõ. Đơn sẽ chuyển sang
-                      trạng thái duyệt trước khi báo giá.
+                <Box>
+                  {aiResult.containsHazardousWaste ? (
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        🚫 CẢNH BÁO AN TOÀN MÔI TRƯỜNG:
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        Phát hiện rác nguy hại/xây dựng: <strong>{aiResult.hazardousReason || 'Chất cấm'}</strong>. Đơn sẽ chuyển sang trạng thái <strong>Chờ xét duyệt thủ công</strong>.
+                      </Typography>
+                    </Alert>
+                  ) : aiResult.requiresManualReview ? (
+                    <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                      <strong>Cần nhân viên hỗ trợ xem xét:</strong> AI phát hiện đồ vật có thể ngoài danh mục tiêu chuẩn. Đơn sẽ được duyệt trước khi thanh toán.
+                      {aiResult.explanation && (
+                        <Typography variant="body2" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                          Phân tích AI: "{aiResult.explanation}"
+                        </Typography>
+                      )}
                     </Alert>
                   ) : (
-                    <Alert severity="success">
-                      <strong>Gợi ý của AI:</strong> Nhận diện thành công loại đồ vật. Bạn có thể
-                      xác nhận hoặc chỉnh sửa thông tin ở bước tiếp theo.
+                    <Alert severity="success" sx={{ borderRadius: 2 }}>
+                      <strong>AI nhận diện thành công!</strong> Đã quét và cập nhật danh mục bên dưới bởi <strong>{aiResult.aiModelUsed || 'Google Gemini 2.5 Flash'}</strong>.
+                      {aiResult.explanation && (
+                        <Typography variant="body2" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                          "{aiResult.explanation}"
+                        </Typography>
+                      )}
                     </Alert>
                   )}
                 </Box>
               )}
-            </Stack>
-          )}
 
-          {/* STEP 3: Confirmed Items */}
-          {activeStep === 3 && (
-            <Stack spacing={3}>
-              <Typography variant="h6">4. Xác nhận danh mục và kích thước đồ vật</Typography>
+              <Divider sx={{ my: 0.5 }} />
+
+              {/* Confirmed Items Header */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#0f172a' }}>
+                    Danh mục đồ cồng kềnh ({formData.confirmedItems.length} món)
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    Kiểm tra tên đồ, nhóm tính cước, số lượng và kích thước Dài × Rộng × Cao (cm)
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      confirmedItems: [
+                        ...prev.confirmedItems,
+                        {
+                          catalogItemCode: 'TABLE',
+                          displayName: 'Bàn / Ghế',
+                          quantity: 1,
+                          dimensionsCm: { length: 100, width: 80, height: 75 },
+                        },
+                      ],
+                    }))
+                  }
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderColor: '#cbd5e1',
+                    color: '#1d4ed8',
+                    '&:hover': { borderColor: '#1d4ed8', backgroundColor: '#eff6ff' },
+                  }}
+                >
+                  + Thêm đồ khác
+                </Button>
+              </Box>
+
               {errors.quoteCheck && <Alert severity="error">{errors.quoteCheck}</Alert>}
+              {errors.confirmedItems && <Alert severity="error">{errors.confirmedItems}</Alert>}
 
-              {formData.confirmedItems.map((item, idx) => (
-                <Card key={idx} variant="outlined" sx={{ p: 2 }}>
-                  <Stack spacing={2}>
-                    <FormControl fullWidth>
-                      <InputLabel id={`item-type-${idx}`}>Loại đồ</InputLabel>
-                      <Select
-                        labelId={`item-type-${idx}`}
-                        label="Loại đồ"
-                        value={item.catalogItemCode}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormData((prev) => {
-                            const nextItems = [...prev.confirmedItems];
-                            nextItems[idx].catalogItemCode = val;
-                            nextItems[idx].displayName = val;
-                            return { ...prev, confirmedItems: nextItems };
-                          });
-                        }}
-                      >
-                        {ACCEPTED_ITEM_TYPES.map((type) => (
-                          <MenuItem key={type} value={type}>
-                            {type}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+              {/* Items list */}
+              {formData.confirmedItems.map((item, idx) => {
+                const visual = getItemVisual(item);
 
-                    <TextField
-                      type="number"
-                      label="Số lượng"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10) || 1;
-                        setFormData((prev) => {
-                          const nextItems = [...prev.confirmedItems];
-                          nextItems[idx].quantity = val;
-                          return { ...prev, confirmedItems: nextItems };
-                        });
-                      }}
-                    />
+                return (
+                  <Card
+                    key={idx}
+                    variant="outlined"
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 2.5,
+                      backgroundColor: '#ffffff',
+                      border: '1.5px solid #cbd5e1',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    }}
+                  >
+                    <Stack spacing={2}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            color: '#0f172a',
+                            fontWeight: 700,
+                            fontSize: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <span style={{ fontSize: '1.25rem' }}>{visual.icon}</span>
+                          Món #{idx + 1}: {item.displayName || visual.label || item.catalogItemCode}
+                        </Typography>
+                        {formData.confirmedItems.length > 1 && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                confirmedItems: prev.confirmedItems.filter((_, i) => i !== idx),
+                              }));
+                            }}
+                            sx={{ textTransform: 'none', fontWeight: 600 }}
+                          >
+                            Xóa món này
+                          </Button>
+                        )}
+                      </Box>
 
-                    <Stack direction="row" spacing={1}>
-                      <TextField
-                        size="small"
-                        label="Dài (cm)"
-                        type="number"
-                        value={item.dimensionsCm?.length || 0}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setFormData((prev) => {
-                            const nextItems = [...prev.confirmedItems];
-                            nextItems[idx].dimensionsCm = {
-                              ...nextItems[idx].dimensionsCm,
-                              length: val,
-                            };
-                            return { ...prev, confirmedItems: nextItems };
-                          });
-                        }}
-                      />
-                      <TextField
-                        size="small"
-                        label="Rộng (cm)"
-                        type="number"
-                        value={item.dimensionsCm?.width || 0}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setFormData((prev) => {
-                            const nextItems = [...prev.confirmedItems];
-                            nextItems[idx].dimensionsCm = {
-                              ...nextItems[idx].dimensionsCm,
-                              width: val,
-                            };
-                            return { ...prev, confirmedItems: nextItems };
-                          });
-                        }}
-                      />
-                      <TextField
-                        size="small"
-                        label="Cao (cm)"
-                        type="number"
-                        value={item.dimensionsCm?.height || 0}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          setFormData((prev) => {
-                            const nextItems = [...prev.confirmedItems];
-                            nextItems[idx].dimensionsCm = {
-                              ...nextItems[idx].dimensionsCm,
-                              height: val,
-                            };
-                            return { ...prev, confirmedItems: nextItems };
-                          });
-                        }}
-                      />
+                      {/* Specific item name */}
+                      <FormControl fullWidth>
+                        <FormLabel
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5,
+                            color: '#0f172a',
+                            fontSize: '0.85rem',
+                            textAlign: 'left',
+                            display: 'block',
+                          }}
+                        >
+                          Tên đồ vật cụ thể (Do AI nhận diện / Tùy chỉnh):
+                        </FormLabel>
+                        <TextField
+                          size="small"
+                          fullWidth
+                          value={item.displayName || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData((prev) => {
+                              const nextItems = [...prev.confirmedItems];
+                              nextItems[idx].displayName = val;
+                              return { ...prev, confirmedItems: nextItems };
+                            });
+                          }}
+                          placeholder="Ví dụ: Bàn tròn, Ghế ăn cafe, Sofa da..."
+                          sx={{
+                            backgroundColor: '#f8fafc',
+                            borderRadius: 2,
+                            '& .MuiInputBase-input': { py: 1, px: 1.5, color: '#0f172a', fontWeight: 600 },
+                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                          }}
+                        />
+                      </FormControl>
+
+                      {/* Billing category */}
+                      <FormControl fullWidth>
+                        <FormLabel
+                          htmlFor={`item-type-${idx}`}
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5,
+                            color: '#0f172a',
+                            fontSize: '0.85rem',
+                            textAlign: 'left',
+                            display: 'block',
+                          }}
+                        >
+                          Nhóm phân loại tính cước:
+                        </FormLabel>
+                        <Select
+                          id={`item-type-${idx}`}
+                          value={item.catalogItemCode}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData((prev) => {
+                              const nextItems = [...prev.confirmedItems];
+                              nextItems[idx].catalogItemCode = val;
+                              return { ...prev, confirmedItems: nextItems };
+                            });
+                          }}
+                          sx={{
+                            borderRadius: 2,
+                            backgroundColor: '#f8fafc',
+                            '& .MuiSelect-select': { py: 1, px: 2, color: '#0f172a', fontWeight: 600 },
+                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                          }}
+                        >
+                          {ACCEPTED_ITEM_TYPES.map((type) => (
+                            <MenuItem key={type} value={type} sx={{ color: '#0f172a' }}>
+                              {ITEM_TYPE_LABELS[type] || type}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      {/* Quantity */}
+                      <FormControl fullWidth>
+                        <FormLabel
+                          htmlFor={`item-qty-${idx}`}
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5,
+                            color: '#0f172a',
+                            fontSize: '0.85rem',
+                            textAlign: 'left',
+                            display: 'block',
+                          }}
+                        >
+                          Số lượng:
+                        </FormLabel>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{ minWidth: 36, height: 38, borderColor: '#cbd5e1', color: '#0f172a', fontWeight: 'bold' }}
+                            onClick={() => {
+                              setFormData((prev) => {
+                                const nextItems = [...prev.confirmedItems];
+                                nextItems[idx].quantity = Math.max(1, (nextItems[idx].quantity || 1) - 1);
+                                return { ...prev, confirmedItems: nextItems };
+                              });
+                            }}
+                          >
+                            -
+                          </Button>
+                          <TextField
+                            id={`item-qty-${idx}`}
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10) || 1;
+                              setFormData((prev) => {
+                                const nextItems = [...prev.confirmedItems];
+                                nextItems[idx].quantity = Math.max(1, val);
+                                return { ...prev, confirmedItems: nextItems };
+                              });
+                            }}
+                            sx={{
+                              width: 90,
+                              backgroundColor: '#f8fafc',
+                              borderRadius: 2,
+                              '& .MuiInputBase-input': { py: 1, px: 1.5, textAlign: 'center', fontWeight: 700, color: '#0f172a' },
+                              '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                            }}
+                          />
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{ minWidth: 36, height: 38, borderColor: '#cbd5e1', color: '#0f172a', fontWeight: 'bold' }}
+                            onClick={() => {
+                              setFormData((prev) => {
+                                const nextItems = [...prev.confirmedItems];
+                                nextItems[idx].quantity = (nextItems[idx].quantity || 1) + 1;
+                                return { ...prev, confirmedItems: nextItems };
+                              });
+                            }}
+                          >
+                            +
+                          </Button>
+                          <Typography variant="body2" sx={{ color: '#64748b', ml: 1, fontWeight: 500 }}>
+                            chiếc / cái
+                          </Typography>
+                        </Box>
+                      </FormControl>
+
+                      {/* Dimensions */}
+                      <Box>
+                        <FormLabel
+                          sx={{
+                            fontWeight: 600,
+                            mb: 0.5,
+                            color: '#0f172a',
+                            fontSize: '0.85rem',
+                            textAlign: 'left',
+                            display: 'block',
+                          }}
+                        >
+                          Kích thước ước tính (Dài × Rộng × Cao cm):
+                        </FormLabel>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mt: 0.5 }}>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block', mb: 0.3 }}>
+                              Dài (cm)
+                            </Typography>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              type="number"
+                              value={item.dimensionsCm?.length || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setFormData((prev) => {
+                                  const nextItems = [...prev.confirmedItems];
+                                  nextItems[idx].dimensionsCm = { ...nextItems[idx].dimensionsCm, length: val };
+                                  return { ...prev, confirmedItems: nextItems };
+                                });
+                              }}
+                              sx={{
+                                borderRadius: 2,
+                                backgroundColor: '#f8fafc',
+                                '& .MuiInputBase-input': { py: 1, px: 1.5, color: '#0f172a', fontWeight: 600, textAlign: 'center' },
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                              }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block', mb: 0.3 }}>
+                              Rộng (cm)
+                            </Typography>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              type="number"
+                              value={item.dimensionsCm?.width || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setFormData((prev) => {
+                                  const nextItems = [...prev.confirmedItems];
+                                  nextItems[idx].dimensionsCm = { ...nextItems[idx].dimensionsCm, width: val };
+                                  return { ...prev, confirmedItems: nextItems };
+                                });
+                              }}
+                              sx={{
+                                borderRadius: 2,
+                                backgroundColor: '#f8fafc',
+                                '& .MuiInputBase-input': { py: 1, px: 1.5, color: '#0f172a', fontWeight: 600, textAlign: 'center' },
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                              }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block', mb: 0.3 }}>
+                              Cao (cm)
+                            </Typography>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              type="number"
+                              value={item.dimensionsCm?.height || 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setFormData((prev) => {
+                                  const nextItems = [...prev.confirmedItems];
+                                  nextItems[idx].dimensionsCm = { ...nextItems[idx].dimensionsCm, height: val };
+                                  return { ...prev, confirmedItems: nextItems };
+                                });
+                              }}
+                              sx={{
+                                borderRadius: 2,
+                                backgroundColor: '#f8fafc',
+                                '& .MuiInputBase-input': { py: 1, px: 1.5, color: '#0f172a', fontWeight: 600, textAlign: 'center' },
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      </Box>
                     </Stack>
-                  </Stack>
-                </Card>
-              ))}
-
-              <Button
-                variant="outlined"
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    confirmedItems: [
-                      ...prev.confirmedItems,
-                      {
-                        catalogItemCode: 'SOFA',
-                        displayName: 'Sofa',
-                        quantity: 1,
-                        dimensionsCm: { length: 100, width: 80, height: 80 },
-                      },
-                    ],
-                  }))
-                }
-              >
-                + Thêm đồ khác
-              </Button>
+                  </Card>
+                );
+              })}
             </Stack>
           )}
 
-          {/* STEP 4: Handling conditions */}
-          {activeStep === 4 && (
+          {/* STEP 1: Location and Logistics Handling */}
+          {activeStep === 1 && (
             <Stack spacing={3}>
-              <Typography variant="h6">5. Điều kiện bốc xếp & Vận chuyển</Typography>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }}>
+                  2. Địa điểm & Điều kiện bốc xếp
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#64748b' }}>
+                  Cung cấp địa chỉ thu gom, ngày hẹn và điều kiện tiếp cận để đội xe sắp xếp nhân lực bốc xếp phù hợp.
+                </Typography>
+              </Box>
+
+              <FormControl fullWidth error={Boolean(errors.serviceLocationId)}>
+                <FormLabel
+                  htmlFor="service-location-select"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 1,
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    textAlign: 'left',
+                    display: 'block',
+                  }}
+                >
+                  Địa điểm thu gom *
+                </FormLabel>
+                <Select
+                  id="service-location-select"
+                  inputProps={{ 'data-testid': 'service-location-input' }}
+                  value={formData.serviceLocationId}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, serviceLocationId: e.target.value }))
+                  }
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: '#ffffff',
+                    '& .MuiSelect-select': { py: 1.5, px: 2, color: '#0f172a', fontWeight: 500 },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                  }}
+                >
+                  {serviceLocations.map((loc) => (
+                    <MenuItem key={loc.id} value={loc.id}>
+                      📍 {loc.address} (Khu vực: {loc.serviceArea?.code || 'Tiêu chuẩn'})
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.serviceLocationId && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                    {errors.serviceLocationId}
+                  </Typography>
+                )}
+              </FormControl>
+
+              <FormControl fullWidth error={Boolean(errors.requestedDate)}>
+                <FormLabel
+                  htmlFor="requested-date-input"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 1,
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    textAlign: 'left',
+                    display: 'block',
+                  }}
+                >
+                  Ngày thu gom mong muốn *
+                </FormLabel>
+                <TextField
+                  id="requested-date-input"
+                  type="date"
+                  fullWidth
+                  value={formData.requestedDate}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, requestedDate: e.target.value }))
+                  }
+                  error={Boolean(errors.requestedDate)}
+                  helperText={errors.requestedDate}
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: '#ffffff',
+                    '& .MuiInputBase-input': { py: 1.5, px: 2, color: '#0f172a', fontWeight: 500 },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                  }}
+                />
+
+                {/* Quick Date Selectors */}
+                <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600 }}>
+                    Gợi ý chọn nhanh:
+                  </Typography>
+                  <Chip
+                    label="Ngày mai (+1 ngày)"
+                    size="small"
+                    onClick={() => setQuickDate(1)}
+                    sx={{ cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#0f172a', '&:hover': { backgroundColor: '#e2e8f0' } }}
+                  />
+                  <Chip
+                    label="Ngày kia (+2 ngày)"
+                    size="small"
+                    onClick={() => setQuickDate(2)}
+                    sx={{ cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#0f172a', '&:hover': { backgroundColor: '#e2e8f0' } }}
+                  />
+                  <Chip
+                    label="3 ngày tới (+3 ngày)"
+                    size="small"
+                    onClick={() => setQuickDate(3)}
+                    sx={{ cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#0f172a', '&:hover': { backgroundColor: '#e2e8f0' } }}
+                  />
+                </Box>
+              </FormControl>
+
+              <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <strong>Quy tắc thời hạn cắt 24h:</strong> Đặt lịch trước thời điểm thu gom 24 giờ để đơn được
+                duyệt tự động và bố trí xe gom ngay lập tức.
+              </Alert>
+
+              <Divider sx={{ my: 0.5 }} />
 
               <FormControl fullWidth>
-                <InputLabel id="placement-label">Vị trí đặt đồ</InputLabel>
+                <FormLabel
+                  htmlFor="placement-select"
+                  sx={{
+                    fontWeight: 600,
+                    mb: 1,
+                    color: '#0f172a',
+                    fontSize: '0.9rem',
+                    textAlign: 'left',
+                    display: 'block',
+                  }}
+                >
+                  Vị trí đặt đồ
+                </FormLabel>
                 <Select
-                  labelId="placement-label"
-                  label="Vị trí đặt đồ"
+                  id="placement-select"
                   value={formData.handlingConditions.placement}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -441,28 +1064,58 @@ export function BulkyRequestWizard({
                       handlingConditions: { ...prev.handlingConditions, placement: e.target.value },
                     }))
                   }
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: '#ffffff',
+                    '& .MuiSelect-select': { py: 1.5, px: 2, color: '#0f172a', fontWeight: 500 },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                  }}
                 >
-                  <MenuItem value="CURBSIDE">Vỉa hè / Mặt đường</MenuItem>
-                  <MenuItem value="GROUND_FLOOR">Tầng trệt trong nhà</MenuItem>
-                  <MenuItem value="UPPER_FLOOR">Tầng lầu / Chung cư</MenuItem>
+                  <MenuItem value="CURBSIDE" sx={{ color: '#0f172a' }}>🛣️ Vỉa hè / Mặt đường (Xe tải bốc trực tiếp)</MenuItem>
+                  <MenuItem value="GROUND_FLOOR" sx={{ color: '#0f172a' }}>🏠 Tầng trệt trong nhà (Bê vác nhẹ)</MenuItem>
+                  <MenuItem value="UPPER_FLOOR" sx={{ color: '#0f172a' }}>🏢 Tầng lầu / Chung cư (Cầu thang / Thang máy)</MenuItem>
                 </Select>
               </FormControl>
 
               {formData.handlingConditions.placement === 'UPPER_FLOOR' && (
-                <Stack spacing={2}>
-                  <TextField
-                    type="number"
-                    label="Số tầng lầu"
-                    value={formData.handlingConditions.floorNumber}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10) || 0;
-                      setFormData((prev) => ({
-                        ...prev,
-                        handlingConditions: { ...prev.handlingConditions, floorNumber: val },
-                      }));
-                    }}
-                  />
+                <Stack spacing={2} sx={{ p: 2, borderRadius: 2, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <FormControl fullWidth error={Boolean(errors.floorNumber)}>
+                    <FormLabel
+                      htmlFor="floor-number-input"
+                      sx={{
+                        fontWeight: 600,
+                        mb: 1,
+                        color: '#0f172a',
+                        fontSize: '0.9rem',
+                        textAlign: 'left',
+                        display: 'block',
+                      }}
+                    >
+                      Số tầng lầu
+                    </FormLabel>
+                    <TextField
+                      id="floor-number-input"
+                      type="number"
+                      value={formData.handlingConditions.floorNumber}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10) || 0;
+                        setFormData((prev) => ({
+                          ...prev,
+                          handlingConditions: { ...prev.handlingConditions, floorNumber: val },
+                        }));
+                      }}
+                      error={Boolean(errors.floorNumber)}
+                      helperText={errors.floorNumber}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: '#ffffff',
+                        '& .MuiInputBase-input': { py: 1.2, px: 2, color: '#0f172a', fontWeight: 500 },
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#cbd5e1' },
+                      }}
+                    />
+                  </FormControl>
                   <FormControlLabel
+                    sx={{ '& .MuiFormControlLabel-label': { color: '#0f172a', fontWeight: 500 } }}
                     control={
                       <Switch
                         checked={formData.handlingConditions.hasLift}
@@ -477,65 +1130,149 @@ export function BulkyRequestWizard({
                         }
                       />
                     }
-                    label="Có thang máy vận chuyển"
+                    label="Tòa nhà có thang máy vận chuyển"
                   />
                 </Stack>
               )}
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.handlingConditions.requiresDisassembly}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        handlingConditions: {
-                          ...prev.handlingConditions,
-                          requiresDisassembly: e.target.checked,
-                        },
-                      }))
-                    }
-                  />
-                }
-                label="Yêu cầu tháo lắp trước khi mang ra xe"
-              />
+              <Box sx={{ p: 2, borderRadius: 2, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <FormControlLabel
+                  sx={{ '& .MuiFormControlLabel-label': { color: '#0f172a', fontWeight: 500 } }}
+                  control={
+                    <Switch
+                      checked={formData.handlingConditions.requiresDisassembly}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          handlingConditions: {
+                            ...prev.handlingConditions,
+                            requiresDisassembly: e.target.checked,
+                          },
+                        }))
+                      }
+                    />
+                  }
+                  label="Cần tháo dỡ linh kiện (ví dụ: tháo cánh tủ, tháo chân bàn)"
+                />
+              </Box>
             </Stack>
           )}
 
-          {/* STEP 5: Review and Submit */}
-          {activeStep === 5 && (
+          {/* STEP 2: Review and Submit */}
+          {activeStep === 2 && (
             <Stack spacing={3}>
-              <Typography variant="h6">6. Xem lại & Xác nhận gửi yêu cầu</Typography>
-              <Divider />
-              <Typography variant="body1">
-                <strong>Ngày thu gom:</strong> {formData.requestedDate}
-              </Typography>
-              <Typography variant="body1">
-                <strong>Số lượng đồ:</strong> {formData.confirmedItems.length} món
-              </Typography>
-              <Typography variant="body1">
-                <strong>Vị trí bốc xếp:</strong> {formData.handlingConditions.placement} (Tầng:{' '}
-                {formData.handlingConditions.floorNumber || 0}, Thang máy:{' '}
-                {formData.handlingConditions.hasLift ? 'Có' : 'Không'})
-              </Typography>
+              <Box>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }}>
+                  3. Xem lại & Báo giá minh bạch
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#64748b' }}>
+                  Kiểm tra toàn bộ thông tin đơn đặt lịch trước khi hệ thống tạo bảng tính giá.
+                </Typography>
+              </Box>
 
-              <Alert severity="info">
-                Sau khi gửi yêu cầu, hệ thống sẽ kiểm tra sức chứa và tạo báo giá minh bạch theo
-                khung giờ thu gom.
+              {/* Booking Review Ticket */}
+              <Box
+                sx={{
+                  p: 3,
+                  borderRadius: 2.5,
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed #cbd5e1' }}>
+                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                      📅 Ngày hẹn thu gom:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#0f172a' }}>
+                      {formData.requestedDate || 'Chưa chọn'}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed #cbd5e1' }}>
+                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                      📍 Địa điểm phục vụ:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#0f172a', textAlign: 'right', maxWidth: 360 }}>
+                      {serviceLocations.find((l) => l.id === formData.serviceLocationId)?.address || formData.serviceLocationId || 'Chưa cập nhật'}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', pb: 1, borderBottom: '1px dashed #cbd5e1' }}>
+                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                      📦 Danh mục đồ đạc:
+                    </Typography>
+                    <Box sx={{ textAlign: 'right' }}>
+                      {formData.confirmedItems.map((item, i) => {
+                        const visual = getItemVisual(item);
+                        return (
+                          <Typography key={i} variant="body2" sx={{ fontWeight: 'bold', color: '#0f172a' }}>
+                            {visual.icon} {item.quantity}x {item.displayName || visual.label || item.catalogItemCode}
+                          </Typography>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                      🚛 Điều kiện bốc xếp:
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#0f172a' }}>
+                      {formData.handlingConditions.placement === 'CURBSIDE'
+                        ? 'Vỉa hè / Mặt đường'
+                        : formData.handlingConditions.placement === 'GROUND_FLOOR'
+                          ? 'Tầng trệt trong nhà'
+                          : `Tầng ${formData.handlingConditions.floorNumber} (${formData.handlingConditions.hasLift ? 'Có thang máy' : 'Thang bộ'})`}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+
+              <Alert severity="info" sx={{ borderRadius: 2 }}>
+                Sau khi gửi yêu cầu, hệ thống sẽ tự động kiểm tra năng lực tải xe gom, giữ chỗ có thời hạn và tạo bảng báo giá chi tiết có thể thanh toán trực tuyến.
               </Alert>
             </Stack>
           )}
         </CardContent>
       </Card>
 
-      <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-        <Button disabled={activeStep === 0} onClick={handleBack}>
-          Quay lại
+      {/* Navigation Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button
+          disabled={activeStep === 0}
+          onClick={handleBack}
+          sx={{
+            textTransform: 'none',
+            fontWeight: 600,
+            color: '#64748b',
+            borderRadius: 2,
+            px: 2.5,
+            py: 1,
+            '&:hover': { backgroundColor: '#f1f5f9' },
+          }}
+        >
+          ← Quay lại
         </Button>
-        <Button variant="contained" onClick={handleNext}>
-          {activeStep === STEPS.length - 1 ? 'Xác nhận & Gửi yêu cầu' : 'Tiếp theo'}
+        <Button
+          variant="contained"
+          onClick={handleNext}
+          sx={{
+            backgroundColor: '#1d4ed8',
+            fontWeight: 600,
+            textTransform: 'none',
+            borderRadius: 2,
+            px: 3,
+            py: 1.2,
+            boxShadow: '0 4px 6px -1px rgba(29, 78, 216, 0.2)',
+            '&:hover': { backgroundColor: '#1e40af' },
+          }}
+        >
+          {activeStep === STEPS.length - 1 ? 'Xác nhận & Gửi yêu cầu' : 'Tiếp theo →'}
         </Button>
-      </Stack>
+      </Box>
     </Box>
   );
 }
+
+export default BulkyRequestWizard;

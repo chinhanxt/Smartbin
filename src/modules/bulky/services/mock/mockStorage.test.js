@@ -5,6 +5,7 @@ import {
   getUserCacheKey,
   getUserOfflineDraftsKey,
 } from './mockStorage.js';
+import { DEFAULT_REPOSITORY_VERSION } from './mockSeed.js';
 
 describe('mockStorage', () => {
   let memory;
@@ -26,10 +27,10 @@ describe('mockStorage', () => {
     };
   });
 
-  it('initializes repository with version smartbin:bulky:v1:repository', () => {
+  it('initializes repository with correct repository version', () => {
     const storage = createMockStorage({ storage: memory });
     const repo = storage.getRepository();
-    expect(repo.version).toBe('smartbin:bulky:v1');
+    expect(repo.version).toBe(DEFAULT_REPOSITORY_VERSION);
     expect(repo.households).toBeDefined();
     expect(backingStore[REPOSITORY_STORAGE_KEY]).toBeDefined();
   });
@@ -38,7 +39,7 @@ describe('mockStorage', () => {
     backingStore[REPOSITORY_STORAGE_KEY] = JSON.stringify({ version: 'smartbin:bulky:legacy' });
     const storage = createMockStorage({ storage: memory });
     const repo = storage.getRepository();
-    expect(repo.version).toBe('smartbin:bulky:v1');
+    expect(repo.version).toBe(DEFAULT_REPOSITORY_VERSION);
     expect(repo.households).toBeDefined();
   });
 

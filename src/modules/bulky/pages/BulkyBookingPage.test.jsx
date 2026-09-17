@@ -69,7 +69,8 @@ describe('BulkyBookingPage', () => {
     expect(
       screen.getByRole('heading', { name: /Đặt Lịch Thu Gom Rác Cồng Kềnh/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/1. Chọn địa điểm và ngày thu gom/i)).toBeInTheDocument();
+    expect(screen.getByText(/1. Chụp ảnh & AI quét đồ trực tiếp/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ảnh đồ vật & AI Quét/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('validates required fields before proceeding to step 2', async () => {
@@ -79,7 +80,7 @@ describe('BulkyBookingPage', () => {
     fireEvent.click(nextBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Vui lòng chọn địa điểm thu gom/i)).toBeInTheDocument();
+      expect(screen.getByText(/Vui lòng cung cấp ít nhất 1 ảnh đồ vật/i)).toBeInTheDocument();
     });
   });
 
@@ -92,11 +93,47 @@ describe('BulkyBookingPage', () => {
       />,
     );
 
-    // Fill date
+    // Step 1: Add a photo via 1-click sample preset
+    const presetBtn = screen.getByRole('button', { name: /Sofa da phòng khách/i });
+    fireEvent.click(presetBtn);
+
+    // Click next to Step 2
+    const nextBtn = screen.getByRole('button', { name: /Tiếp theo/i });
+    fireEvent.click(nextBtn);
+
+    // Verify Step 2 is reached
+    await waitFor(() => {
+      expect(screen.getByText(/2. Địa điểm & Điều kiện bốc xếp/i)).toBeInTheDocument();
+    });
+
+    // Fill date & select location
     const dateInput = screen.getByLabelText(/Ngày thu gom mong muốn/i);
     fireEvent.change(dateInput, { target: { value: '2026-09-25' } });
-
-    // Since Select in MUI requires clicking trigger, let's select via form trigger or test direct next step
     expect(dateInput.value).toBe('2026-09-25');
+
+    const locSelect = screen.getByTestId('service-location-input');
+    fireEvent.change(locSelect, { target: { value: 'loc-1' } });
+
+    // Click next to Step 3
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo/i }));
+
+    // Verify Step 3 is reached
+    await waitFor(() => {
+      expect(screen.getByText(/3. Xem lại & Báo giá minh bạch/i)).toBeInTheDocument();
+    });
+
+    // Submit booking
+    const submitBtn = screen.getByRole('button', { name: /Xác nhận & Gửi yêu cầu/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(handleCreated).toHaveBeenCalledTimes(1);
+      expect(handleCreated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          serviceLocationId: 'loc-1',
+          requestedDate: '2026-09-25',
+        }),
+      );
+    });
   });
 });

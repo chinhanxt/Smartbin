@@ -10,9 +10,11 @@ import { groupsReducer as groups } from './groups';
 import { driversReducer as drivers } from './drivers';
 import { maintenancesReducer as maintenances } from './maintenances';
 import { calendarsReducer as calendars } from './calendars';
+import { bulkyReducer as bulky } from '../modules/bulky/store/bulkySlice';
 import throttleMiddleware from './throttleMiddleware';
 
 const reducer = combineReducers({
+  bulky,
   errors,
   session,
   devices,

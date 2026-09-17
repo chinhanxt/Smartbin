@@ -40,6 +40,14 @@ export function createMockStorage({
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.version === DEFAULT_REPOSITORY_VERSION) {
+          if (!parsed.orders || Object.keys(parsed.orders).length === 0) {
+            const seed = createDefaultSeed();
+            parsed.orders = seed.orders;
+            parsed.refunds = seed.refunds;
+            parsed.changeRequests = seed.changeRequests;
+            parsed.dispatchOutbox = seed.dispatchOutbox;
+            backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
+          }
           return clone(parsed);
         }
       }

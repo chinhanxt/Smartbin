@@ -45,7 +45,14 @@ export function BulkyQuotePage({ thunks, onProceedToPayment }) {
     }
   };
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
+    if (thunks?.startOrderPayment && activeQuote?.quoteId) {
+      try {
+        await dispatch(thunks.startOrderPayment({ orderId, quoteId: activeQuote.quoteId }));
+      } catch (err) {
+        console.warn('Could not start payment attempt on proceed:', err);
+      }
+    }
     if (onProceedToPayment) {
       onProceedToPayment({ orderId, quote: activeQuote, hold: activeHold });
     } else {
@@ -55,73 +62,95 @@ export function BulkyQuotePage({ thunks, onProceedToPayment }) {
 
   if (!canManage) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">
-          Bạn không có quyền quản lý đơn đặt thu gom này (Yêu cầu quyền MANAGE_BULKY_ORDERS).
-        </Alert>
-      </Container>
+      <Box sx={{ minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', color: '#0f172a', py: { xs: 2, sm: 4 } }}>
+        <Container maxWidth="md">
+          <Alert severity="error">
+            Bạn không có quyền quản lý đơn đặt thu gom này (Yêu cầu quyền MANAGE_BULKY_ORDERS).
+          </Alert>
+        </Container>
+      </Box>
     );
   }
 
   if (!order) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="info">Không tìm thấy thông tin đơn thu gom rác cồng kềnh.</Alert>
-      </Container>
+      <Box sx={{ minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', color: '#0f172a', py: { xs: 2, sm: 4 } }}>
+        <Container maxWidth="md">
+          <Alert severity="info">Không tìm thấy thông tin đơn thu gom rác cồng kềnh.</Alert>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-          Báo Giá & Giữ Chỗ Thu Gom
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Mã đơn: <strong>{order.orderId}</strong> • Địa chỉ: {order.serviceLocation?.address}
-        </Typography>
-      </Box>
+    <Box sx={{ minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', color: '#0f172a', py: { xs: 2, sm: 4 } }}>
+      <Container maxWidth="md">
+        {/* Navigation Breadcrumb */}
+        <Box sx={{ mb: 2 }}>
+          <Button
+            onClick={() => navigate('/bulky/orders')}
+            sx={{
+              textTransform: 'none',
+              color: '#64748b',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              '&:hover': { color: '#1d4ed8', backgroundColor: '#eff6ff' },
+            }}
+          >
+            ← Danh sách đơn thu gom
+          </Button>
+        </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" component="h1" gutterBottom fontWeight="bold" sx={{ color: '#0f172a', letterSpacing: '-0.02em' }}>
+            Báo Giá & Giữ Chỗ Thu Gom
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#64748b' }}>
+            Mã đơn: <strong style={{ color: '#0f172a' }}>{order.orderId}</strong> • Địa chỉ: {order.serviceLocation?.address}
+          </Typography>
+        </Box>
 
-      <Stack spacing={3}>
-        <CapacitySelector
-          selectedDate={order.requestedDate}
-          onSelectDate={(newDate) => handleRequestQuote(newDate)}
-        />
-
-        {activeQuote ? (
-          <QuoteBreakdown quote={activeQuote} hold={activeHold} />
-        ) : (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => handleRequestQuote()}
-              disabled={isLoading}
-              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {isLoading ? 'Đang kiểm tra & tạo báo giá...' : 'Lấy báo giá & Giữ chỗ'}
-            </Button>
-          </Box>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
         )}
 
-        {activeQuote && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 2 }}>
-            <Button variant="outlined" onClick={() => navigate('/bulky/booking')}>
-              Chỉnh sửa thông tin
-            </Button>
-            <Button variant="contained" size="large" disabled={isExpired} onClick={handleProceed}>
-              Tiến hành thanh toán
-            </Button>
-          </Box>
-        )}
-      </Stack>
-    </Container>
+        <Stack spacing={3}>
+          <CapacitySelector
+            selectedDate={order.requestedDate}
+            onSelectDate={(newDate) => handleRequestQuote(newDate)}
+          />
+
+          {activeQuote ? (
+            <QuoteBreakdown quote={activeQuote} hold={activeHold} />
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => handleRequestQuote()}
+                disabled={isLoading}
+                startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {isLoading ? 'Đang kiểm tra & tạo báo giá...' : 'Lấy báo giá & Giữ chỗ'}
+              </Button>
+            </Box>
+          )}
+
+          {activeQuote && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, pt: 2 }}>
+              <Button variant="outlined" onClick={() => navigate('/bulky/booking')}>
+                Chỉnh sửa thông tin
+              </Button>
+              <Button variant="contained" size="large" disabled={isExpired} onClick={handleProceed}>
+                Tiến hành thanh toán
+              </Button>
+            </Box>
+          )}
+        </Stack>
+      </Container>
+    </Box>
   );
 }
 

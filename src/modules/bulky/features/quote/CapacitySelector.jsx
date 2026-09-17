@@ -1,5 +1,13 @@
 import { Box, Typography, Card, CardContent, Chip, Button, Stack, Alert } from '@mui/material';
 
+const VEHICLE_CLASS_LABELS = {
+  TRUCK_SMALL: 'Xe tải nhỏ (1.5 tấn)',
+  TRUCK_MEDIUM: 'Xe tải trung (3.5 tấn)',
+  TRUCK_LARGE: 'Xe chuyên dụng lớn (5 tấn)',
+  STANDARD_VAN: 'Xe van tiêu chuẩn',
+  HEAVY_TRUCK: 'Xe tải nặng chuyên dụng',
+};
+
 export function CapacitySelector({
   capacity = { decision: 'AVAILABLE', offeredDates: [] },
   selectedDate,
@@ -10,10 +18,22 @@ export function CapacitySelector({
   const isUnavailable = capacity.decision === 'UNAVAILABLE';
 
   return (
-    <Card variant="outlined" sx={{ p: 2, mb: 3 }}>
+    <Card
+      variant="outlined"
+      sx={{
+        p: 2,
+        mb: 3,
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
+        borderRadius: 2.5,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}
+    >
       <CardContent>
         <Stack spacing={2}>
-          <Typography variant="h6">Tình Trạng Sức Chứa Xe Gom Rác</Typography>
+          <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }}>
+            Tình Trạng Sức Chứa Xe Gom Rác
+          </Typography>
 
           {isAvailable && (
             <Alert severity="success">
@@ -54,7 +74,11 @@ export function CapacitySelector({
               <Typography variant="body2" color="text.secondary">
                 Loại xe điều động:
               </Typography>
-              <Chip label={capacity.vehicleClass} size="small" variant="outlined" />
+              <Chip
+                label={VEHICLE_CLASS_LABELS[capacity.vehicleClass] || capacity.vehicleClass}
+                size="small"
+                variant="outlined"
+              />
               <Typography variant="body2" color="text.secondary">
                 Đội ngũ:
               </Typography>

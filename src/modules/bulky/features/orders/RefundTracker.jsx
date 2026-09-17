@@ -47,12 +47,23 @@ export function RefundTracker({ refund, refundStatus }) {
   };
 
   return (
-    <Card variant="outlined" sx={{ p: 2, borderColor: 'info.main' }}>
+    <Card
+      variant="outlined"
+      sx={{
+        p: 2,
+        backgroundColor: '#ffffff',
+        borderColor: '#38bdf8',
+        borderRadius: 2.5,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+      }}
+    >
       <CardContent>
         <Stack spacing={2}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">Tiến Trình Hoàn Tiền</Typography>
-            <Chip label={getStatusLabel()} color={getStatusColor()} size="small" />
+            <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }}>
+              Tiến Trình Hoàn Tiền
+            </Typography>
+            <Chip label={getStatusLabel()} color={getStatusColor()} size="small" sx={{ fontWeight: 600 }} />
           </Box>
 
           {(status === REFUND_STATUS.REQUESTED || status === REFUND_STATUS.PROCESSING) && (
