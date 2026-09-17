@@ -30,7 +30,7 @@ const MapDefaultCamera = ({ filteredPositions }) => {
       if (defaultLatitude && defaultLongitude) {
         map.jumpTo({
           center: toMapCoordinates(defaultLongitude, defaultLatitude),
-          zoom: defaultZoom,
+          zoom: defaultZoom > 0 ? defaultZoom : 14,
         });
         setInitialized(true);
       } else {
@@ -52,7 +52,32 @@ const MapDefaultCamera = ({ filteredPositions }) => {
           const [individual] = coordinates;
           map.jumpTo({
             center: individual,
-            zoom: Math.max(defaultZoom > 0 ? defaultZoom : map.getZoom(), 10),
+            zoom: Math.max(defaultZoom > 0 ? defaultZoom : map.getZoom(), 14),
+          });
+          setInitialized(true);
+        } else if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              map.jumpTo({
+                center: toMapCoordinates(pos.coords.longitude, pos.coords.latitude),
+                zoom: 15,
+              });
+              setInitialized(true);
+            },
+            () => {
+              // Mặc định về trung tâm TP.HCM (Khu vực hoạt động Smartbin)
+              map.jumpTo({
+                center: toMapCoordinates(106.700806, 10.776889),
+                zoom: 14,
+              });
+              setInitialized(true);
+            },
+            { timeout: 4000, enableHighAccuracy: true },
+          );
+        } else {
+          map.jumpTo({
+            center: toMapCoordinates(106.700806, 10.776889),
+            zoom: 14,
           });
           setInitialized(true);
         }

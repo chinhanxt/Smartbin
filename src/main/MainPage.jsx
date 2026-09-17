@@ -11,7 +11,6 @@ import { devicesActions } from '../store';
 import usePersistedState from '../common/util/usePersistedState';
 import EventsDrawer from './EventsDrawer';
 import useFilter from './useFilter';
-import MainToolbar from './MainToolbar';
 import { useAttributePreference } from '../common/util/preferences';
 
 const MainMap = lazy(() => import('./MainMap'));
@@ -82,16 +81,16 @@ const MainPage = () => {
 
   const [filteredDevices, setFilteredDevices] = useState([]);
 
-  const [keyword, setKeyword] = useState('');
-  const [filter, setFilter] = usePersistedState('deviceFilter', {
+  const [keyword] = useState('');
+  const [filter] = usePersistedState('deviceFilter', {
     statuses: [],
     groups: [],
     geofences: [],
   });
-  const [filterSort, setFilterSort] = usePersistedState('filterSort', '');
-  const [filterMap, setFilterMap] = usePersistedState('filterMap', false);
+  const [filterSort] = usePersistedState('filterSort', '');
+  const [filterMap] = usePersistedState('filterMap', false);
 
-  const [devicesOpen, setDevicesOpen] = useState(desktop);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const [eventsOpen, setEventsOpen] = useState(false);
 
   const onEventsClick = useCallback(() => setEventsOpen(true), [setEventsOpen]);
@@ -124,21 +123,6 @@ const MainPage = () => {
         </Suspense>
       )}
       <div className={classes.sidebar}>
-        <Paper square elevation={3} className={classes.header}>
-          <MainToolbar
-            filteredDevices={filteredDevices}
-            devicesOpen={devicesOpen}
-            setDevicesOpen={setDevicesOpen}
-            keyword={keyword}
-            setKeyword={setKeyword}
-            filter={filter}
-            setFilter={setFilter}
-            filterSort={filterSort}
-            setFilterSort={setFilterSort}
-            filterMap={filterMap}
-            setFilterMap={setFilterMap}
-          />
-        </Paper>
         <div className={classes.middle}>
           {!desktop && (
             <div className={classes.contentMap}>
@@ -159,11 +143,6 @@ const MainPage = () => {
             <DeviceList devices={filteredDevices} />
           </Paper>
         </div>
-        {desktop && (
-          <div className={classes.footer}>
-            <BottomMenu />
-          </div>
-        )}
       </div>
       <EventsDrawer open={eventsOpen} onClose={() => setEventsOpen(false)} />
       {selectedDeviceId && (

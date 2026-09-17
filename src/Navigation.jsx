@@ -10,6 +10,7 @@ import { devicesActions } from './store';
 import { generateLoginToken } from './common/components/NativeInterface';
 import { useLocalization } from './common/components/LocalizationProvider';
 import fetchOrThrow from './common/util/fetchOrThrow';
+import { moduleRoutes } from './modules/moduleRoutes';
 
 const CombinedReportPage = lazy(() => import('./reports/CombinedReportPage'));
 const PositionsReportPage = lazy(() => import('./reports/PositionsReportPage'));
@@ -141,6 +142,11 @@ const Navigation = () => {
           <Route path="geofences" element={<GeofencesPage />} />
           <Route path="emulator" element={<EmulatorPage />} />
           <Route path="stream" element={<StreamPage />} />
+
+          {/* Module Routes Registry (Dev 1, Dev 2, Dev 3) */}
+          {moduleRoutes.map((route) => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
 
           <Route path="settings">
             <Route path=":type/:id/share" element={<SharePage />} />

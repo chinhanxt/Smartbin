@@ -19,6 +19,7 @@ import MapScale from '../map/MapScale';
 import MapRuler from '../map/control/MapRuler';
 import MapNotification from '../map/control/MapNotification';
 import useFeatures from '../common/util/useFeatures';
+import MainMapWasteOverlay from '../modules/dispatch/components/MainMapWasteOverlay';
 
 const MainMap = ({ filteredPositions, selectedPosition, onEventsClick }) => {
   const theme = useTheme();
@@ -44,6 +45,7 @@ const MainMap = ({ filteredPositions, selectedPosition, onEventsClick }) => {
       <MapView>
         <MapOverlay />
         <MapGeofence />
+        <MainMapWasteOverlay />
         <MapAccuracy positions={filteredPositions} />
         <MapLiveRoutes deviceIds={filteredPositions.map((p) => p.deviceId)} />
         <PoiMap />
