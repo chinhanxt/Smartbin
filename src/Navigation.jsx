@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes, useSearchParams } from 'react-router-dom';
+import { Route, Routes, Navigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import MainPage from './main/MainPage';
 import App from './App';
@@ -130,7 +130,8 @@ const Navigation = () => {
         {bulkyRoutes.map((route) => (
           <Route key={route.path} path={route.path} element={route.element} />
         ))}
-        <Route path="/" element={<App />}>
+        <Route path="/" element={<Navigate to="/bulky/booking" replace />} />
+        <Route path="/app" element={<App />}>
           <Route index element={<MainPage />} />
 
           <Route path="position/:id" element={<PositionPage />} />
