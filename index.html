@@ -60,7 +60,7 @@
         <span class="font-bold text-xs tracking-tight text-slate-900">Smartbin<span class="text-brand-600">Hub</span></span>
         <div class="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-emerald-700">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="active-count">6/6 Live</span>
+          <span id="active-count">8/8 Live</span>
         </div>
       </div>
     </div>
@@ -150,7 +150,7 @@
             <polyline points="4 17 10 11 4 5"/>
             <line x1="12" x2="20" y1="19" y2="19"/>
           </svg>
-          <h3 class="font-semibold text-sm text-slate-900">Lệnh Docker Compose Khởi Chạy 6 Services</h3>
+          <h3 class="font-semibold text-sm text-slate-900">Lệnh Docker Compose Khởi Chạy 8 Services</h3>
         </div>
         <button onclick="toggleDockerModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-md">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -161,7 +161,7 @@
       </div>
 
       <div class="space-y-2 text-xs text-slate-600">
-        <p class="text-slate-500">Khởi chạy toàn bộ cụm 6 Microservices:</p>
+        <p class="text-slate-500">Khởi chạy toàn bộ cụm 8 Microservices:</p>
         <div class="relative group">
           <pre class="bg-slate-900 text-emerald-400 p-2.5 rounded-lg font-mono text-[11px] overflow-x-auto border border-slate-800">docker compose -f docker-compose.all.yml up -d --build</pre>
           <button onclick="copyCommand('docker compose -f docker-compose.all.yml up -d --build', this)" class="absolute top-2 right-2 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[10px] font-mono border border-slate-700 transition-colors">Sao chép</button>
@@ -185,7 +185,13 @@ docker run -d --name smartbin-hrm-service -p 3004:80 smartbin-hrm-service:latest
 docker run -d --name smart-trashcan-microservice -p 8080:80 smart-trashcan-3d:latest
 
 # 6. Core Server (:3000)
-docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gateway -p 3000:80 smartbin-web:latest</pre>
+docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gateway -p 3000:80 smartbin-web:latest
+
+# 7. Thu Gom Cồng Kềnh (:3006)
+docker run -d --name smartbin-bulky-microservice -p 3006:80 smartbin-bulky-service:latest
+
+# 8. Điều Phối & Lộ Trình (:3007)
+docker run -d --name smartbin-dispatch-microservice --add-host host.docker.internal:host-gateway -p 3007:80 smartbin-dispatch-service:latest</pre>
       </div>
 
       <div class="pt-2 border-t border-slate-100 flex justify-end">
@@ -205,7 +211,9 @@ docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gatew
       billing: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`,
       hrm: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>`,
       iot: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>`,
-      core: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`
+      core: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`,
+      bulky: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0Z"/><path d="M5 18v2"/><path d="M19 18v2"/></svg>`,
+      dispatch: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>`
     };
 
     const SERVICES = [
@@ -268,6 +276,26 @@ docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gatew
         url: 'http://localhost:3000',
         healthUrl: 'http://localhost:3000/health',
         icon: ICONS.core
+      },
+      {
+        id: 'bulky',
+        name: 'Cồng kềnh',
+        fullName: 'Thu Gom Rác Cồng Kềnh & AI Vision',
+        branch: 'dev-EnglandLee',
+        port: 3006,
+        url: 'http://localhost:3006',
+        healthUrl: 'http://localhost:3006/health',
+        icon: ICONS.bulky
+      },
+      {
+        id: 'dispatch',
+        name: 'Điều phối',
+        fullName: 'Trung Tâm Điều Phối & Lộ Trình Thông Minh',
+        branch: 'dev-congnghip',
+        port: 3007,
+        url: 'http://localhost:3007',
+        healthUrl: 'http://localhost:3007/health',
+        icon: ICONS.dispatch
       }
     ];
 
@@ -370,7 +398,7 @@ docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gatew
         const ok = await pingService(svc);
         if (ok) count++;
       }
-      document.getElementById('active-count').innerText = `${count}/6 Live`;
+      document.getElementById('active-count').innerText = `${count}/8 Live`;
     }
 
     // Init

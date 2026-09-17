@@ -1,5 +1,5 @@
 # Smartbin Microservices Cluster - Full Stack Orchestration
-# Chạy tất cả 6 microservices và Cổng Điều Phối Trung Tâm (Portal)
+# Chạy tất cả 8 microservices song song và Cổng Điều Phối Trung Tâm (Portal)
 version: '3.8'
 
 services:
@@ -25,6 +25,8 @@ services:
       - smartbin-hrm
       - smart-trashcan
       - smartbin-core
+      - smartbin-bulky
+      - smartbin-dispatch
 
   # 1. App Mobile Định Vị & Phát Tín Hiệu GPS (Nhánh webapp)
   smartbin-webapp:
@@ -83,3 +85,31 @@ services:
       - "3000:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # 7. Dịch Vụ Thu Gom Rác Cồng Kềnh & AI Vision (Nhánh dev-EnglandLee)
+  smartbin-bulky:
+    image: smartbin-bulky-service:latest
+    container_name: smartbin-bulky-microservice
+    restart: unless-stopped
+    ports:
+      - "3006:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+  # 8. Trung Tâm Điều Phối & Tối Ưu Tuyến Đường (Nhánh dev-congnghip)
+  smartbin-dispatch:
+    image: smartbin-dispatch-service:latest
+    container_name: smartbin-dispatch-microservice
+    restart: unless-stopped
+    ports:
+      - "3007:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
