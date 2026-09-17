@@ -279,20 +279,17 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center px-4 py-4 sm:py-8">
       <div className="w-full max-w-md">
-        {/* Top App Bar */}
-        <header className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
-              <Navigation className="w-5 h-5 fill-white/20" />
+        {/* Ultra-compact Header */}
+        <header className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
+              <Navigation className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-extrabold text-lg text-slate-900 leading-tight">Smartbin Mobile</h1>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  CLIENT
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">Bộ phát tín hiệu GPS vi dịch vụ độc lập</p>
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-extrabold text-base text-slate-900 leading-tight">Smartbin Mobile</h1>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                GPS
+              </span>
             </div>
           </div>
 
@@ -300,12 +297,12 @@ export default function App() {
             {/* Logs button */}
             <button
               onClick={() => setShowLogs(true)}
-              className="relative p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-300 shadow-sm transition-all"
-              title="Nhật ký truyền tin"
+              className="relative p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-300 shadow-2xs transition-all"
+              title="Nhật ký"
             >
-              <History className="w-5 h-5" />
+              <History className="w-4 h-4" />
               {logs.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold flex items-center justify-center border border-white">
                   {logs.length > 9 ? '9+' : logs.length}
                 </span>
               )}
@@ -314,47 +311,47 @@ export default function App() {
             {/* Settings button */}
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-300 shadow-sm transition-all"
+              className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-300 shadow-2xs transition-all"
               title="Cài đặt"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-4 h-4" />
             </button>
           </div>
         </header>
 
-        {/* Laptop Warning */}
+        {/* Slim Laptop Warning */}
         {!isMobile && (
-          <div className="mb-4 p-3 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-start gap-2.5 shadow-sm">
-            <Laptop className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">Đang mở trên Máy tính (Laptop):</p>
-              <p className="text-sky-700">Trình duyệt trên laptop dùng định vị IP mạng (sai số cao). Hãy mở trên <strong>Điện thoại di động</strong> để phát sóng GPS vệ tinh chuẩn xác từng mét!</p>
+          <div className="mb-3 px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200/80 text-sky-800 text-[11px] flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Laptop className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+              <span className="font-medium">Chế độ Laptop (GPS IP)</span>
             </div>
+            <span className="text-[10px] text-sky-600 font-medium">Khuyên dùng Mobile</span>
           </div>
         )}
 
         {/* GPS Error Alert */}
         {gpsError && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span className="font-semibold">{gpsError}</span>
+          <div className="mb-3 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span className="font-semibold text-[11px]">{gpsError}</span>
           </div>
         )}
 
         {/* Main Card */}
-        <main className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+        <main className="bg-white rounded-2xl border border-slate-200 shadow-lg shadow-slate-200/40 overflow-hidden">
           {/* Header Beacon Bar */}
-          <div className="px-5 py-3.5 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between">
+          <div className="px-4 py-2.5 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
+              <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ripple absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-600"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
               </span>
               <span className="text-xs font-bold text-emerald-900">
-                Đang phát định vị GPS liên tục
+                Đang phát GPS liên tục
               </span>
             </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100/80 text-emerald-800 border border-emerald-300">
+            <div className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100/80 text-emerald-800 border border-emerald-300">
               <Radio className="w-3 h-3 text-emerald-600" />
               <span>Gửi: {sentCount}</span>
             </div>
@@ -440,9 +437,8 @@ export default function App() {
         </main>
 
         {/* Footer info */}
-        <footer className="mt-6 text-center text-xs text-slate-400">
-          <p className="font-semibold text-slate-500">Smartbin IoT Platform • Standalone GPS Client</p>
-          <p className="mt-0.5 font-mono text-[11px]">Server: {serverUrl}</p>
+        <footer className="mt-3 text-center text-[10px] font-mono text-slate-400">
+          Smartbin GPS • {serverUrl}
         </footer>
       </div>
 
