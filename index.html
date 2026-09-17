@@ -139,7 +139,7 @@
           <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
           <div>
             <span class="font-semibold text-sm text-slate-900" id="viewer-title">App Mobile Định Vị & Phát GPS</span>
-            <span class="text-xs text-slate-500 ml-2 font-mono" id="viewer-url">http://localhost:3005</span>
+            <span class="text-xs text-slate-500 ml-2 font-mono" id="viewer-url">http://localhost:3001</span>
           </div>
         </div>
         
@@ -150,7 +150,7 @@
           </div>
 
           <!-- Open in new window -->
-          <a id="viewer-external-btn" href="http://localhost:3005" target="_blank" class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs">
+          <a id="viewer-external-btn" href="http://localhost:3001" target="_blank" class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs">
             <span>Mở Tab Ngoài</span>
             <svg class="w-3.5 h-3.5 ml-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -168,7 +168,7 @@
 
       <!-- Iframe Frame -->
       <div class="relative w-full h-[720px] bg-slate-950/5">
-        <iframe id="service-frame" src="http://localhost:3005" class="w-full h-full border-0" allow="accelerometer; autoplay; camera; geolocation; gyroscope; microphone"></iframe>
+        <iframe id="service-frame" src="http://localhost:3001" class="w-full h-full border-0" allow="accelerometer; autoplay; camera; geolocation; gyroscope; microphone"></iframe>
       </div>
     </div>
 
@@ -236,9 +236,9 @@ docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gatew
         id: 'webapp',
         name: 'App Mobile Định Vị & Phát GPS',
         branch: 'webapp',
-        port: 3005,
-        url: 'http://localhost:3005',
-        healthUrl: 'http://localhost:3005/health',
+        port: 3001,
+        url: 'http://localhost:3001',
+        healthUrl: 'http://localhost:3001/health',
         icon: '📱',
         desc: 'Ứng dụng Web Mobile dành cho tài xế thu gom rác: tự động định danh thiết bị theo IP, đồng bộ vị trí vệ tinh GPS thời gian thực, nút cứu hộ khẩn cấp SOS và viễn trắc xe.',
         badge: 'Driver Mobile App'
