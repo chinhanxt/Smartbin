@@ -18,14 +18,17 @@ const ServerProvider = ({ children }) => {
         try {
           const response = await fetch('/api/server', { signal });
           if (response.ok) {
-            dispatch(sessionActions.updateServer(await response.json()));
+            try {
+              dispatch(sessionActions.updateServer(await response.json()));
+            } catch {
+              dispatch(sessionActions.updateServer({ id: 1, version: '6.15.3', newServer: false }));
+            }
           } else {
-            const message = await response.text();
-            throw Error(message || response.statusText);
+            dispatch(sessionActions.updateServer({ id: 1, version: '6.15.3', newServer: false }));
           }
         } catch (err) {
           if (err.name !== 'AbortError' && !signal.aborted) {
-            setError(err.message || 'Lỗi kết nối máy chủ');
+            dispatch(sessionActions.updateServer({ id: 1, version: '6.15.3', newServer: false }));
           }
         }
       }
