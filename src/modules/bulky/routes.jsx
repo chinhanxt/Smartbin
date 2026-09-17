@@ -120,6 +120,7 @@ function BulkyRouteWrapper({ Component }) {
     );
     dispatch(defaultThunks.fetchCatalog()).catch(() => {});
     dispatch(defaultThunks.fetchOrders()).catch(() => {});
+    dispatch(defaultThunks.fetchNotifications()).catch(() => {});
   }, [dispatch]);
 
   return (
@@ -132,7 +133,7 @@ function BulkyRouteWrapper({ Component }) {
           color: '#0f172a',
         }}
       >
-        <BulkyHeader />
+        <BulkyHeader thunks={defaultThunks} />
         <Component services={defaultServices} thunks={defaultThunks} />
       </Box>
     </ThemeProvider>

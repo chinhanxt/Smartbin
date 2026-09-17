@@ -331,5 +331,19 @@ export function createDefaultSeed() {
       },
     ],
     idempotencyLedger: {},
+    notifications: {
+      'notif-001': {
+        id: 'notif-001',
+        targetRole: 'DISPATCHER',
+        targetUserId: 'dispatcher-demo-user',
+        type: 'RESCHEDULE_REQUESTED',
+        title: '⚡ Yêu cầu dời ngày mới cần phê duyệt',
+        message: 'Đơn #BK-2026-002: Hộ dân Lê Quốc Anh đề nghị dời ngày thu gom sang 24/09/2026.',
+        orderId: 'BK-2026-002',
+        changeRequestId: 'cr-002',
+        createdAt: '2026-09-17T07:00:00.000Z',
+        read: false,
+      },
+    },
   };
 }

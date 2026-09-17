@@ -834,6 +834,19 @@ export function createMockBulkyServices({
               requestedDate,
               reason: cleanReason,
             });
+            draft.notifications = draft.notifications || {};
+            const notifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+            draft.notifications[notifId] = {
+              id: notifId,
+              targetRole: 'DISPATCHER',
+              type: 'RESCHEDULE_REQUESTED',
+              title: '⚡ Yêu cầu dời ngày mới cần phê duyệt',
+              message: `Đơn #${orderId}: Cư dân đề nghị dời ngày thu gom sang ${requestedDate}. Lý do: "${cleanReason}"`,
+              orderId,
+              changeRequestId,
+              createdAt: getNow(),
+              read: false,
+            };
           }
           o.updatedAt = getNow();
           updatedOrder = o;
@@ -953,6 +966,19 @@ export function createMockBulkyServices({
             actor: userId,
             reason: cleanReason,
           });
+          draft.notifications = draft.notifications || {};
+          const notifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          draft.notifications[notifId] = {
+            id: notifId,
+            targetRole: 'DISPATCHER',
+            type: 'CANCEL_REQUESTED',
+            title: '⚡ Yêu cầu hủy đơn mới cần phê duyệt',
+            message: `Đơn #${orderId}: Cư dân đề nghị hủy đơn sau thời hạn cắt. Lý do: "${cleanReason}"`,
+            orderId,
+            changeRequestId,
+            createdAt: getNow(),
+            read: false,
+          };
           o.updatedAt = getNow();
           updatedOrder = o;
         });
@@ -1044,6 +1070,26 @@ export function createMockBulkyServices({
               o.lastDispatchEvent = dispatchEvent;
             }
           }
+
+          draft.notifications = draft.notifications || {};
+          for (const n of Object.values(draft.notifications)) {
+            if (n.changeRequestId === changeRequestId && n.targetRole === 'DISPATCHER') {
+              n.read = true;
+            }
+          }
+          const acceptNotifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          draft.notifications[acceptNotifId] = {
+            id: acceptNotifId,
+            targetRole: 'CITIZEN',
+            type: 'CHANGE_REQUEST_ACCEPTED',
+            title: '✓ Yêu cầu của bạn đã được Điều phối viên phê duyệt',
+            message: `Đơn #${o.orderId}: Điều phối viên đã duyệt yêu cầu ${req.type === 'RESCHEDULE' ? `dời ngày thu gom sang ${req.requestedDate}` : 'hủy đơn'}.`,
+            orderId: o.orderId,
+            changeRequestId,
+            createdAt: getNow(),
+            read: false,
+          };
+
           o.updatedAt = getNow();
           updatedOrder = o;
         });
@@ -1078,6 +1124,26 @@ export function createMockBulkyServices({
             actor: 'DISPATCHER',
             reason: req.reason,
           });
+
+          draft.notifications = draft.notifications || {};
+          for (const n of Object.values(draft.notifications)) {
+            if (n.changeRequestId === changeRequestId && n.targetRole === 'DISPATCHER') {
+              n.read = true;
+            }
+          }
+          const rejectNotifId = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          draft.notifications[rejectNotifId] = {
+            id: rejectNotifId,
+            targetRole: 'CITIZEN',
+            type: 'CHANGE_REQUEST_REJECTED',
+            title: '✕ Yêu cầu của bạn đã bị Điều phối viên từ chối',
+            message: `Đơn #${o.orderId}: Điều phối viên đã từ chối yêu cầu ${req.type === 'RESCHEDULE' ? `dời lịch sang ${req.requestedDate}` : 'hủy đơn'}. Đơn hàng giữ nguyên lịch ban đầu.`,
+            orderId: o.orderId,
+            changeRequestId,
+            createdAt: getNow(),
+            read: false,
+          };
+
           o.updatedAt = getNow();
           updatedOrder = o;
         });
@@ -1155,6 +1221,38 @@ export function createMockBulkyServices({
     },
   };
 
+  // 12. Notifications
+  const notifications = {
+    async list(role, signal) {
+      checkAbort(signal);
+      const repo = mockStorage.getRepository();
+      const all = Object.values(repo.notifications || {})
+        .filter((n) => !role || n.targetRole === role || n.targetRole === 'ALL')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return clone(all);
+    },
+    async markAsRead(notificationId, signal) {
+      checkAbort(signal);
+      mockStorage.updateRepository((draft) => {
+        if (draft.notifications?.[notificationId]) {
+          draft.notifications[notificationId].read = true;
+        }
+      });
+      return { success: true };
+    },
+    async markAllAsRead(role, signal) {
+      checkAbort(signal);
+      mockStorage.updateRepository((draft) => {
+        for (const n of Object.values(draft.notifications || {})) {
+          if (!role || n.targetRole === role || n.targetRole === 'ALL') {
+            n.read = true;
+          }
+        }
+      });
+      return { success: true };
+    },
+  };
+
   return {
     catalog,
     recognition,
@@ -1167,5 +1265,6 @@ export function createMockBulkyServices({
     changes,
     refunds,
     session,
+    notifications,
   };
 }

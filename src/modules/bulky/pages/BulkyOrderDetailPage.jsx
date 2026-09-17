@@ -132,6 +132,9 @@ export function BulkyOrderDetailPage({ thunks }) {
     try {
       if (thunks?.rescheduleOrder && dispatch) {
         await dispatch(thunks.rescheduleOrder({ orderId, requestedDate, reason }));
+        if (thunks?.fetchNotifications) {
+          dispatch(thunks.fetchNotifications(activeUser?.role));
+        }
       }
       setOpenReschedule(false);
     } catch (err) {
@@ -147,6 +150,9 @@ export function BulkyOrderDetailPage({ thunks }) {
     try {
       if (thunks?.cancelOrder && dispatch) {
         await dispatch(thunks.cancelOrder({ orderId, reason }));
+        if (thunks?.fetchNotifications) {
+          dispatch(thunks.fetchNotifications(activeUser?.role));
+        }
       }
       setOpenCancel(false);
     } catch (err) {
@@ -165,6 +171,9 @@ export function BulkyOrderDetailPage({ thunks }) {
         await dispatch(
           thunks.acceptChangeOffer({ changeRequestId: order.changeRequest.changeRequestId }),
         );
+        if (thunks?.fetchNotifications) {
+          dispatch(thunks.fetchNotifications(activeUser?.role));
+        }
       }
     } catch (err) {
       setActionError(err.message || 'Không thể chấp thuận yêu cầu');
@@ -182,6 +191,9 @@ export function BulkyOrderDetailPage({ thunks }) {
         await dispatch(
           thunks.rejectChangeOffer({ changeRequestId: order.changeRequest.changeRequestId }),
         );
+        if (thunks?.fetchNotifications) {
+          dispatch(thunks.fetchNotifications(activeUser?.role));
+        }
       }
     } catch (err) {
       setActionError(err.message || 'Không thể từ chối yêu cầu');

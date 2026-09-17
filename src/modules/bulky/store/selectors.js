@@ -20,6 +20,25 @@ export const selectIsDispatcher = (state) => {
   return user?.role === 'DISPATCHER' || user?.role === 'ADMIN' || selectCanDispatchBulky(state);
 };
 
+const EMPTY_NOTIFICATIONS = [];
+
+export const selectBulkyNotifications = (state) =>
+  selectBulkyState(state).notifications || EMPTY_NOTIFICATIONS;
+
+export const selectRoleNotifications = createSelector(
+  [selectBulkyNotifications, selectActiveBulkyUser],
+  (all, activeUser) => {
+    const role = activeUser?.role || 'CITIZEN';
+    if (role === 'ADMIN') return all;
+    return all.filter((n) => n.targetRole === role || n.targetRole === 'ALL');
+  },
+);
+
+export const selectUnreadNotificationsCount = createSelector(
+  [selectRoleNotifications],
+  (roleNotifs) => roleNotifs.filter((n) => !n.read).length,
+);
+
 export const selectBulkyCatalog = (state) => selectBulkyState(state).catalog || [];
 
 export const selectBulkyDraft = (state) => selectBulkyState(state).draft || null;

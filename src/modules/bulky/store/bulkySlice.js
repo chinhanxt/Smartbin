@@ -27,6 +27,7 @@ const initialState = {
   pagination: { cursor: null, hasMore: false },
   requestsByKey: {},
   activeRequestContexts: {},
+  notifications: [],
 };
 
 export const bulkySlice = createSlice({
@@ -141,6 +142,24 @@ export const bulkySlice = createSlice({
       if (!res?.latePaymentResolutionId) return;
       state.latePaymentResolutionsById[res.latePaymentResolutionId] = res;
     },
+    setNotifications(state, action) {
+      state.notifications = action.payload || [];
+    },
+    addNotification(state, action) {
+      const notif = action.payload;
+      if (!notif?.id) return;
+      state.notifications = [notif, ...state.notifications.filter((n) => n.id !== notif.id)];
+    },
+    markNotificationRead(state, action) {
+      const id = action.payload;
+      const target = state.notifications.find((n) => n.id === id);
+      if (target) target.read = true;
+    },
+    markAllNotificationsRead(state) {
+      state.notifications.forEach((n) => {
+        n.read = true;
+      });
+    },
     resetBulkyState() {
       return initialState;
     },
@@ -164,6 +183,10 @@ export const {
   upsertRefund,
   upsertChangeRequest,
   upsertLatePaymentResolution,
+  setNotifications,
+  addNotification,
+  markNotificationRead,
+  markAllNotificationsRead,
   resetBulkyState,
 } = bulkySlice.actions;
 

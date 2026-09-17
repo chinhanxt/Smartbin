@@ -565,6 +565,64 @@ describe('createMockBulkyServices', () => {
     });
   });
 
+  describe('Role-based notifications', () => {
+    it('creates dispatcher notification on review request, and notifies citizen upon resolution', async () => {
+      const services = getServices('user-1', { now: '2026-09-19T18:00:00.000Z' });
+      const draft = await services.orders.createDraft(
+        { serviceLocationId: 'loc-1', requestedDate: '2026-09-20' },
+        'k-notif-1',
+      );
+      await services.orders.confirmItems(
+        draft.orderId,
+        {
+          confirmedItems: [{ catalogItemCode: 'SOFA', quantity: 1 }],
+          handlingConditions: { placement: 'CURBSIDE' },
+        },
+        'k-notif-2',
+      );
+      const { quote } = await services.quotes.reserveAndCreate(draft.orderId, '2026-09-20', 'k-notif-3');
+      const attempt = await services.payments.start(draft.orderId, quote.quoteId, 'k-notif-4');
+      await services.payments.simulateResult(attempt.paymentAttemptId, 'SUCCESS', 'k-notif-5');
+
+      // Request reschedule within cutoff (enters UNDER_REVIEW)
+      const res = await services.changes.requestReschedule(
+        draft.orderId,
+        '2026-09-22',
+        'Cần dời ngày gấp [POST_CUTOFF]',
+        'k-notif-6',
+      );
+      expect(res.changeRequest.status).toBe('UNDER_REVIEW');
+
+      // Check dispatcher notifications
+      const dispNotifs = await services.notifications.list('DISPATCHER');
+      const reviewNotif = dispNotifs.find((n) => n.changeRequestId === res.changeRequest.changeRequestId);
+      expect(reviewNotif).toBeDefined();
+      expect(reviewNotif.type).toBe('RESCHEDULE_REQUESTED');
+      expect(reviewNotif.read).toBe(false);
+
+      // Dispatcher accepts offer
+      await services.changes.acceptOffer(res.changeRequest.changeRequestId, 'k-notif-7');
+
+      // Dispatcher notification should now be read
+      const updatedDispNotifs = await services.notifications.list('DISPATCHER');
+      const updatedReviewNotif = updatedDispNotifs.find((n) => n.id === reviewNotif.id);
+      expect(updatedReviewNotif.read).toBe(true);
+
+      // Citizen receives approval notification
+      const citizenNotifs = await services.notifications.list('CITIZEN');
+      const citizenApprovalNotif = citizenNotifs.find(
+        (n) => n.changeRequestId === res.changeRequest.changeRequestId,
+      );
+      expect(citizenApprovalNotif).toBeDefined();
+      expect(citizenApprovalNotif.type).toBe('CHANGE_REQUEST_ACCEPTED');
+
+      // Test marking notification as read
+      await services.notifications.markAsRead(citizenApprovalNotif.id);
+      const readNotifs = await services.notifications.list('CITIZEN');
+      expect(readNotifs.find((n) => n.id === citizenApprovalNotif.id).read).toBe(true);
+    });
+  });
+
   describe('AbortSignal handling', () => {
     it('rejects with AbortError when AbortSignal is already aborted', async () => {
       const services = getServices('user-1');

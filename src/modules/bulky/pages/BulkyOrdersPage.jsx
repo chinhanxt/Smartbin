@@ -45,7 +45,10 @@ export function BulkyOrdersPage({ thunks }) {
     if (thunks?.fetchOrders && dispatch) {
       dispatch(thunks.fetchOrders());
     }
-  }, [thunks, dispatch]);
+    if (thunks?.fetchNotifications && dispatch) {
+      dispatch(thunks.fetchNotifications(activeUser?.role));
+    }
+  }, [thunks, dispatch, activeUser?.role]);
 
   const formatVnd = (val) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
@@ -297,6 +300,34 @@ export function BulkyOrdersPage({ thunks }) {
             </Typography>
           </Card>
         </Box>
+      )}
+
+      {/* Dispatcher Pending Review Alert Banner */}
+      {isDispatcher && stats.underReview > 0 && (
+        <Alert
+          severity="warning"
+          sx={{
+            mb: 3,
+            borderRadius: 2.5,
+            border: '1px solid #fde68a',
+            backgroundColor: '#fffbeb',
+            color: '#92400e',
+            fontWeight: 500,
+            '& .MuiAlert-icon': { color: '#d97706' },
+          }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setActiveTab('REVIEW')}
+              sx={{ fontWeight: 'bold', textTransform: 'none' }}
+            >
+              Lọc đơn chờ duyệt →
+            </Button>
+          }
+        >
+          ⚡ <strong>Thông báo điều phối:</strong> Đang có {stats.underReview} đơn hàng có yêu cầu dời ngày hoặc hủy đơn chờ bạn xem xét phê duyệt!
+        </Alert>
       )}
 
       {/* Filter Tabs & Search Bar */}

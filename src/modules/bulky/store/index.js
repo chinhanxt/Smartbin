@@ -11,6 +11,9 @@ import {
   setRequestLoading,
   setRequestSuccess,
   setRequestError,
+  setNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from './bulkySlice.js';
 
 export * from './bulkySlice.js';
@@ -235,6 +238,41 @@ export function createBulkyThunks(services) {
             return res;
           },
         );
+      },
+
+    fetchNotifications:
+      (role) =>
+      async (dispatch) => {
+        return executeThunk(dispatch, 'notifications/fetchNotifications', async () => {
+          if (!services.notifications) return [];
+          const notifs = await services.notifications.list(role);
+          dispatch(setNotifications(notifs));
+          return notifs;
+        });
+      },
+
+    markNotificationRead:
+      (notificationId) =>
+      async (dispatch) => {
+        return executeThunk(dispatch, `notifications/markRead/${notificationId}`, async () => {
+          if (services.notifications) {
+            await services.notifications.markAsRead(notificationId);
+          }
+          dispatch(markNotificationRead(notificationId));
+          return { success: true };
+        });
+      },
+
+    markAllNotificationsRead:
+      (role) =>
+      async (dispatch) => {
+        return executeThunk(dispatch, 'notifications/markAllRead', async () => {
+          if (services.notifications) {
+            await services.notifications.markAllAsRead(role);
+          }
+          dispatch(markAllNotificationsRead());
+          return { success: true };
+        });
       },
   };
 }

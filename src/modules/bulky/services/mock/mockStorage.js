@@ -46,6 +46,10 @@ export function createMockStorage({
             parsed.refunds = seed.refunds;
             parsed.changeRequests = seed.changeRequests;
             parsed.dispatchOutbox = seed.dispatchOutbox;
+            parsed.notifications = seed.notifications;
+            backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
+          } else if (!parsed.notifications) {
+            parsed.notifications = createDefaultSeed().notifications;
             backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
           }
           return clone(parsed);

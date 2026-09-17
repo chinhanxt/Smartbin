@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import { bulkyReducer, setBulkyCapabilities } from './bulkySlice.js';
+import { bulkyReducer, setBulkyCapabilities, switchBulkyUser } from './bulkySlice.js';
 import { createBulkyThunks } from './index.js';
 import {
   selectCanReadBulky,
@@ -8,6 +8,9 @@ import {
   selectOrderActions,
   selectPaymentState,
   selectRefundProgress,
+  selectBulkyNotifications,
+  selectRoleNotifications,
+  selectUnreadNotificationsCount,
 } from './selectors.js';
 import { BULKY_CAPABILITIES } from '../services/bulkyServiceContract.js';
 import { ORDER_STATUS, PAYMENT_STATUS, REFUND_STATUS } from '../domain/constants.js';
@@ -88,6 +91,24 @@ describe('Bulky Redux store & selectors', () => {
             status: REFUND_STATUS.REQUESTED,
           },
         }),
+      },
+      notifications: {
+        list: async () => [
+          {
+            id: 'notif-1',
+            targetRole: 'DISPATCHER',
+            title: 'Yêu cầu dời ngày mới',
+            read: false,
+          },
+          {
+            id: 'notif-2',
+            targetRole: 'CITIZEN',
+            title: 'Đã duyệt yêu cầu',
+            read: true,
+          },
+        ],
+        markAsRead: async () => ({ success: true }),
+        markAllAsRead: async () => ({ success: true }),
       },
     };
 
@@ -199,6 +220,67 @@ describe('Bulky Redux store & selectors', () => {
       const paymentState = selectPaymentState(state, 'ord-1');
       expect(paymentState.isPaid).toBe(true);
       expect(paymentState.isFailed).toBe(false);
+    });
+  });
+
+  describe('Notifications state and selectors', () => {
+    it('fetches notifications and filters by role correctly', async () => {
+      await store.dispatch(thunks.fetchNotifications());
+      let state = store.getState();
+      expect(selectBulkyNotifications(state)).toHaveLength(2);
+
+      // Default role is CITIZEN
+      expect(selectRoleNotifications(state)).toHaveLength(1);
+      expect(selectRoleNotifications(state)[0].id).toBe('notif-2');
+      expect(selectUnreadNotificationsCount(state)).toBe(0);
+
+      // Switch to DISPATCHER
+      store.dispatch(
+        switchBulkyUser({
+          id: 'disp-1',
+          name: 'Điều Phối Viên',
+          role: 'DISPATCHER',
+        }),
+      );
+      state = store.getState();
+      expect(selectRoleNotifications(state)).toHaveLength(1);
+      expect(selectRoleNotifications(state)[0].id).toBe('notif-1');
+      expect(selectUnreadNotificationsCount(state)).toBe(1);
+
+      // Switch to ADMIN sees all
+      store.dispatch(
+        switchBulkyUser({
+          id: 'admin-1',
+          name: 'Quản Trị Viên',
+          role: 'ADMIN',
+        }),
+      );
+      state = store.getState();
+      expect(selectRoleNotifications(state)).toHaveLength(2);
+    });
+
+    it('marks notification as read and marks all as read', async () => {
+      await store.dispatch(thunks.fetchNotifications());
+      store.dispatch(
+        switchBulkyUser({
+          id: 'disp-1',
+          name: 'Điều Phối Viên',
+          role: 'DISPATCHER',
+        }),
+      );
+
+      let state = store.getState();
+      expect(selectUnreadNotificationsCount(state)).toBe(1);
+
+      await store.dispatch(thunks.markNotificationRead('notif-1'));
+      state = store.getState();
+      expect(selectUnreadNotificationsCount(state)).toBe(0);
+
+      // Reset and mark all as read
+      await store.dispatch(thunks.fetchNotifications());
+      await store.dispatch(thunks.markAllNotificationsRead('DISPATCHER'));
+      state = store.getState();
+      expect(selectUnreadNotificationsCount(state)).toBe(0);
     });
   });
 
