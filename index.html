@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full bg-slate-50">
+<html lang="vi" class="h-full bg-slate-900">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smartbin Microservices Hub — Cổng Điều Hành Hợp Nhất</title>
+  <title>Smartbin Hub — Microservices Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,6 +14,7 @@
         extend: {
           fontFamily: {
             sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
           },
           colors: {
             brand: {
@@ -22,6 +23,7 @@
               500: '#3b82f6',
               600: '#2563eb',
               700: '#1d4ed8',
+              800: '#1e40af',
               900: '#1e3a8a',
             }
           }
@@ -30,363 +32,296 @@
     }
   </script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; overflow: hidden; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
   </style>
 </head>
-<body class="h-full flex flex-col text-slate-900 antialiased selection:bg-brand-500 selection:text-white">
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 antialiased selection:bg-brand-600 selection:text-white">
 
-  <!-- Header / Navigation Bar -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        
-        <!-- Logo & Title -->
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center font-bold text-xl shadow-sm">
-            🗑️
-          </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <span class="font-bold text-lg text-slate-900 tracking-tight">Smartbin Hub</span>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Docker Cluster Live
-              </span>
-            </div>
-            <p class="text-xs text-slate-500">Cổng Điều Hành & Khởi Chạy 6 Microservices Độc Lập</p>
-          </div>
-        </div>
-
-        <!-- System Controls -->
-        <div class="flex items-center space-x-3">
-          <button id="btn-refresh" onclick="checkAllHealth()" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">
-            <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Quét Tình Trạng
-          </button>
-          
-          <button onclick="toggleDockerModal()" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-xs">
-            <svg class="w-4 h-4 mr-1.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            Lệnh Docker Compose
-          </button>
-        </div>
-
+  <!-- Ultra-compact Cockpit Header (Height ~46px) -->
+  <header class="bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-md px-3 py-1.5 flex items-center justify-between z-30 shrink-0 select-none">
+    
+    <!-- Left: Brand Logo & Status Pill -->
+    <div class="flex items-center space-x-2.5">
+      <div class="w-7 h-7 rounded-md bg-brand-700 text-white flex items-center justify-center shadow-xs">
+        <!-- SVG Smartbin Logo -->
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16l-1.5 14h-13L4 6z"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          <circle cx="12" cy="13" r="2"/>
+        </svg>
       </div>
+
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-xs tracking-tight text-white">Smartbin<span class="text-brand-400">Hub</span></span>
+        <div class="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700/60 text-[10px] font-mono text-slate-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="active-count">6/6 Live</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Segmented Microservices Navigation Strip -->
+    <nav class="flex items-center space-x-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800" id="service-nav">
+      <!-- Generated by JS -->
+    </nav>
+
+    <!-- Right: Quick Tools -->
+    <div class="flex items-center space-x-1.5">
+      <!-- Ping Health Refresh -->
+      <button onclick="checkAllHealth()" title="Quét lại kết nối" class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md border border-slate-800 transition-colors">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M8 16H3v5"/>
+        </svg>
+      </button>
+
+      <!-- Docker Commands Modal Trigger -->
+      <button onclick="toggleDockerModal()" title="Lệnh Docker Compose" class="inline-flex items-center space-x-1 px-2 py-1 text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700/80 rounded-md border border-slate-700/60 transition-colors shadow-2xs">
+        <svg class="w-3.5 h-3.5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"/>
+          <line x1="12" x2="20" y1="19" y2="19"/>
+        </svg>
+        <span>Docker</span>
+      </button>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-    <!-- KPI & Cluster Overview Banner -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng Số Dịch Vụ</div>
-        <div class="mt-1 flex items-baseline justify-between">
-          <span class="text-2xl font-bold text-slate-900">6 Services</span>
-          <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Độc lập</span>
-        </div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Trạng Thái Cụm Docker</div>
-        <div class="mt-1 flex items-baseline justify-between">
-          <span id="active-count" class="text-2xl font-bold text-emerald-600">Đang kiểm tra...</span>
-          <span class="relative flex h-2.5 w-2.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-        </div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kiến Trúc Triển Khai</div>
-        <div class="mt-1 flex items-baseline justify-between">
-          <span class="text-2xl font-bold text-slate-900">Micro-Frontends</span>
-          <span class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Nginx Alpine</span>
-        </div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cổng Điều Phối</div>
-        <div class="mt-1 flex items-baseline justify-between">
-          <span class="text-2xl font-bold text-slate-900">3000 – 8080</span>
-          <span class="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">Bridge Network</span>
-        </div>
-      </div>
+  <!-- Workspace Sub-Bar (Active Service Context) -->
+  <div class="bg-slate-900/60 border-b border-slate-800/80 px-3 py-1 flex items-center justify-between text-xs shrink-0 select-none">
+    <div class="flex items-center space-x-2 min-w-0">
+      <span id="active-icon" class="text-brand-400 shrink-0"></span>
+      <span id="active-name" class="font-semibold text-slate-200 text-xs truncate">Mobile GPS</span>
+      <span class="text-slate-700">/</span>
+      <a id="active-url-link" href="http://localhost:3001" target="_blank" class="font-mono text-[11px] text-slate-400 hover:text-brand-400 flex items-center space-x-1 transition-colors">
+        <span id="active-url">http://localhost:3001</span>
+        <svg class="w-3 h-3 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" x2="21" y1="14" y2="3"/>
+        </svg>
+      </a>
+      <span id="active-branch" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800/80 text-slate-400 border border-slate-700/50">webapp</span>
+      <span id="active-latency" class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 flex items-center space-x-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span>Online</span>
+      </span>
     </div>
 
-    <!-- 6 Services Grid -->
-    <div>
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-base font-bold text-slate-900 tracking-tight">Danh Sách 6 Microservices Độc Lập</h2>
-        <span class="text-xs text-slate-500">Nhấp "Xem Ngay" để nhúng trong màn hình bên dưới hoặc "Mở Tab Mới"</span>
-      </div>
+    <!-- Viewer Actions -->
+    <div class="flex items-center space-x-1 text-slate-400">
+      <button onclick="reloadViewer()" title="Tải lại iframe" class="p-1 hover:text-white hover:bg-slate-800 rounded transition-colors">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="services-grid">
-        <!-- Rendered by JS -->
-      </div>
+      <button onclick="toggleFullscreen()" title="Toàn màn hình" class="p-1 hover:text-white hover:bg-slate-800 rounded transition-colors">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+      </button>
+
+      <a id="active-external-btn" href="http://localhost:3001" target="_blank" title="Mở tab mới" class="p-1 hover:text-white hover:bg-slate-800 rounded transition-colors">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        </svg>
+      </a>
     </div>
+  </div>
 
-    <!-- Unified Embedded Viewer (Micro-Frontend Sandbox) -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-      <!-- Viewer Header -->
-      <div class="bg-slate-100/80 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center space-x-3">
-          <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-          <div>
-            <span class="font-semibold text-sm text-slate-900" id="viewer-title">App Mobile Định Vị & Phát GPS</span>
-            <span class="text-xs text-slate-500 ml-2 font-mono" id="viewer-url">http://localhost:3001</span>
-          </div>
-        </div>
-        
-        <div class="flex items-center space-x-2">
-          <!-- Quick switch buttons -->
-          <div class="flex rounded-lg bg-slate-200/80 p-0.5 text-xs font-medium" id="quick-tabs">
-            <!-- Rendered by JS -->
-          </div>
-
-          <!-- Open in new window -->
-          <a id="viewer-external-btn" href="http://localhost:3001" target="_blank" class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs">
-            <span>Mở Tab Ngoài</span>
-            <svg class="w-3.5 h-3.5 ml-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-
-          <!-- Reload iframe -->
-          <button onclick="reloadViewer()" class="p-1 text-slate-500 hover:text-slate-800 rounded-md hover:bg-slate-200">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Iframe Frame -->
-      <div class="relative w-full h-[720px] bg-slate-950/5">
-        <iframe id="service-frame" src="http://localhost:3001" class="w-full h-full border-0" allow="accelerometer; autoplay; camera; geolocation; gyroscope; microphone"></iframe>
-      </div>
-    </div>
-
+  <!-- Primary Workspace: Seamless Micro-Frontend Iframe Sandbox -->
+  <main id="workspace-container" class="flex-1 w-full relative bg-slate-950 overflow-hidden">
+    <iframe id="service-frame" src="http://localhost:3001" class="w-full h-full border-0 absolute inset-0 bg-white" allow="accelerometer; autoplay; camera; geolocation; gyroscope; microphone"></iframe>
   </main>
 
-  <!-- Footer -->
-  <footer class="bg-white border-t border-slate-200 mt-8 py-4">
-    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-      Smartbin Civic-Tech Platform • Đóng gói độc lập theo kiến trúc Micro-Frontends & Docker Containerization • HUTECH Innovation 2026
-    </div>
-  </footer>
-
-  <!-- Docker Cheatsheet Modal -->
-  <div id="docker-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 p-6 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+  <!-- Docker Commands Modal -->
+  <div id="docker-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-xl max-w-2xl w-full border border-slate-800 shadow-2xl p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
         <div class="flex items-center space-x-2">
-          <span class="text-xl">🐳</span>
-          <h3 class="font-bold text-lg text-slate-900">Lệnh Khởi Chạy Toàn Bộ 6 Docker Microservices</h3>
+          <svg class="w-4 h-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" x2="20" y1="19" y2="19"/>
+          </svg>
+          <h3 class="font-semibold text-sm text-white">Lệnh Docker Compose Khởi Chạy 6 Services</h3>
         </div>
-        <button onclick="toggleDockerModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <button onclick="toggleDockerModal()" class="text-slate-400 hover:text-white p-1 rounded-md">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" x2="6" y1="6" y2="18"/>
+            <line x1="6" x2="18" y1="6" y2="18"/>
           </svg>
         </button>
       </div>
 
-      <div class="space-y-3 text-sm text-slate-600">
-        <p>Để khởi động toàn bộ cụm microservices độc lập bằng Docker Compose, hãy chạy lệnh sau tại thư mục gốc:</p>
-        <pre class="bg-slate-900 text-slate-100 p-3 rounded-lg font-mono text-xs overflow-x-auto">docker compose -f docker-compose.all.yml up -d --build</pre>
+      <div class="space-y-2 text-xs text-slate-300">
+        <p class="text-slate-400">Khởi chạy toàn bộ cụm 6 Microservices:</p>
+        <div class="relative group">
+          <pre class="bg-slate-950 text-emerald-400 p-2.5 rounded-lg font-mono text-[11px] overflow-x-auto border border-slate-800">docker compose -f docker-compose.all.yml up -d --build</pre>
+          <button onclick="copyCommand('docker compose -f docker-compose.all.yml up -d --build')" class="absolute top-2 right-2 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[10px] font-mono border border-slate-700">Sao chép</button>
+        </div>
 
-        <p class="font-semibold text-slate-800 mt-4">Hoặc chạy độc lập từng Docker Container:</p>
-        <pre class="bg-slate-900 text-slate-100 p-3 rounded-lg font-mono text-xs space-y-1 overflow-x-auto">
-# 1. App Mobile Định Vị & Phát GPS (Port 3005 / 3001)
-docker run -d --name smartbin-webapp-service -p 3005:80 -p 3001:80 smartbin-webapp:latest
+        <p class="text-slate-400 pt-1">Khởi chạy từng container riêng lẻ:</p>
+        <pre class="bg-slate-950 text-slate-300 p-2.5 rounded-lg font-mono text-[10px] space-y-0.5 overflow-x-auto border border-slate-800 max-h-48 custom-scrollbar">
+# 1. Driver GPS (:3001, :3005)
+docker run -d --name smartbin-webapp-service -p 3001:80 -p 3005:80 smartbin-webapp:latest
 
-# 2. Cổng Cư Dân (Port 3002)
+# 2. Cổng Cư Dân (:3002)
 docker run -d --name smartbin-citizen-service -p 3002:80 smartbin-citizen-service:latest
 
-# 3. Quản Trị & Thu Phí (Port 3003)
+# 3. Thu Phí & Hóa Đơn (:3003)
 docker run -d --name smartbin-admin-billing-service -p 3003:80 smartbin-admin-billing-service:latest
 
-# 4. Nhân Sự & Ca Trực (Port 3004)
+# 4. Quản Lý Nhân Sự (:3004)
 docker run -d --name smartbin-hrm-service -p 3004:80 smartbin-hrm-service:latest
 
-# 5. Mô Phỏng 3D Thùng Rác (Port 8080)
+# 5. Mô Phỏng 3D (:8080)
 docker run -d --name smart-trashcan-microservice -p 8080:80 smart-trashcan-3d:latest
 
-# 6. Core System Web (Port 3000)
+# 6. Core Server (:3000)
 docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gateway -p 3000:80 smartbin-web:latest</pre>
       </div>
 
-      <div class="pt-3 border-t border-slate-200 flex justify-end">
-        <button onclick="toggleDockerModal()" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800">
-          Đóng Hộp Thoại
+      <div class="pt-2 border-t border-slate-800 flex justify-end">
+        <button onclick="toggleDockerModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-md text-xs font-medium transition-colors">
+          Đóng
         </button>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript Logic -->
+  <!-- JavaScript Application Logic -->
   <script>
+    // Standard SVG Icons Definition
+    const ICONS = {
+      mobile: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`,
+      citizen: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+      billing: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`,
+      hrm: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>`,
+      iot: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>`,
+      core: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>`
+    };
+
     const SERVICES = [
       {
         id: 'webapp',
-        name: 'App Mobile Định Vị & Phát GPS',
+        name: 'Mobile GPS',
+        fullName: 'Driver Mobile GPS Tracker',
         branch: 'webapp',
         port: 3001,
         url: 'http://localhost:3001',
         healthUrl: 'http://localhost:3001/health',
-        icon: '📱',
-        desc: 'Ứng dụng Web Mobile dành cho tài xế thu gom rác: tự động định danh thiết bị theo IP, đồng bộ vị trí vệ tinh GPS thời gian thực, nút cứu hộ khẩn cấp SOS và viễn trắc xe.',
-        badge: 'Driver Mobile App'
+        icon: ICONS.mobile
       },
       {
         id: 'citizen',
-        name: 'Cổng Dịch Vụ Cư Dân Đô Thị',
+        name: 'Cư dân',
+        fullName: 'Cổng Dịch Vụ Cư Dân',
         branch: 'smartbin-citizen-service',
         port: 3002,
         url: 'http://localhost:3002',
         healthUrl: 'http://localhost:3002/healthz',
-        icon: '👥',
-        desc: 'Định danh hộ gia đình, tra cứu mức đầy thùng rác IoT gia đình, phản ánh bỏ sót rác.',
-        badge: 'Citizen App'
+        icon: ICONS.citizen
       },
       {
         id: 'admin_billing',
-        name: 'Quản Trị & Thu Phí Dịch Vụ',
+        name: 'Thu phí',
+        fullName: 'Quản Trị & Thu Phí Dịch Vụ',
         branch: 'smartbin-admin-billing-service',
         port: 3003,
         url: 'http://localhost:3003',
         healthUrl: 'http://localhost:3003/healthz',
-        icon: '💳',
-        desc: 'Quản lý biểu phí rác thải, hóa đơn điện tử, đối soát ngân sách và thanh toán trực tuyến.',
-        badge: 'Admin & Billing'
+        icon: ICONS.billing
       },
       {
         id: 'hrm',
-        name: 'Quản Lý Nhân Sự & Phân Ca',
+        name: 'Nhân sự',
+        fullName: 'Quản Lý Nhân Sự & Phân Ca',
         branch: 'smartbin-hrm-service',
         port: 3004,
         url: 'http://localhost:3004',
         healthUrl: 'http://localhost:3004/healthz',
-        icon: '🧑‍💼',
-        desc: 'Phân ca trực tài xế & công nhân gom rác, chấm công GPS, tính lương theo khối lượng.',
-        badge: 'HRM & Shift'
+        icon: ICONS.hrm
       },
       {
         id: 'iot_3d',
-        name: 'Mô Phỏng 3D Thùng Rác IoT',
+        name: '3D IoT',
+        fullName: 'Mô Phỏng 3D Thùng Rác IoT',
         branch: 'project',
         port: 8080,
         url: 'http://localhost:8080',
         healthUrl: 'http://localhost:8080/health',
-        icon: '🗑️',
-        desc: 'Ứng dụng mô phỏng 3D cảm biến siêu âm, mức nén rác, cảnh báo mùi và telemetry MQTT.',
-        badge: 'IoT Simulation'
+        icon: ICONS.iot
       },
       {
         id: 'core_server',
-        name: 'Hệ Thống Lõi & Traccar Server',
+        name: 'Core',
+        fullName: 'Traccar Core Server',
         branch: 'project-main',
         port: 3000,
         url: 'http://localhost:3000',
         healthUrl: 'http://localhost:3000/health',
-        icon: '⚙️',
-        desc: 'Máy chủ viễn thông gốc, xử lý định tuyến giao thức OsmAnd/GPS và API Gateway nền tảng.',
-        badge: 'Platform Core'
+        icon: ICONS.core
       }
     ];
 
-    let currentActiveService = SERVICES[0];
+    let currentActive = SERVICES[0];
 
-    function renderServicesGrid() {
-      const container = document.getElementById('services-grid');
-      container.innerHTML = SERVICES.map(svc => `
-        <div class="bg-white rounded-xl border border-slate-200 p-4 hover:border-brand-500 hover:shadow-md transition-all flex flex-col justify-between group">
-          <div>
-            <div class="flex items-start justify-between">
-              <div class="flex items-center space-x-2.5">
-                <span class="text-2xl">${svc.icon}</span>
-                <div>
-                  <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-700 transition-colors">${svc.name}</h3>
-                  <span class="inline-block text-[11px] font-mono text-slate-500">Cổng: :${svc.port}</span>
-                </div>
-              </div>
-              <span id="badge-${svc.id}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-slate-400"></span> Đang ping
-              </span>
-            </div>
-            <p class="text-xs text-slate-600 mt-2.5 leading-relaxed line-clamp-2">${svc.desc}</p>
-          </div>
-
-          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span class="text-[11px] text-slate-500 font-mono">Nhánh: ${svc.branch}</span>
-            <div class="flex items-center space-x-2">
-              <button onclick="switchService('${svc.id}')" class="px-2.5 py-1 text-xs font-semibold rounded-md text-white bg-brand-700 hover:bg-brand-600 transition-colors shadow-2xs">
-                Xem Ngay
-              </button>
-              <a href="${svc.url}" target="_blank" class="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function renderQuickTabs() {
-      const tabs = document.getElementById('quick-tabs');
-      tabs.innerHTML = SERVICES.map(svc => `
-        <button onclick="switchService('${svc.id}')" id="tab-${svc.id}" class="px-2.5 py-1 rounded-md transition-all ${svc.id === currentActiveService.id ? 'bg-white text-slate-900 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900'}">
-          ${svc.name.split(' ')[0]} ${svc.name.split(' ')[1] || ''}
-        </button>
-      `).join('');
+    function renderNav() {
+      const nav = document.getElementById('service-nav');
+      nav.innerHTML = SERVICES.map(svc => {
+        const isActive = svc.id === currentActive.id;
+        return `
+          <button onclick="switchService('${svc.id}')" id="nav-btn-${svc.id}" 
+            class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs transition-all font-medium ${
+              isActive 
+                ? 'bg-brand-600 text-white shadow-xs font-semibold' 
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
+            }">
+            <span>${svc.icon}</span>
+            <span>${svc.name}</span>
+            <span class="font-mono text-[10px] opacity-75">:${svc.port}</span>
+            <span id="dot-${svc.id}" class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+          </button>
+        `;
+      }).join('');
     }
 
     function switchService(id) {
       const svc = SERVICES.find(s => s.id === id);
       if (!svc) return;
-      currentActiveService = svc;
+      currentActive = svc;
+
+      // Update frame and URLs
       document.getElementById('service-frame').src = svc.url;
-      document.getElementById('viewer-title').innerText = svc.name;
-      document.getElementById('viewer-url').innerText = svc.url;
-      document.getElementById('viewer-external-btn').href = svc.url;
-      renderQuickTabs();
+      document.getElementById('active-icon').innerHTML = svc.icon;
+      document.getElementById('active-name').innerText = svc.fullName;
+      document.getElementById('active-url').innerText = svc.url;
+      document.getElementById('active-url-link').href = svc.url;
+      document.getElementById('active-external-btn').href = svc.url;
+      document.getElementById('active-branch').innerText = svc.branch;
+
+      renderNav();
     }
 
     function reloadViewer() {
-      const iframe = document.getElementById('service-frame');
-      iframe.src = iframe.src;
+      const frame = document.getElementById('service-frame');
+      frame.src = frame.src;
     }
 
-    async function checkHealth(svc) {
-      const badge = document.getElementById(`badge-${svc.id}`);
-      const startTime = performance.now();
-      try {
-        const res = await fetch(svc.healthUrl, { mode: 'no-cors' });
-        const latency = Math.round(performance.now() - startTime);
-        badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
-        badge.innerHTML = `<span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500"></span> Online (${latency}ms)`;
-        return true;
-      } catch (e) {
-        badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
-        badge.innerHTML = `<span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-rose-500"></span> Ngoại tuyến`;
-        return false;
+    function toggleFullscreen() {
+      const elem = document.getElementById('workspace-container');
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
       }
-    }
-
-    async function checkAllHealth() {
-      let onlineCount = 0;
-      for (const svc of SERVICES) {
-        const isUp = await checkHealth(svc);
-        if (isUp) onlineCount++;
-      }
-      document.getElementById('active-count').innerText = `${onlineCount}/6 Đang chạy`;
     }
 
     function toggleDockerModal() {
@@ -394,10 +329,49 @@ docker run -d --name smartbin-web-app --add-host host.docker.internal:host-gatew
       modal.classList.toggle('hidden');
     }
 
+    function copyCommand(text) {
+      navigator.clipboard.writeText(text);
+      alert('Đã sao chép lệnh Docker!');
+    }
+
+    async function pingService(svc) {
+      const dot = document.getElementById(`dot-${svc.id}`);
+      const startTime = performance.now();
+      try {
+        await fetch(svc.healthUrl, { mode: 'no-cors' });
+        const latency = Math.round(performance.now() - startTime);
+        if (dot) {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+          dot.title = `Online (${latency}ms)`;
+        }
+        if (svc.id === currentActive.id) {
+          document.getElementById('active-latency').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>Online (${latency}ms)</span>`;
+        }
+        return true;
+      } catch (e) {
+        if (dot) {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-500';
+          dot.title = 'Ngoại tuyến';
+        }
+        if (svc.id === currentActive.id) {
+          document.getElementById('active-latency').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Ngoại tuyến</span>`;
+        }
+        return false;
+      }
+    }
+
+    async function checkAllHealth() {
+      let count = 0;
+      for (const svc of SERVICES) {
+        const ok = await pingService(svc);
+        if (ok) count++;
+      }
+      document.getElementById('active-count').innerText = `${count}/6 Live`;
+    }
+
     // Init
     window.addEventListener('DOMContentLoaded', () => {
-      renderServicesGrid();
-      renderQuickTabs();
+      switchService('webapp');
       checkAllHealth();
       setInterval(checkAllHealth, 15000);
     });
