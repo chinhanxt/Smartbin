@@ -250,17 +250,34 @@ const LiveSimulationMap = ({
       });
     }
 
-    // Tự động resize map sau khi mount để tránh lỗi canvas 0px
-    const resizeTimer = setTimeout(() => {
-      map.resize();
-    }, 250);
+    // Tự động resize map liên tục để đảm bảo canvas luôn chiếm trọn 100% container
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    };
+
+    handleResize();
+    const resizeTimer1 = setTimeout(handleResize, 100);
+    const resizeTimer2 = setTimeout(handleResize, 400);
+    const resizeTimer3 = setTimeout(handleResize, 1000);
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
 
     const binMarkers = binMarkersRef.current;
     const vehicleMarkers = vehicleMarkersRef.current;
     const depotMarkers = depotMarkersRef.current;
 
     return () => {
-      clearTimeout(resizeTimer);
+      clearTimeout(resizeTimer1);
+      clearTimeout(resizeTimer2);
+      clearTimeout(resizeTimer3);
+      resizeObserver.disconnect();
       binMarkers.forEach((m) => m.remove());
       vehicleMarkers.forEach((m) => m.remove());
       depotMarkers.forEach((m) => m.remove());
@@ -904,18 +921,23 @@ const LiveSimulationMap = ({
         width: '100%',
         height: { xs: 550, md: 'calc(100vh - 180px)' },
         minHeight: 550,
+        borderRadius: 2.5,
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+        backgroundColor: '#e2e8f0',
       }}
     >
       {/* Container bản đồ MapLibre */}
       <Box
         ref={mapContainerRef}
         sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           width: '100%',
           height: '100%',
-          minHeight: 550,
-          borderRadius: 2.5,
-          overflow: 'hidden',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
         }}
       />
 

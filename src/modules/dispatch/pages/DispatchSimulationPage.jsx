@@ -95,9 +95,17 @@ const DispatchSimulationPage = () => {
         </Box>
 
         {/* Layout chính: Bản đồ tương tác lớn và Bảng điều khiển */}
-        <Grid container spacing={3}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '7.5fr 4.5fr' },
+            gap: 3,
+            width: '100%',
+            alignItems: 'start',
+          }}
+        >
           {/* Cột trái: Bản đồ MapLibre Trực Quan */}
-          <Grid item xs={12} lg={8}>
+          <Box sx={{ width: '100%', minWidth: 0 }}>
             <LiveSimulationMap
               simulationState={simulationState}
               onAddBin={(params) => simulationEngine.addBinAtLocation(params)}
@@ -106,10 +114,10 @@ const DispatchSimulationPage = () => {
               isAddingBinMode={isAddingBinMode}
               setIsAddingBinMode={setIsAddingBinMode}
             />
-          </Grid>
+          </Box>
 
           {/* Cột phải: Bảng điều khiển mô phỏng & Nhật ký AI */}
-          <Grid item xs={12} lg={4}>
+          <Box sx={{ width: '100%', minWidth: 0 }}>
             <SimulationControls
               simulationState={simulationState}
               onStart={() => simulationEngine.start()}
@@ -122,8 +130,8 @@ const DispatchSimulationPage = () => {
               isAddingBinMode={isAddingBinMode}
               setIsAddingBinMode={setIsAddingBinMode}
             />
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Box>
     </PageLayout>
   );

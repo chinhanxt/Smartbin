@@ -307,9 +307,17 @@ const DispatcherDashboardPage = () => {
         {/* NỘI DUNG THEO TAB ĐƯỢC CHỌN */}
         {activeTab === 0 ? (
           /* TAB 0: BẢN ĐỒ MÔ PHỎNG THỜI GIAN THỰC VỚI CÁC GHIM XE & THÙNG RÁC */
-          <Grid container spacing={3}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: '7.5fr 4.5fr' },
+              gap: 3,
+              width: '100%',
+              alignItems: 'start',
+            }}
+          >
             {/* Cột trái: Bản đồ MapLibre Trực Quan Có Ghim */}
-            <Grid item xs={12} lg={8}>
+            <Box sx={{ width: '100%', minWidth: 0 }}>
               <LiveSimulationMap
                 simulationState={simulationState}
                 onAddBin={(params) => simulationEngine.addBinAtLocation(params)}
@@ -318,10 +326,10 @@ const DispatcherDashboardPage = () => {
                 isAddingBinMode={isAddingBinMode}
                 setIsAddingBinMode={setIsAddingBinMode}
               />
-            </Grid>
+            </Box>
 
             {/* Cột phải: Bảng điều khiển mô phỏng & Nhật ký AI */}
-            <Grid item xs={12} lg={4}>
+            <Box sx={{ width: '100%', minWidth: 0 }}>
               <SimulationControls
                 simulationState={simulationState}
                 onStart={() => simulationEngine.start()}
@@ -334,8 +342,8 @@ const DispatcherDashboardPage = () => {
                 isAddingBinMode={isAddingBinMode}
                 setIsAddingBinMode={setIsAddingBinMode}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         ) : (
           /* TAB 1: KẾ HOẠCH TUYẾN VRP & BẢNG ĐIỀU PHỐI XE */
           <>
