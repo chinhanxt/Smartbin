@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartBin - Hệ Thống Quản Lý & Thu Gom Rác Thông Minh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1e293b;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-glow: rgba(16, 185, 129, 0.35);
+      --accent: #06b6d4;
+      --warning: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --glass: rgba(17, 24, 39, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --shadow-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Bar Header */
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--primary-glow);
+    }
+
+    .brand-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    .brand-title {
+      background: linear-gradient(90deg, #34d399, #10b981, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      letter-spacing: 0.05em;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-icon.active {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    /* Presentation Workspace / Viewport */
+    .deck-viewport {
+      position: absolute;
+      top: 56px;
+      bottom: 72px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 24px;
+      overflow: hidden;
+    }
+
+    .slide-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: calc((100vh - 144px) * (16 / 9));
+      aspect-ratio: 16 / 9;
+      background: #000000;
+      border-radius: var(--radius-md);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      opacity: 0;
+      transform: scale(0.98);
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide-container.active {
+      display: block;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .slide-img-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-in;
+    }
+
+    .slide-img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: filter 0.3s ease;
+    }
+
+    .slide-img-wrapper:hover .slide-hover-hint {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .slide-hover-hint {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+
+    .slide-hover-hint svg {
+      width: 14px;
+      height: 14px;
+      fill: #34d399;
+    }
+
+    /* Floating Quick Nav Arrows */
+    .arrow-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0.4;
+    }
+
+    .deck-viewport:hover .arrow-btn {
+      opacity: 0.9;
+    }
+
+    .arrow-btn:hover {
+      opacity: 1 !important;
+      background: rgba(16, 185, 129, 0.9);
+      border-color: #10b981;
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+    }
+
+    .arrow-btn:disabled {
+      opacity: 0.15 !important;
+      pointer-events: none;
+    }
+
+    .arrow-prev {
+      left: 36px;
+    }
+
+    .arrow-next {
+      right: 36px;
+    }
+
+    .arrow-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* Bottom Control Bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      z-index: 50;
+    }
+
+    .slide-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 40%;
+    }
+
+    .slide-step-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #34d399;
+      letter-spacing: 0.05em;
+    }
+
+    .slide-step-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .slide-title-text {
+      font-size: 0.95rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #f1f5f9;
+    }
+
+    .center-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .playback-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .playback-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .playback-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .counter-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      letter-spacing: 0.05em;
+    }
+
+    .counter-display span {
+      color: var(--text-muted);
+    }
+
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Progress Bar */
+    .progress-bar-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 16.66%;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+
+    /* Speaker Notes Side Drawer */
+    .notes-drawer {
+      position: fixed;
+      top: 56px;
+      bottom: 72px;
+      right: -480px;
+      width: 460px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border-color);
+      box-shadow: -15px 0 35px rgba(0, 0, 0, 0.6);
+      transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 45;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .notes-drawer.open {
+      right: 0;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .drawer-header h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-header h3 svg {
+      width: 18px;
+      height: 18px;
+      fill: #34d399;
+    }
+
+    .drawer-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .drawer-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .note-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+
+    .note-card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .note-card-title svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .note-script {
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #e2e8f0;
+      font-style: italic;
+      border-left: 3px solid #10b981;
+      padding-left: 12px;
+      background: rgba(16, 185, 129, 0.05);
+      padding: 12px 14px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .note-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .note-bullets li {
+      position: relative;
+      padding-left: 20px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+    }
+
+    .note-bullets li::before {
+      content: "•";
+      position: absolute;
+      left: 6px;
+      color: #10b981;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .tech-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .tech-tag {
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    /* Overview Grid Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .overview-modal {
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      overflow: hidden;
+    }
+
+    .overview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .overview-header h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .overview-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+    .overview-grid::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .grid-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .grid-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+    }
+
+    .grid-card.active {
+      border-color: #10b981;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .grid-card-thumb {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .grid-card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .grid-card:hover .grid-card-thumb img {
+      transform: scale(1.05);
+    }
+
+    .grid-card-info {
+      padding: 12px 14px;
+    }
+
+    .grid-card-num {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #34d399;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 4px;
+    }
+
+    .grid-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.35;
+    }
+
+    /* Lightbox Zoom Modal */
+    .lightbox-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 120;
+      display: none;
+      flex-direction: column;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .lightbox-modal.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .lightbox-topbar {
+      height: 56px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(10px);
+    }
+
+    .lightbox-title {
+      font-weight: 600;
+      color: #e2e8f0;
+      font-size: 0.95rem;
+    }
+
+    .lightbox-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lightbox-canvas {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+    }
+
+    .lightbox-canvas:active {
+      cursor: grabbing;
+    }
+
+    .lightbox-canvas img {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      transform-origin: center center;
+      transition: transform 0.1s ease-out;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* Shortcuts Help Modal */
+    .shortcuts-modal {
+      width: 90%;
+      max-width: 520px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .shortcuts-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .shortcuts-table td {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .shortcuts-table td:last-child {
+      text-align: right;
+    }
+
+    kbd {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #38bdf8;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.5);
+    }
+
+    /* Print styling */
+    @media print {
+      body {
+        overflow: visible;
+        background: #ffffff;
+      }
+      .top-nav, .bottom-bar, .arrow-btn, .notes-drawer, .modal-backdrop, .lightbox-modal {
+        display: none !important;
+      }
+      .deck-viewport {
+        position: static;
+        padding: 0;
+        height: auto;
+      }
+      .slide-stage {
+        box-shadow: none;
+        max-width: 100%;
+        height: auto;
+        border-radius: 0;
+        background: transparent;
+      }
+      .slide-container {
+        display: block !important;
+        opacity: 1 !important;
+        position: relative;
+        page-break-after: always;
+        break-after: page;
+        margin-bottom: 20mm;
+      }
+      .slide-img-wrapper img {
+        width: 100%;
+        height: auto;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .notes-drawer {
+        width: 380px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .slide-info {
+        display: none;
+      }
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+      .notes-drawer {
+        width: 100%;
+        right: -100%;
+      }
+      .arrow-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/></svg>
+      </div>
+      <span class="brand-title">SmartBin Platform</span>
+      <span class="brand-badge">Báo Cáo Giải Pháp</span>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn-icon" id="btn-autoplay" title="Tự động phát trình chiếu (Phím A)">
+        <svg id="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="icon-pause" style="display:none;" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+
+      <button class="btn-icon" id="btn-grid" title="Xem danh sách tất cả slide (Phím G / O)">
+        <svg viewBox="0 0 24 24"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+      </button>
+
+      <button class="btn-icon" id="btn-zoom" title="Phóng to soi chi tiết sơ đồ (Phím Z)">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2z"/></svg>
+      </button>
+
+      <button class="btn-icon" id="btn-notes" title="Mở ghi chú & Lời thoại thuyết trình (Phím N)">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+      </button>
+
+      <button class="btn-icon" id="btn-help" title="Phím tắt trợ giúp (Phím ?)">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm1.07-7.75l-.9.92C12.45 11.9 12 12.5 12 14h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+      </button>
+
+      <button class="btn-icon" id="btn-fullscreen" title="Toàn màn hình (Phím F)">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewport -->
+  <main class="deck-viewport" id="deck-viewport">
+    <button class="arrow-btn arrow-prev" id="btn-arrow-prev" title="Slide trước (←)">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
+
+    <div class="slide-stage" id="slide-stage">
+
+      <!-- Slide 1: Problem Statement -->
+      <section class="slide-container active" data-index="0">
+        <div class="slide-img-wrapper" onclick="openLightbox(0)">
+          <img src="./images/slide1-problem-statement.png" alt="Slide 1 - Cùng Một Ngày, Hai Bên Cùng Chờ (Thiếu Dữ Liệu Thời Gian Thực)">
+          <div class="slide-hover-hint">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            Nhấp để phóng to chi tiết
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2: SmartBin Ecosystem -->
+      <section class="slide-container" data-index="1">
+        <div class="slide-img-wrapper" onclick="openLightbox(1)">
+          <img src="./images/slide2-smartbin-ecosystem.png" alt="Slide 2 - SmartBin: Cư Dân Số - Thu Phí Minh Bạch - Nhân Sự Tinh Gọn">
+          <div class="slide-hover-hint">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            Nhấp để phóng to chi tiết
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3: Bulky Waste Service -->
+      <section class="slide-container" data-index="2">
+        <div class="slide-img-wrapper" onclick="openLightbox(2)">
+          <img src="./images/slide3-bulky-waste-service.png" alt="Slide 3 - Sạch - Trả Gọn: Đặt Thu Rác Cồng Kềnh">
+          <div class="slide-hover-hint">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            Nhấp để phóng to chi tiết
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4: Real-time Fleet Tracking -->
+      <section class="slide-container" data-index="3">
+        <div class="slide-img-wrapper" onclick="openLightbox(3)">
+          <img src="./images/slide4-fleet-tracking-traccar.png" alt="Slide 4 - Giám Sát Hành Trình Tự Động - Kết Nối Tức Thì (Traccar Core)">
+          <div class="slide-hover-hint">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            Nhấp để phóng to chi tiết
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 5: Dynamic Route Optimization -->
+      <section class="slide-container" data-index="4">
+        <div class="slide-img-wrapper" onclick="openLightbox(4)">
+          <img src="./images/slide5-dynamic-routing-dispatch.png" alt="Slide 5 - Sạch - Đi Đúng: Tối Ưu Cả Chuyến Đi & Xử Lý Sự Cố Linh Hoạt">
+          <div class="slide-hover-hint">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            Nhấp để phóng to chi tiết
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6: System Architecture -->
+      <section class="slide-container" data-index="5">
+        <div class="slide-img-wrapper" onclick="openLightbox(5)">
+          <img src="./images/slide6-system-architecture.png" alt="Slide 6 - Luồng Hoạt Động Của Hệ Thống SmartBin (Kiến Trúc 5 Tầng)">
+          <div class="slide-hover-hint">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            Nhấp để phóng to chi tiết
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <button class="arrow-btn arrow-next" id="btn-arrow-next" title="Slide kế tiếp (→)">
+      <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+    </button>
+  </main>
+
+  <!-- Bottom Control Bar -->
+  <footer class="bottom-bar">
+    <div class="progress-bar-container" id="progress-bar-track" title="Nhấp để chuyển nhanh slide">
+      <div class="progress-bar-fill" id="progress-bar-fill"></div>
+    </div>
+
+    <div class="slide-info">
+      <div class="slide-step-badge">
+        <span class="dot"></span>
+        <span id="slide-badge-text">PHẦN 1: THỰC TRẠNG & VẤN ĐỀ</span>
+      </div>
+      <div class="slide-title-text" id="slide-title-text">Cùng Một Ngày, Hai Bên Cùng Chờ (Thiếu Dữ Liệu Thời Gian Thực)</div>
+    </div>
+
+    <div class="center-controls">
+      <div class="nav-buttons">
+        <button class="btn-icon" id="btn-prev" title="Slide trước (← / Backspace)">
+          <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <div class="counter-display" id="slide-counter">01 <span>/ 06</span></div>
+        <button class="btn-icon" id="btn-next" title="Slide tiếp theo (→ / Space)">
+          <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="bottom-actions">
+      <button class="playback-btn" id="btn-toggle-notes-bottom">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Ghi Chú Thuyết Trình
+      </button>
+    </div>
+  </footer>
+
+  <!-- Speaker Notes Side Drawer -->
+  <aside class="notes-drawer" id="notes-drawer">
+    <div class="drawer-header">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        Ghi Chú Diễn Giả (Presenter Notes)
+      </h3>
+      <button class="btn-icon" id="btn-close-notes" title="Đóng panel">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-content">
+      <!-- Injected dynamically via JS -->
+    </div>
+  </aside>
+
+  <!-- Overview Grid Modal (Thumbnails) -->
+  <div class="modal-backdrop" id="overview-modal-backdrop">
+    <div class="overview-modal">
+      <div class="overview-header">
+        <h2>Tổng Quan Báo Cáo SmartBin (6 Slides)</h2>
+        <button class="btn-icon" id="btn-close-overview" title="Đóng (ESC)">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="overview-grid" id="overview-grid-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Lightbox Modal -->
+  <div class="lightbox-modal" id="lightbox-modal">
+    <div class="lightbox-topbar">
+      <div class="lightbox-title" id="lightbox-title">Soi chi tiết Slide</div>
+      <div class="lightbox-controls">
+        <button class="btn-icon" id="lb-zoom-out" title="Thu nhỏ (-)">
+          <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+        </button>
+        <button class="btn-icon" id="lb-reset" title="Đặt lại tỉ lệ (100%)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        </button>
+        <button class="btn-icon" id="lb-zoom-in" title="Phóng to (+)">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </button>
+        <button class="btn-icon" id="lb-close" title="Đóng (ESC)">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="lightbox-canvas" id="lightbox-canvas">
+      <img id="lightbox-img" src="" alt="Slide phóng to">
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div class="modal-backdrop" id="help-modal-backdrop">
+    <div class="shortcuts-modal">
+      <div class="overview-header">
+        <h2>Phím Tắt Điều Khiển</h2>
+        <button class="btn-icon" id="btn-close-help" title="Đóng (ESC)">
+          <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <table class="shortcuts-table">
+        <tr><td>Slide tiếp theo</td><td><kbd>→</kbd> hoặc <kbd>Space</kbd> hoặc <kbd>PageDown</kbd></td></tr>
+        <tr><td>Slide trước đó</td><td><kbd>←</kbd> hoặc <kbd>PageUp</kbd> hoặc <kbd>Backspace</kbd></td></tr>
+        <tr><td>Slide đầu tiên / cuối cùng</td><td><kbd>Home</kbd> / <kbd>End</kbd></td></tr>
+        <tr><td>Bật/Tắt toàn màn hình</td><td><kbd>F</kbd></td></tr>
+        <tr><td>Xem danh sách Thumbnails</td><td><kbd>G</kbd> hoặc <kbd>O</kbd></td></tr>
+        <tr><td>Bật/Tắt Ghi chú diễn giả</td><td><kbd>N</kbd></td></tr>
+        <tr><td>Soi chi tiết (Zoom Lightbox)</td><td><kbd>Z</kbd></td></tr>
+        <tr><td>Tự động trình chiếu (Autoplay)</td><td><kbd>A</kbd></td></tr>
+        <tr><td>Đóng cửa sổ / Thoát</td><td><kbd>ESC</kbd></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Slide Metadata and Narrative Data
+    const slidesData = [
+      {
+        id: 0,
+        badge: "PHẦN 1: ĐẶT VẤN ĐỀ & BỐI CẢNH",
+        title: "CÙNG MỘT NGÀY, HAI BÊN CÙNG CHỜ",
+        subtitle: "Nghịch lý đô thị: Thiếu hụt dữ liệu thời gian thực giữa Cư dân & Đội thu gom",
+        image: "./images/slide1-problem-statement.png",
+        pitchScript: "Kính thưa ban giám khảo và các đại biểu, xuất phát điểm của SmartBin bắt đầu từ một nghịch lý nhức nhối ở mọi đô thị: Cả người dân và đội vệ sinh môi trường đều mong muốn đường phố sạch đẹp, nhưng mỗi ngày họ đều đang 'chờ đợi nhau trong mù mờ' vì thiếu thông tin thời gian thực. Người dân không biết xe khi nào đến, phản ánh gửi đi không biết ai xử lý, rác cồng kềnh không biết gọi ai. Phía đội thu gom thì bị động: không biết thùng nào đầy thật, xe nào còn tải. Khi xe hỏng thì cả tuyến bị dồn việc. SmartBin ra đời để chuyển hóa hoàn toàn sự chờ đợi này thành một quy trình minh bạch, có thể giám sát từng giây.",
+        highlights: [
+          "Bất đối xứng thông tin nghiêm trọng giữa 2 bên đầu mối",
+          "Người dân bị động: Rác thải sinh hoạt ứ đọng, rác cồng kềnh xả trộm bừa bãi",
+          "Đội thu gom quá tải: Chạy xe theo cảm tính, lãng phí 30-40% nhiên liệu",
+          "Giải pháp: Nền tảng số kết nối đồng bộ thời gian thực 2 chiều"
+        ],
+        techStack: ["Real-time Gap Analysis", "Citizen Feedback Loop", "Urban IoT Sensors"]
+      },
+      {
+        id: 1,
+        badge: "PHẦN 2: HỆ SINH THÁI GIẢI PHÁP",
+        title: "SMARTBIN: CƯ DÂN SỐ – THU PHÍ MINH BẠCH – NHÂN SỰ TINH GỌN",
+        subtitle: "Công nghệ vì môi trường đô thị đáng sống",
+        image: "./images/slide2-smartbin-ecosystem.png",
+        pitchScript: "Để giải quyết triệt để vấn đề đó, SmartBin thiết lập một tam giác giá trị hoàn chỉnh gồm 3 trụ cột: Thứ nhất, Cổng Cư Dân biến mỗi người dân thành một mắt xích giám sát tích cực qua cơ chế tích điểm xanh, báo thùng rác đầy bằng camera IoT và đổi quà thiết thực. Thứ hai, Thu Phí Minh Bạch với hóa đơn điện tử từng kỳ, thanh toán 1 chạm bằng QR code giúp loại bỏ hoàn toàn việc thu tiền mặt thủ công và thất thoát. Thứ ba, Quản Trị Nhân Sự & Phân Ca giúp đội ngũ công nhân làm việc rõ ràng theo tuyến, nâng tỷ lệ hoàn thành ca trực lên đến 98%.",
+        highlights: [
+          "Cổng Cư Dân (Smart Citizen Portal): Gamification tích 520+ điểm xanh, báo thùng đầy, đổi quà",
+          "Thu Phí Minh Bạch: Hóa đơn điện tử định kỳ, quét mã QR thanh toán tức thời, minh bạch từng đồng",
+          "Quản Trị Nhân Sự: Phân ca tự động (ca sáng 06:00 - 14:00), theo dõi lộ trình và hiệu suất đạt 98%"
+        ],
+        techStack: ["smartbin-citizen-service", "smartbin-admin-billing-service", "smartbin-hrm-service", "QR Payment IPN"]
+      },
+      {
+        id: 2,
+        badge: "PHẦN 3: DỊCH VỤ SỐ ĐỘT PHÁ",
+        title: "SẠCH — TRẢ GỌN: ĐẶT THU RÁC CỒNG KỀNH",
+        subtitle: "Quy trình 5 bước số hóa khép kín: Rõ giá • Gọn trả • Đúng việc",
+        image: "./images/slide3-bulky-waste-service.png",
+        pitchScript: "Một trong những điểm nghẽn lớn nhất của đô thị là rác cồng kềnh như sofa, nệm cũ, bàn ghế hỏng thường bị vứt trộm ra vỉa hè vì người dân không biết nhờ ai và giá bao nhiêu. Với SmartBin, quy trình này được gói gọn trong 5 bước trên điện thoại: Cư dân chụp ảnh, AI hỗ trợ nhận diện và ước tính kích thước, xem báo giá minh họa chi tiết, chọn khung giờ còn trống và thanh toán trực tuyến. Lập tức, một 'Phiếu công việc số' kèm ảnh và tọa độ chính xác được đẩy đến xe chuyên dụng, giúp thu gom êm xuôi và đúng việc.",
+        highlights: [
+          "Quy trình 5 bước liền mạch: Gửi ảnh → Chọn thông số → Báo giá tức thì → Chọn khung giờ → Thanh toán",
+          "AI Computer Vision hỗ trợ phân loại và ước tính thể tích vật thể",
+          "Sinh tự động Phiếu công việc số chuyển giao trực tiếp cho đội bốc xếp",
+          "Biến gánh nặng rác cồng kềnh thành nguồn thu dịch vụ minh bạch cho công ty môi trường"
+        ],
+        techStack: ["smartbin-bulky-service", "AI Object Detection", "Dynamic Slot Booking", "Digital Work Order"]
+      },
+      {
+        id: 3,
+        badge: "PHẦN 4: VẬN HÀNH THỜI GIAN THỰC",
+        title: "GIÁM SÁT HÀNH TRÌNH TỰ ĐỘNG — KẾT NỐI TỨC THÌ",
+        subtitle: "Tích hợp Traccar Core: Vận hành thông minh — Không bỏ sót điểm rác",
+        image: "./images/slide4-fleet-tracking-traccar.png",
+        pitchScript: "Tại hiện trường, SmartBin kết nối trực tiếp tài xế xe rác với Trung tâm chỉ huy thông qua Traccar Core. Mỗi tài xế sử dụng ứng dụng di động hiển thị lộ trình OSRM tối ưu từng điểm dừng, tốc độ xe, tình trạng pin và nút SOS khẩn cấp. Mọi tín hiệu telemetry được đồng bộ liên tục qua WebSocket về trung tâm chỉ huy. Người điều hành nắm trọn trạng thái của 100% đội xe, thiết lập ranh giới Geofence cảnh báo ra vào vùng thu gom, đảm bảo không bỏ sót bất kỳ một thùng rác hay tuyến phố nào.",
+        highlights: [
+          "Ứng dụng Tài Xế (Mobile GPS Tracker): Dẫn đường OSRM tối ưu, đo tốc độ 24 km/h, nút SOS",
+          "Đồng bộ Telemetry thời gian thực qua WebSocket với độ trễ < 1 giây",
+          "Trung tâm chỉ huy Traccar Core: Giám sát toàn bộ 6/6 xe trực tuyến trên nền bản đồ số",
+          "Cảnh báo tự động vào/ra vùng thu gom (Geofencing) & biểu đồ tốc độ"
+        ],
+        techStack: ["smartbin-mobile-tracker", "Traccar Core Engine", "OSRM Routing", "WebSocket Hub", "Geofencing"]
+      },
+      {
+        id: 4,
+        badge: "PHẦN 5: ĐIỀU PHỐI ĐỘNG & KHẢ NĂNG PHỤC HỒI",
+        title: "SẠCH — ĐI ĐÚNG: TỐI ƯU CẢ CHUYẾN ĐI",
+        subtitle: "Thuật toán định tuyến & Cơ chế tự động ứng phó sự cố (Fault-Tolerant Re-routing)",
+        image: "./images/slide5-dynamic-routing-dispatch.png",
+        pitchScript: "Khác với các hệ thống điều xe thông thường, SmartBin sở hữu thuật toán điều phối động đa biến: tính toán đường xe được phép chạy, tải trọng còn lại, giờ hẹn và thời gian bốc xếp. Điểm xuất sắc nhất nằm ở cơ chế phản ứng khi gặp sự cố: Khi Xe A gặp nạn giữa tuyến, hệ thống giữ nguyên các việc đã xong và lập tức phân tích các xe lân cận. Xe B tuy gần nhưng đã đầy tải 100% nên bị loại; Xe C còn 40% sức chứa và kịp giờ hẹn được chọn! Điều phối viên chỉ việc bấm duyệt, hệ thống tự động cập nhật lộ trình mới cho tài xế và gửi thông báo push báo giờ mới cho cư dân.",
+        highlights: [
+          "Định tuyến đa biến thông minh: Xem xét tải trọng, đường cấm tải, khung giờ hẹn và thời gian bốc xếp",
+          "Cơ chế Failover khi Xe A gặp sự cố: Tự động giữ việc đã xong, tính toán lại việc còn chờ",
+          "Phân tích thông minh: Loại bỏ Xe B (đầy 100%), đề xuất Xe C (còn 40% tải, kịp hẹn)",
+          "Human-in-the-loop: Điều phối viên phê duyệt 1 click, tự động cập nhật app tài xế và app cư dân"
+        ],
+        techStack: ["smartbin-dispatch-service", "CVRP Multi-depot", "Dynamic Rescheduling", "Push Notification Service"]
+      },
+      {
+        id: 5,
+        badge: "PHẦN 6: KIẾN TRÚC KỸ THUẬT TOÀN DIỆN",
+        title: "LUỒNG HOẠT ĐỘNG TOÀN DIỆN CỦA HỆ THỐNG SMARTBIN",
+        subtitle: "Luồng khép kín: AI đề xuất — Con người phê duyệt — Hệ thống thực thi",
+        image: "./images/slide6-system-architecture.png",
+        pitchScript: "Để hiện thực hóa tất cả những giá trị trên, kiến trúc SmartBin được thiết kế theo mô hình 5 tầng khép kín: Tầng 1 thu thập dữ liệu từ Thùng rác IoT cảm biến siêu âm, App cư dân và App tài xế. Tầng 2 đảm bảo an ninh với SSO và JWT RBAC qua API Gateway. Tầng 3 là 'bộ não' AI: Computer Vision nhận diện rác, AI Analytics dự báo đầy thùng và thuật toán CVRP / 2-OPT giải bài toán tối ưu lộ trình giảm phát thải CO₂. Tầng 4 giữ vai trò Human-in-the-loop để điều phối viên kiểm soát an toàn. Và Tầng 5 đẩy lộ trình số xuống xe gom và xử lý thanh toán điện tử tức thời.",
+        highlights: [
+          "Tầng 1: Thu thập & Đầu vào (Thùng rác IoT siêu âm/khói, App Cư dân, App GPS Tài xế)",
+          "Tầng 2: Bảo mật & Điều hướng (SSO, JWT RBAC, API Gateway / WebSocket Hub)",
+          "Tầng 3: Xử lý Trung tâm & AI (AI Computer Vision, AI Analytics, Thuật toán CVRP / 2-OPT giảm CO₂)",
+          "Tầng 4: Giám sát Con người (Human-in-the-loop: Điều phối viên phê duyệt & xử lý sự cố)",
+          "Tầng 5: Thực thi & Thanh toán (Lộ trình số đồng bộ app tài xế, Cổng thanh toán QR động IPN)"
+        ],
+        techStack: ["Microservices Architecture", "IoT MQTT / WebSocket", "Computer Vision", "CVRP & 2-OPT", "JWT / RBAC", "Digital QR Gateway"]
+      }
+    ];
+
+    // State Management
+    let currentSlide = 0;
+    const totalSlides = slidesData.length;
+    let autoplayInterval = null;
+    let isAutoplaying = false;
+    const autoplayDelay = 8000; // 8 seconds per slide
+
+    // DOM Elements
+    const slideContainers = document.querySelectorAll('.slide-container');
+    const slideCounter = document.getElementById('slide-counter');
+    const slideBadgeText = document.getElementById('slide-badge-text');
+    const slideTitleText = document.getElementById('slide-title-text');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnArrowPrev = document.getElementById('btn-arrow-prev');
+    const btnArrowNext = document.getElementById('btn-arrow-next');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const btnGrid = document.getElementById('btn-grid');
+    const btnNotes = document.getElementById('btn-notes');
+    const btnToggleNotesBottom = document.getElementById('btn-toggle-notes-bottom');
+    const btnCloseNotes = document.getElementById('btn-close-notes');
+    const notesDrawer = document.getElementById('notes-drawer');
+    const drawerContent = document.getElementById('drawer-content');
+    const overviewModalBackdrop = document.getElementById('overview-modal-backdrop');
+    const btnCloseOverview = document.getElementById('btn-close-overview');
+    const overviewGridContainer = document.getElementById('overview-grid-container');
+    const btnAutoplay = document.getElementById('btn-autoplay');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+    const btnHelp = document.getElementById('btn-help');
+    const helpModalBackdrop = document.getElementById('help-modal-backdrop');
+    const btnCloseHelp = document.getElementById('btn-close-help');
+
+    // Lightbox DOM
+    const lightboxModal = document.getElementById('lightbox-modal');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxCanvas = document.getElementById('lightbox-canvas');
+    const lbZoomIn = document.getElementById('lb-zoom-in');
+    const lbZoomOut = document.getElementById('lb-zoom-out');
+    const lbReset = document.getElementById('lb-reset');
+    const lbClose = document.getElementById('lb-close');
+    const btnZoom = document.getElementById('btn-zoom');
+
+    let zoomScale = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX, startY;
+
+    // Update UI on Slide Change
+    function updateSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+      currentSlide = index;
+
+      slideContainers.forEach((slide, idx) => {
+        if (idx === currentSlide) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+
+      const data = slidesData[currentSlide];
+      slideCounter.innerHTML = `0${currentSlide + 1} <span>/ 0${totalSlides}</span>`;
+      slideBadgeText.textContent = data.badge;
+      slideTitleText.textContent = data.title;
+
+      const progressPercent = ((currentSlide + 1) / totalSlides) * 100;
+      progressBarFill.style.width = `${progressPercent}%`;
+
+      btnPrev.disabled = currentSlide === 0;
+      btnArrowPrev.disabled = currentSlide === 0;
+      btnNext.disabled = currentSlide === totalSlides - 1;
+      btnArrowNext.disabled = currentSlide === totalSlides - 1;
+
+      renderSpeakerNotes(currentSlide);
+      updateOverviewSelection();
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        updateSlide(currentSlide + 1);
+      } else if (isAutoplaying) {
+        updateSlide(0); // loop back during autoplay
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        updateSlide(currentSlide - 1);
+      }
+    }
+
+    // Render Speaker Notes in Drawer
+    function renderSpeakerNotes(index) {
+      const data = slidesData[index];
+      drawerContent.innerHTML = `
+        <div class="note-card">
+          <div class="note-card-title">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            Mục Tiêu Slide ${index + 1}
+          </div>
+          <div style="font-size: 0.92rem; color: #f1f5f9; font-weight: 600; line-height: 1.4;">${data.subtitle}</div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-card-title">
+            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Điểm Nhấn Nổi Bật (Key Takeaways)
+          </div>
+          <ul class="note-bullets">
+            ${data.highlights.map(item => `<li>${item}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div class="note-card">
+          <div class="note-card-title">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            Kịch Bản Thuyết Trình Gợi Ý (Pitch Script)
+          </div>
+          <div class="note-script">
+            "${data.pitchScript}"
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-card-title">
+            <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+            Thành Phần Công Nghệ Liên Quan
+          </div>
+          <div class="tech-tags">
+            ${data.techStack.map(tag => `<span class="tech-tag">${tag}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Overview Grid
+    function initOverviewGrid() {
+      overviewGridContainer.innerHTML = slidesData.map((slide, idx) => `
+        <div class="grid-card ${idx === currentSlide ? 'active' : ''}" onclick="jumpToSlide(${idx})">
+          <div class="grid-card-thumb">
+            <img src="${slide.image}" alt="${slide.title}">
+          </div>
+          <div class="grid-card-info">
+            <div class="grid-card-num">SLIDE 0${idx + 1}</div>
+            <div class="grid-card-title">${slide.title}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateOverviewSelection() {
+      const cards = overviewGridContainer.querySelectorAll('.grid-card');
+      cards.forEach((card, idx) => {
+        if (idx === currentSlide) {
+          card.classList.add('active');
+        } else {
+          card.classList.remove('active');
+        }
+      });
+    }
+
+    function jumpToSlide(index) {
+      updateSlide(index);
+      closeOverview();
+    }
+
+    // Modal & Drawer Toggles
+    function toggleNotes() {
+      notesDrawer.classList.toggle('open');
+      btnNotes.classList.toggle('active', notesDrawer.classList.contains('open'));
+    }
+
+    function openOverview() {
+      overviewModalBackdrop.classList.add('open');
+    }
+
+    function closeOverview() {
+      overviewModalBackdrop.classList.remove('open');
+    }
+
+    function toggleOverview() {
+      if (overviewModalBackdrop.classList.contains('open')) {
+        closeOverview();
+      } else {
+        openOverview();
+      }
+    }
+
+    function openHelp() {
+      helpModalBackdrop.classList.add('open');
+    }
+
+    function closeHelp() {
+      helpModalBackdrop.classList.remove('open');
+    }
+
+    // Lightbox / Zoom Functionality
+    function openLightbox(index) {
+      const slide = slidesData[index];
+      lightboxImg.src = slide.image;
+      lightboxTitle.textContent = `Slide ${index + 1}: ${slide.title}`;
+      zoomScale = 1;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+      lightboxModal.classList.add('open');
+    }
+
+    function closeLightbox() {
+      lightboxModal.classList.remove('open');
+    }
+
+    function applyTransform() {
+      lightboxImg.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+    }
+
+    lbZoomIn.addEventListener('click', () => {
+      zoomScale = Math.min(zoomScale + 0.3, 4);
+      applyTransform();
+    });
+
+    lbZoomOut.addEventListener('click', () => {
+      zoomScale = Math.max(zoomScale - 0.3, 0.6);
+      applyTransform();
+    });
+
+    lbReset.addEventListener('click', () => {
+      zoomScale = 1;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+    });
+
+    lbClose.addEventListener('click', closeLightbox);
+
+    btnZoom.addEventListener('click', () => {
+      openLightbox(currentSlide);
+    });
+
+    // Lightbox Drag & Pan
+    lightboxCanvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      applyTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    lightboxCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.15 : 0.15;
+      zoomScale = Math.min(Math.max(zoomScale + delta, 0.6), 4);
+      applyTransform();
+    });
+
+    // Autoplay Mode
+    function toggleAutoplay() {
+      if (isAutoplaying) {
+        clearInterval(autoplayInterval);
+        isAutoplaying = false;
+        btnAutoplay.classList.remove('active');
+        iconPlay.style.display = 'block';
+        iconPause.style.display = 'none';
+      } else {
+        isAutoplaying = true;
+        btnAutoplay.classList.add('active');
+        iconPlay.style.display = 'none';
+        iconPause.style.display = 'block';
+        autoplayInterval = setInterval(() => {
+          nextSlide();
+        }, autoplayDelay);
+      }
+    }
+
+    // Fullscreen Toggle
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Error attempting fullscreen: ${err.message}`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Progress Bar Click Navigation
+    document.getElementById('progress-bar-track').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickRatio = (e.clientX - rect.left) / rect.width;
+      const targetIndex = Math.min(Math.floor(clickRatio * totalSlides), totalSlides - 1);
+      updateSlide(targetIndex);
+    });
+
+    // Event Listeners for Buttons
+    btnNext.addEventListener('click', nextSlide);
+    btnPrev.addEventListener('click', prevSlide);
+    btnArrowNext.addEventListener('click', nextSlide);
+    btnArrowPrev.addEventListener('click', prevSlide);
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+    btnNotes.addEventListener('click', toggleNotes);
+    btnToggleNotesBottom.addEventListener('click', toggleNotes);
+    btnCloseNotes.addEventListener('click', toggleNotes);
+    btnGrid.addEventListener('click', toggleOverview);
+    btnCloseOverview.addEventListener('click', closeOverview);
+    btnHelp.addEventListener('click', openHelp);
+    btnCloseHelp.addEventListener('click', closeHelp);
+    btnAutoplay.addEventListener('click', toggleAutoplay);
+
+    overviewModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === overviewModalBackdrop) closeOverview();
+    });
+
+    helpModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === helpModalBackdrop) closeHelp();
+    });
+
+    // Keyboard Navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'PageDown':
+        case ' ':
+          e.preventDefault();
+          nextSlide();
+          break;
+        case 'ArrowLeft':
+        case 'PageUp':
+        case 'Backspace':
+          e.preventDefault();
+          prevSlide();
+          break;
+        case 'Home':
+          e.preventDefault();
+          updateSlide(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          updateSlide(totalSlides - 1);
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 'g':
+        case 'G':
+        case 'o':
+        case 'O':
+          e.preventDefault();
+          toggleOverview();
+          break;
+        case 'n':
+        case 'N':
+          e.preventDefault();
+          toggleNotes();
+          break;
+        case 'z':
+        case 'Z':
+          e.preventDefault();
+          if (lightboxModal.classList.contains('open')) {
+            closeLightbox();
+          } else {
+            openLightbox(currentSlide);
+          }
+          break;
+        case 'a':
+        case 'A':
+          e.preventDefault();
+          toggleAutoplay();
+          break;
+        case '?':
+          e.preventDefault();
+          openHelp();
+          break;
+        case 'Escape':
+          if (lightboxModal.classList.contains('open')) {
+            closeLightbox();
+          } else if (overviewModalBackdrop.classList.contains('open')) {
+            closeOverview();
+          } else if (helpModalBackdrop.classList.contains('open')) {
+            closeHelp();
+          } else if (notesDrawer.classList.contains('open')) {
+            toggleNotes();
+          }
+          break;
+      }
+    });
+
+    // Touch Swipe Support for Mobile/Tablet
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.getElementById('slide-stage').addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    document.getElementById('slide-stage').addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const swipeDistance = touchEndX - touchStartX;
+      if (Math.abs(swipeDistance) > 45) {
+        if (swipeDistance < 0) {
+          nextSlide();
+        } else {
+          prevSlide();
+        }
+      }
+    }
+
+    // Initialize Presentation
+    initOverviewGrid();
+    updateSlide(0);
+  </script>
+</body>
+</html>
