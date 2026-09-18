@@ -264,7 +264,10 @@ const LoginPage = () => {
         const user = await response.json();
         generateLoginToken();
         dispatch(sessionActions.updateUser(user));
-        const target = window.sessionStorage.getItem('postLogin') || '/';
+        let target = window.sessionStorage.getItem('postLogin') || '/';
+        if (target.startsWith('/core')) {
+          target = target.replace(/^\/core/, '') || '/';
+        }
         window.sessionStorage.removeItem('postLogin');
         navigate(target, { replace: true });
       } else if (response.status === 401 && response.headers.get('WWW-Authenticate') === 'TOTP') {

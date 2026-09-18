@@ -85,9 +85,10 @@ const MainPage = () => {
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
   const positions = useSelector((state) => state.session.positions);
   const [filteredPositions, setFilteredPositions] = useState([]);
-  const selectedPosition = filteredPositions.find(
-    (position) => selectedDeviceId && position.deviceId === selectedDeviceId,
-  );
+  const selectedPosition =
+    filteredPositions.find(
+      (position) => selectedDeviceId && position.deviceId === selectedDeviceId,
+    ) || positions[selectedDeviceId];
 
   const [filteredDevices, setFilteredDevices] = useState([]);
 

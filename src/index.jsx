@@ -23,7 +23,7 @@ root.render(
           <AppThemeProvider>
             <CssBaseline />
             <ServerProvider>
-              <BrowserRouter>
+              <BrowserRouter basename={window.location.pathname.startsWith('/core') ? '/core' : ''}>
                 <Navigation />
               </BrowserRouter>
               <ErrorHandler />

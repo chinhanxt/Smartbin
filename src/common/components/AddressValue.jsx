@@ -13,10 +13,22 @@ const AddressValue = ({ latitude, longitude, originalAddress }) => {
   const addressEnabled = useSelector((state) => state.session.server.geocoderEnabled);
   const coordinateFormat = usePreference('coordinateFormat');
 
-  const [address, setAddress] = useState();
+  const [address, setAddress] = useState(originalAddress);
 
   useEffect(() => {
-    setAddress(originalAddress);
+    if (originalAddress) {
+      setAddress(originalAddress);
+    } else if (latitude != null && longitude != null) {
+      const query = new URLSearchParams({ latitude, longitude });
+      fetch(`/api/server/geocode?${query.toString()}`)
+        .then((res) => (res.ok ? res.text() : ''))
+        .then((addr) => {
+          if (addr && addr.trim()) {
+            setAddress(addr.trim());
+          }
+        })
+        .catch(() => {});
+    }
   }, [latitude, longitude, originalAddress]);
 
   const showAddress = useCatch(async (event) => {

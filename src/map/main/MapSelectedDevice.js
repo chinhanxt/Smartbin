@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import dimensions from '../../common/theme/dimensions';
 import { map } from '../core/MapView';
 import { usePrevious } from '../../reactHelper';
 import { useAttributePreference } from '../../common/util/preferences';
 import { toMapCoordinates } from '../core/mapUtil';
+import { sessionActions } from '../../store';
 
 const MapSelectedDevice = () => {
+  const dispatch = useDispatch();
   const currentTime = useSelector((state) => state.devices.selectTime);
   const currentId = useSelector((state) => state.devices.selectedId);
   const previousTime = usePrevious(currentTime);
@@ -16,8 +18,21 @@ const MapSelectedDevice = () => {
   const mapFollow = useAttributePreference('mapFollow', false);
 
   const position = useSelector((state) => state.session.positions[currentId]);
-
   const previousPosition = usePrevious(position);
+
+  // If selected device has no position in store yet, eagerly fetch it
+  useEffect(() => {
+    if (currentId && !position) {
+      fetch(`/api/positions?deviceId=${currentId}`)
+        .then((res) => (res.ok ? res.json() : []))
+        .then((posList) => {
+          if (posList && posList.length) {
+            dispatch(sessionActions.updatePositions(posList));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentId, position, dispatch]);
 
   useEffect(() => {
     const positionChanged =

@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
@@ -13,10 +13,10 @@ import TermsDialog from './common/components/TermsDialog';
 import Loader from './common/components/Loader';
 import fetchOrThrow from './common/util/fetchOrThrow';
 
-const useStyles = makeStyles()(() => ({
+const useStyles = makeStyles()((theme) => ({
   page: {
     flexGrow: 1,
-    overflow: 'auto',
+    overflow: 'hidden',
   },
   menu: {
     zIndex: 4,
@@ -31,6 +31,7 @@ const App = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const desktop = useMediaQuery(theme.breakpoints.up('md'));
 
@@ -56,14 +57,14 @@ const App = () => {
         } else {
           window.sessionStorage.setItem(
             'postLogin',
-            window.location.pathname + window.location.search,
+            location.pathname + location.search,
           );
           navigate(newServer ? '/register' : '/login', { replace: true });
         }
       }
       return null;
     },
-    [user, dispatch, navigate, newServer],
+    [user, dispatch, navigate, newServer, location],
   );
 
   if (user == null) {
