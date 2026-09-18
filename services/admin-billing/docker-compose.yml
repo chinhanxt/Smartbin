@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  smartbin-admin-billing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartbin-admin-billing-microservice
+    ports:
+      - "3003:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production

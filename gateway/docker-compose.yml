@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  smartbin-gateway:
+    image: nginx:alpine
+    container_name: smartbin-gateway
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "3090:3090"
+
+  auto-permission-sync:
+    image: python:3.11-alpine
+    container_name: smartbin-permission-sync
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./auto_permission_sync.py:/app/auto_permission_sync.py:ro
+    working_dir: /app
+    command: ["python3", "auto_permission_sync.py"]

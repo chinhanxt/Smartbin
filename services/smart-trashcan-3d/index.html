@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Waste Bin IoT - 3D</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body class="light-theme">
+  <!-- 3D WebGL Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+
+
+  <!-- Minimal Floating Alert Pill -->
+  <div id="critical-alert-banner" class="alert-pill hidden">
+    <span class="alert-dot"></span>
+    <span class="alert-msg" id="critical-alert-msg">Cảnh báo: Thùng rác đã đầy!</span>
+    <button id="btn-verify-fault" class="btn-verify hidden" type="button">
+      <svg class="btn-icon-svg" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Xác minh sự cố</span>
+    </button>
+  </div>
+
+  <!-- Main Minimal HUD -->
+  <div class="hud-wrapper">
+    <!-- Top Header Bar -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="live-dot" id="live-indicator"></div>
+        <span class="brand-title">Smart Bin IoT</span>
+      </div>
+
+      <div class="status-chips">
+        <span class="chip-item" id="signal-chip" title="Tín hiệu LoRaWAN">
+          <span id="signal-icon-wrapper">
+            <svg class="icon-svg" viewBox="0 0 24 24">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <circle cx="12" cy="20" r="1"></circle>
+            </svg>
+          </span>
+          <span id="signal-text">-72 dBm</span>
+        </span>
+        <span class="chip-item" id="odor-chip" title="Cảm biến khí mùi">
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path>
+            <path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path>
+            <path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path>
+          </svg>
+          <span id="odor-status-text" class="odor-clean">KHÔNG MÙI</span>
+        </span>
+        <span class="chip-item" id="battery-chip" title="Dung lượng pin">
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <rect x="2" y="7" width="16" height="10" rx="2"></rect>
+            <line x1="22" y1="11" x2="22" y2="13"></line>
+            <line x1="6" y1="11" x2="6" y2="13"></line>
+          </svg>
+          <span id="battery-pct-text">98%</span>
+        </span>
+        <span class="chip-item" id="time-chip" title="Thời gian cập nhật">
+          <svg class="icon-svg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="updated-time-text">--:--:--</span>
+        </span>
+        <span class="badge badge-normal" id="status-badge">BÌNH THƯỜNG</span>
+      </div>
+    </header>
+
+    <!-- Left Floating Sensor Card -->
+    <aside class="sensor-card">
+      <div class="gauge-container">
+        <svg class="gauge-svg" viewBox="0 0 140 140">
+          <circle class="gauge-bg" cx="70" cy="70" r="58"></circle>
+          <circle class="gauge-bar" id="gauge-circle" cx="70" cy="70" r="58"></circle>
+        </svg>
+        <div class="gauge-label">
+          <span class="gauge-number" id="fill-pct-text">0%</span>
+          <span class="gauge-sub">Dung tích</span>
+        </div>
+      </div>
+
+      <div class="stats-list">
+        <div class="stat-row">
+          <span class="stat-name">Khoảng cách</span>
+          <span class="stat-val"><b id="dist-cm-text">220</b> cm</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">Lượng rác</span>
+          <span class="stat-val"><b id="bottle-count-text">0</b> món</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">Trọng lượng</span>
+          <span class="stat-val"><b id="weight-kg-text">0.00</b> kg</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">Nắp thùng</span>
+          <span class="stat-val lid-val" id="lid-state-text">ĐÓNG</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right Floating Test Menu Panel (Closed by default) -->
+    <aside class="test-panel collapsed" id="test-panel">
+      <div class="test-panel-header" id="test-panel-toggle">
+        <div class="test-header-title">
+          <span class="test-badge-dot"></span>
+          <span>Thử Nghiệm Sự Cố</span>
+        </div>
+        <button class="btn-toggle-test" id="btn-toggle-test" title="Thu gọn / Mở rộng" type="button">
+          <svg class="toggle-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <div class="test-panel-body" id="test-panel-body">
+        <div class="test-section-title">GIẢ LẬP SỰ CỐ (SENSOR_FAULT)</div>
+        
+        <button class="test-action-btn fault-btn" id="btn-test-low-battery" type="button">
+          <span class="btn-icon">
+            <svg class="panel-icon-svg" viewBox="0 0 24 24">
+              <rect x="2" y="7" width="16" height="10" rx="2"></rect>
+              <line x1="22" y1="11" x2="22" y2="13"></line>
+              <line x1="6" y1="10" x2="6" y2="14"></line>
+            </svg>
+          </span>
+          <div class="btn-texts">
+            <span class="btn-label">Pin yếu (10%)</span>
+            <span class="btn-subtext" id="subtext-test-battery">Kích hoạt lỗi PIN_YẾU &le; 15%</span>
+          </div>
+        </button>
+
+        <button class="test-action-btn fault-btn" id="btn-test-signal-loss" type="button">
+          <span class="btn-icon">
+            <svg class="panel-icon-svg" viewBox="0 0 24 24">
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+              <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+              <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+              <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+              <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <circle cx="12" cy="20" r="1"></circle>
+            </svg>
+          </span>
+          <div class="btn-texts">
+            <span class="btn-label">Mất tín hiệu</span>
+            <span class="btn-subtext" id="subtext-test-signal">Kích hoạt lỗi MẤT_TÍN_HIỆU &gt; 6s</span>
+          </div>
+        </button>
+
+        <button class="test-action-btn fault-btn" id="btn-test-anomaly" type="button">
+          <span class="btn-icon">
+            <svg class="panel-icon-svg" viewBox="0 0 24 24">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </span>
+          <div class="btn-texts">
+            <span class="btn-label">Dữ liệu nhảy ảo</span>
+            <span class="btn-subtext" id="subtext-test-anomaly">Mức đầy nhảy vọt &ge; 40%</span>
+          </div>
+        </button>
+
+        <div class="test-section-title">CẢM BIẾN MÙI HÔI</div>
+        <button class="test-action-btn odor-btn" id="btn-test-toggle-odor" type="button">
+          <span class="btn-icon">
+            <svg class="panel-icon-svg" viewBox="0 0 24 24">
+              <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"></path>
+              <path d="M9.6 4.6A2 2 0 1 1 11 8H2"></path>
+              <path d="M12.6 19.4A2 2 0 1 0 14 16H2"></path>
+            </svg>
+          </span>
+          <div class="btn-texts">
+            <span class="btn-label" id="label-test-odor">Bật mùi hôi</span>
+            <span class="btn-subtext">Mô phỏng khí mùi rác hữu cơ</span>
+          </div>
+        </button>
+
+        <div class="test-section-title">XỬ LÝ & GỠ CHỐT LỖI</div>
+        <button class="test-action-btn verify-btn" id="btn-test-verify" type="button">
+          <span class="btn-icon">
+            <svg class="panel-icon-svg" viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </span>
+          <div class="btn-texts">
+            <span class="btn-label">Xác minh sự cố</span>
+            <span class="btn-subtext">Gỡ chốt SENSOR_FAULT</span>
+          </div>
+        </button>
+
+        <button class="test-action-btn reset-btn" id="btn-test-restore" type="button">
+          <span class="btn-icon">
+            <svg class="panel-icon-svg" viewBox="0 0 24 24">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+          </span>
+          <div class="btn-texts">
+            <span class="btn-label">Khôi phục mặc định</span>
+            <span class="btn-subtext">Pin 98%, hết mùi, xóa lỗi</span>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Bottom Floating Action Bar -->
+    <footer class="bottom-bar">
+      <div class="action-buttons">
+        <button id="btn-drop-bottle" class="btn-main" title="Thả chai nước (model plastic_water_bottle.glb)" type="button">
+          <svg class="btn-icon-svg" viewBox="0 0 24 24">
+            <path d="M10 2h4M10 2v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2M9 7h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"></path>
+          </svg>
+          <span>Chai nước</span>
+        </button>
+        <button id="btn-drop-bag" class="btn-main btn-bag" title="Thả túi rác (model a_bag_of_garbage.glb)" type="button">
+          <svg class="btn-icon-svg" viewBox="0 0 24 24">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+          <span>Túi rác</span>
+        </button>
+        <button id="btn-auto-fill" class="btn-sub" type="button">
+          <span id="auto-btn-icon" class="btn-svg-wrapper">
+            <svg class="btn-icon-svg" viewBox="0 0 24 24">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </span>
+          <span id="auto-btn-text">Tự động</span>
+        </button>
+        <button id="btn-reset-bin" class="btn-sub" title="Làm rỗng thùng" type="button">
+          <svg class="btn-icon-svg" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          <span>Làm rỗng</span>
+        </button>
+        <button id="btn-trailer" class="btn-trailer" title="Xem Phim Trailer Game 3D: Quy Trình Thu Gom Rác Đô Thị" type="button">
+          <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>🎬 Phim Quy Trình</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

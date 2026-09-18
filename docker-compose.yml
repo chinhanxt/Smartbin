@@ -1,16 +1,169 @@
 version: '3.8'
 
 services:
-  smartbin-web:
+  # ============================================================================
+  # 1. UNIFIED REVERSE PROXY GATEWAY (Cloudflare Ready)
+  # ============================================================================
+  smartbin-gateway:
     build:
-      context: .
+      context: ./gateway
+      dockerfile: Dockerfile
+    image: smartbin-gateway:latest
+    container_name: smartbin-gateway
+    restart: unless-stopped
+    ports:
+      - "3090:3090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - smartbin-web-app
+      - smartbin-mobile-tracker-app
+    networks:
+      - smartbin-network
+
+  # ============================================================================
+  # 2. CLIENT APPLICATIONS
+  # ============================================================================
+  # 2.1 Core Tracking & Telemetry Dashboard (/core/)
+  smartbin-web-app:
+    build:
+      context: ./apps/core-dashboard
       dockerfile: Dockerfile
     image: smartbin-web:latest
     container_name: smartbin-web-app
+    restart: unless-stopped
     ports:
       - "3000:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    restart: unless-stopped
     environment:
       - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - smartbin-network
+
+  # 2.2 Mobile Driver GPS Tracker (/appmobile/)
+  smartbin-mobile-tracker-app:
+    build:
+      context: ./apps/mobile-tracker
+      dockerfile: Dockerfile
+    image: smartbin-mobile-tracker:latest
+    container_name: smartbin-mobile-tracker-app
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - smartbin-network
+
+  # ============================================================================
+  # 3. CORE MICROSERVICES
+  # ============================================================================
+  # 3.1 Citizen Portal (/citizen/)
+  smartbin-citizen-microservice:
+    build:
+      context: ./services/citizen
+      dockerfile: Dockerfile
+    image: smartbin-citizen-service:latest
+    container_name: smartbin-citizen-microservice
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    networks:
+      - smartbin-network
+
+  # 3.2 Admin & Billing Service (/billing/)
+  smartbin-admin-billing-microservice:
+    build:
+      context: ./services/admin-billing
+      dockerfile: Dockerfile
+    image: smartbin-admin-billing-service:latest
+    container_name: smartbin-admin-billing-microservice
+    restart: unless-stopped
+    ports:
+      - "3003:80"
+    networks:
+      - smartbin-network
+
+  # 3.3 HRM & Staff Scheduling (/hrm/)
+  smartbin-hrm-microservice:
+    build:
+      context: ./services/hrm
+      dockerfile: Dockerfile
+    image: smartbin-hrm-service:latest
+    container_name: smartbin-hrm-microservice
+    restart: unless-stopped
+    ports:
+      - "3004:80"
+    networks:
+      - smartbin-network
+
+  # 3.4 Bulky Waste & MoMo Payment Service (/bulky/)
+  smartbin-bulky-microservice:
+    build:
+      context: ./services/bulky-waste
+      dockerfile: Dockerfile
+    image: smartbin-bulky-service:latest
+    container_name: smartbin-bulky-microservice
+    restart: unless-stopped
+    ports:
+      - "3006:80"
+    networks:
+      - smartbin-network
+
+  # 3.5 Dispatch Routing & AI Fleet Optimization (/dispatch/)
+  smartbin-dispatch-microservice:
+    build:
+      context: ./services/dispatch
+      dockerfile: Dockerfile
+    image: smartbin-dispatch-service:latest
+    container_name: smartbin-dispatch-microservice
+    restart: unless-stopped
+    ports:
+      - "3007:80"
+    networks:
+      - smartbin-network
+
+  # 3.6 3D Smart Trashcan IoT Simulation (/trashcan/)
+  smart-trashcan-microservice:
+    build:
+      context: ./services/smart-trashcan-3d
+      dockerfile: Dockerfile
+    image: smart-trashcan-3d:latest
+    container_name: smart-trashcan-microservice
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - smartbin-network
+
+  # ============================================================================
+  # 4. PRESENTATION & SYSTEM DOCUMENTATION (/presentation/)
+  # ============================================================================
+  smartbin-presentation-app:
+    build:
+      context: ./presentation
+      dockerfile: Dockerfile
+    image: smartbin-presentation:latest
+    container_name: smartbin-presentation-app
+    restart: unless-stopped
+    ports:
+      - "3010:80"
+    networks:
+      - smartbin-network
+
+networks:
+  smartbin-network:
+    driver: bridge

@@ -1,0 +1,11 @@
+Model Information:
+* title:	A bag of garbage.
+* source:	https://sketchfab.com/3d-models/a-bag-of-garbage-869820a36262403e98ca36e267911ad6
+* author:	vodiva83 (https://sketchfab.com/vodiva83)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "A bag of garbage." (https://sketchfab.com/3d-models/a-bag-of-garbage-869820a36262403e98ca36e267911ad6) by vodiva83 (https://sketchfab.com/vodiva83) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

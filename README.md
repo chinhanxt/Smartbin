@@ -1,138 +1,170 @@
-# 🚛 Smartbin - Hệ Thống Giám Sát & Định Vị Thu Gom Rác Thông Minh (Civic-Tech)
+# 🗑️ Smartbin — Hệ Sinh Thái Thu Gom & Quản Lý Rác Thông Minh
 
-Hệ thống điều phối, quản lý và định vị phương tiện thu gom rác thải & điểm tập kết thông minh thời gian thực (Real-time GPS Tracking & Smart Waste Management System), phục vụ chương trình Chuyển đổi số địa phương.
-
-![Smartbin Banner](public/logo.svg)
+> **Smartbin Monorepo** — Nền tảng điều phối rác thông minh, tối ưu lộ trình xe thu gom bằng AI, giám sát thiết bị GPS thời gian thực (Traccar), tích hợp thanh toán MoMo, quản lý nhân sự HRM và mô phỏng thùng rác 3D IoT.
 
 ---
 
-## 🌟 Tính Năng Nổi Bật
+## 🌟 1. Tổng Quan Kiến Trúc Hệ Thống
 
-### 1. 📱 Web Mobile Tracker (`/tracker`) dành cho Tài xế & Xe gom rác
-- **Không cần cài đặt app Native**: Hoạt động trực tiếp trên trình duyệt mọi điện thoại (iOS Safari, Android Chrome, Zalo Browser).
-- **Định vị GPS vệ tinh độ chính xác cao**: Tự động lấy toạ độ vệ tinh (sai số chỉ 5 - 15m), vận tốc km/h và hướng la bàn.
-- **Nút Kết nối tức thì (< 50ms)**: Đồng bộ toạ độ về máy chủ ngay lập tức với bộ đệm bộ nhớ đệm thông minh.
-- **Nút Báo động SOS khẩn cấp**: Phát chuỗi tín hiệu ưu tiên (`alarm=sos`) về phòng điều hành, kích hoạt còi hú và thông báo cảnh báo tức thì.
-- **Giám sát pin thông minh (Hybrid Battery)**: Hỗ trợ đọc pin phần cứng hoặc pin mô phỏng IoT, liên tục báo cáo % pin và trạng thái cắm sạc.
-- **Hỗ trợ đa phương tiện**: Cho phép chọn xe (Xe 01, Xe 02, Thùng rác 01...) hoặc sinh mã ngẫu nhiên để tránh xung đột dữ liệu giữa nhiều thiết bị.
-- **Mã QR chia sẻ nhanh**: Quét bằng camera điện thoại để mở bộ phát GPS ngay lập tức.
-
-### 2. 🗺️ Trung tâm Giám sát Bản đồ (`/`)
-- **Bản đồ thời gian thực (Live Map)**: Theo dõi lộ trình di chuyển của toàn bộ đội xe rác trên địa bàn xã/phường.
-- **Cảnh báo SOS trung tâm**: Tự động phát âm thanh cảnh báo và hiển thị hộp thoại khẩn cấp khi xe gặp sự cố.
-- **Báo cáo & Lịch sử**: Xem lại hành trình, dừng đỗ, quãng đường tiêu hao nhiên liệu.
-- **Vùng địa lý (Geofencing)**: Thiết lập ranh giới điểm tập kết rác, bãi chôn lấp, trạm trung chuyển.
-
----
-
-## 🏗️ Kiến Trúc Hệ Thống
+Toàn bộ hệ sinh thái Smartbin được thiết kế theo kiến trúc **Microservices** hướng module độc lập, điều phối thông qua **Unified Nginx Reverse Proxy Gateway** (hỗ trợ Cloudflare Tunnel) và được đóng gói hoàn toàn bằng **Docker Compose Multi-stage build**.
 
 ```mermaid
-graph LR
-  subgraph Mobile ["📱 Xe Thu Gom Rác"]
-    Driver["Trình duyệt Điện thoại\n(/tracker)"]
-  end
+flowchart TD
+    subgraph Users["Người Dùng & Thiết Bị Hiện Trường"]
+        CF["Cloudflare Tunnel / Internet"]
+        MOB["📱 App Mobile Driver (GPS & SOS)"]
+        CIT["👤 Cổng Dịch Vụ Người Dân"]
+        ADM["💼 Portal Quản Trị & Kế Toán"]
+        IOT["📡 Thùng Rác Thông Minh (IoT 3D Sensor)"]
+    end
 
-  subgraph Cloud ["☁️ Cloud & Proxy"]
-    Vite["Vite Dev / Cloudflare Tunnel\n(Port 3000 / HTTPS)"]
-  end
+    subgraph GatewayLayer["Tầng Điều Hướng (Port 3090)"]
+        GW["Smartbin Gateway (Nginx)\n- Tự động nhận diện IP Cloudflare\n- Điều hướng Subpaths\n- Proxy WebSocket & Telemetry"]
+    end
 
-  subgraph Server ["🖥️ Traccar Backend Server"]
-    OsmAnd["GPS Port 5055\n(Giao thức OsmAnd)"]
-    API["Traccar API & Socket\n(Port 8082)"]
-  end
+    subgraph AppLayer["Tầng Ứng Dụng & Giao Diện"]
+        APP_CORE["Traccar Core Dashboard (/core/ - :3000)"]
+        APP_MOB["Mobile Tracker App (/appmobile/ - :3001)"]
+        APP_PRES["Slide Thuyết Trình (/presentation/ - :3010)"]
+    end
 
-  subgraph Admin ["💻 Ban Quản Lý Xã"]
-    Dashboard["Màn hình Giám sát\n(/)"]
-  end
+    subgraph ServiceLayer["Tầng Microservices Nghiệp Vụ"]
+        SVC_CIT["Citizen Service (:3002)"]
+        SVC_BILL["Admin & Billing Service (:3003)"]
+        SVC_HRM["HRM & Phân Ca (:3004)"]
+        SVC_BULK["Thu Gom Rác Cồng Kềnh & MoMo (:3006)"]
+        SVC_DISP["AI Dispatch & Tối Ưu Lộ Trình (:3007)"]
+        SVC_IOT["3D Smart Trashcan IoT Simulation (:8080)"]
+    end
 
-  Driver -->|HTTP GET /gps?id=...&lat=...&alarm=sos| Vite
-  Vite -->|Proxy /gps| OsmAnd
-  OsmAnd --> API
-  API -->|WebSocket /api/socket| Dashboard
+    subgraph BackendLayer["Tầng Lõi Dữ Liệu & Backend"]
+        TRAC_SRV["Traccar Server Backend (:8082 / :5055)"]
+        SYNC["Auto Permission Sync Daemon"]
+    end
+
+    CF --> GW
+    MOB --> CF
+    CIT --> CF
+    ADM --> CF
+    IOT --> CF
+
+    GW -->|/core/| APP_CORE
+    GW -->|/appmobile/| APP_MOB
+    GW -->|/presentation/| APP_PRES
+    GW -->|/citizen/| SVC_CIT
+    GW -->|/billing/| SVC_BILL
+    GW -->|/hrm/| SVC_HRM
+    GW -->|/bulky/| SVC_BULK
+    GW -->|/dispatch/| SVC_DISP
+    GW -->|/trashcan/| SVC_IOT
+
+    GW -->|/api/ & /api/socket| TRAC_SRV
+    GW -->|/gps| TRAC_SRV
+    SYNC -->|Auto Link Device Permissions| TRAC_SRV
 ```
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt & Phát Triển (Dành cho Team)
-
-### Yêu Cầu Tiên Quyết
-- **Node.js**: >= 18.x
-- **Docker**: Để chạy Traccar Backend Server (Port 8082 & Port 5055)
-
-### 1. Khởi động Backend Traccar (Docker)
-```bash
-docker run -d --name traccar-server \
-  -p 8082:8082 -p 5055:5055 \
-  traccar/traccar:latest
-```
-* Tài khoản quản trị mặc định: `admin` / `admin` (hoặc tạo tài khoản theo quy chuẩn của đơn vị).
-
-### 2. Cài đặt Thư Viện Frontend
-```bash
-git clone https://github.com/chinhanxt/Smartbin.git
-cd Smartbin
-npm install
-```
-
-### 3. Chạy Môi Trường Phát Triển (Local Dev)
-```bash
-npm start
-```
-- **Web App**: `http://localhost:3000`
-- **Bộ phát GPS Mobile**: `http://localhost:3000/tracker`
-- Vite tự động proxy:
-  - `/api` ➔ `http://localhost:8082/api`
-  - `/gps` ➔ `http://localhost:5055/?`
-
-### 4. Build Bản Triển Khai Sản Phẩm (Production)
-```bash
-npm run build
-```
-Mã nguồn tối ưu sau khi build sẽ nằm trong thư mục `build/`, sẵn sàng đưa lên Cloudflare Pages, Vercel, hoặc Nginx.
-
----
-
-## 📂 Cấu Trúc Thư Mục Quan Trọng
+## 📁 2. Cấu Trúc Thư Mục Monorepo
 
 ```text
 Smartbin/
-├── public/                     # Tài nguyên tĩnh, logo.svg, manifest PWA
-├── src/
-│   ├── other/
-│   │   └── MobileTrackerPage.jsx  # 🌟 Toàn bộ giao diện & logic bộ phát GPS di động Smartbin
-│   ├── main/                   # Giao diện bản đồ giám sát trung tâm
-│   │   ├── MainPage.jsx
-│   │   ├── DeviceRow.jsx       # Hiển thị thông tin xe, pin, vận tốc
-│   │   └── EventsDrawer.jsx    # Lịch sử sự kiện, cảnh báo
-│   ├── SocketController.jsx    # Nhận WebSocket realtime và thông báo âm thanh SOS
-│   ├── Navigation.jsx          # Định tuyến (Router)
-│   └── vite.config.js          # Cấu hình Proxy và Build
-└── package.json
+├── apps/
+│   ├── core-dashboard/          # Giao diện giám sát & quản trị trung tâm Traccar Core (/core)
+│   └── mobile-tracker/          # App GPS độc lập cho tài xế thu gom rác (/appmobile)
+├── gateway/
+│   ├── nginx.conf               # Cấu hình Gateway điều phối toàn bộ hệ thống & Cloudflare
+│   ├── auto_permission_sync.py  # Daemon tự động đồng bộ quyền thiết bị mới
+│   ├── Dockerfile
+│   └── README.md
+├── services/
+│   ├── citizen/                 # Microservice cổng người dân phản ánh & xem lịch rác
+│   ├── admin-billing/           # Microservice quản lý hóa đơn, tự động thu phí & kế toán
+│   ├── hrm/                     # Microservice quản trị nhân sự, chấm công & phân ca tài xế
+│   ├── bulky-waste/             # Microservice đặt lịch gom rác cồng kềnh & thanh toán MoMo
+│   ├── dispatch/                # Microservice điều phối xe thu gom, thuật toán tối ưu lộ trình
+│   └── smart-trashcan-3d/       # Microservice mô phỏng thùng rác thông minh 3D bằng Three.js
+├── presentation/
+│   ├── index.html               # Slide thuyết trình tương tác toàn bộ dự án
+│   ├── open_presentation.sh     # Script mở nhanh slide
+│   └── smartbin_presentation_standalone.html
+├── docker-compose.yml           # File điều phối khởi chạy toàn bộ 10 microservices
+└── README.md                    # Tài liệu hướng dẫn sử dụng
 ```
 
 ---
 
-## 📡 Chuẩn Giao Thức Truyền Tin GPS (OsmAnd Protocol)
+## 🌐 3. Bảng Ánh Xạ Cổng & Subpath Hệ Thống
 
-Bộ phát Mobile gửi dữ liệu toạ độ định kỳ bằng HTTP GET về endpoint `/gps`:
-```http
-GET /gps?id={deviceId}&lat={lat}&lon={lon}&timestamp={timestamp}&speed={speedKnots}&bearing={heading}&accuracy={acc}&batt={batteryLevel}&charge={isCharging}&alarm={alarmType}
-```
-| Tham số | Ý nghĩa | Ví dụ |
-| :--- | :--- | :--- |
-| `id` | Mã định danh xe / thùng rác | `81891318`, `BIN-001` |
-| `timestamp` | Thời gian gửi (giây Epoch) | `1789580341` |
-| `lat`, `lon` | Toạ độ vệ tinh WGS84 | `10.845671, 106.813482` |
-| `speed` | Vận tốc chuyển đổi ra Knot | `15.5` |
-| `bearing` | Góc la bàn di chuyển (0 - 360°) | `90.0` |
-| `accuracy` | Độ chính xác bán kính mét | `12.5` |
-| `batt` | Phần trăm pin thiết bị (0 - 100) | `95` |
-| `charge` | Đang cắm sạc (`true`/`false`) | `true` |
-| `alarm` | Báo động khẩn cấp | `sos` |
+| Microservice / Ứng dụng | Cổng Trực Tiếp | Đường Dẫn Qua Gateway (Port 3090) | Mô Tả Chức Năng Nghiệp Vụ |
+|---|:---:|:---:|---|
+| **Smartbin Gateway** | `3090` | `/` | Cổng vào duy nhất hỗ trợ Cloudflare Tunnel |
+| **Mobile Tracker App** | `3001` | `/appmobile/` | App điện thoại tài xế: GPS vệ tinh, trạng thái pin & SOS |
+| **Core Dashboard** | `3000` | `/core/` | Bản đồ theo dõi lộ trình thời gian thực & cảnh báo viễn thông |
+| **Citizen Service** | `3002` | `/citizen/` | Tra cứu lịch thu gom rác, phản ánh ô nhiễm môi trường |
+| **Admin & Billing** | `3003` | `/billing/` | Quản lý hóa đơn dịch vụ vệ sinh, nhắc nợ & đối soát |
+| **HRM Service** | `3004` | `/hrm/` | Chấm công GPS, xếp lịch trực và tính lương nhân sự |
+| **Bulky Waste Service** | `3006` | `/bulky/` | Đặt lịch lấy rác cồng kềnh, định giá tự động & quét mã MoMo |
+| **Dispatch Routing** | `3007` | `/dispatch/` | Điều phối đoàn xe thông minh, thuật toán tối ưu đường đi |
+| **Smart Trashcan 3D** | `8080` | `/trashcan/` | Mô phỏng cảm biến siêu âm đầy rác & đồ họa Three.js |
+| **Presentation Slides** | `3010` | `/presentation/` | Slide thuyết trình đồ án trực quan tương tác |
 
 ---
 
-## 👥 Tác Giả & Bản Quyền
-Dự án được phát triển và tối ưu cho nền tảng Chuyển đổi số Quản lý Rác thông minh Smartbin.  
-Phát triển bởi **chinhanxt & Team**. Giấy phép nguồn mở Apache License 2.0.
+## 🚀 4. Hướng Dẫn Khởi Chạy Nhanh
+
+### 4.1. Khởi chạy 1 chạm bằng Docker Compose (Khuyên dùng)
+Yêu cầu: Đã cài đặt [Docker](https://docs.docker.com/engine/install/) & [Docker Compose](https://docs.docker.com/compose/).
+
+```bash
+# 1. Clone toàn bộ dự án
+git clone -b main git@github.com:chinhanxt/Smartbin.git
+cd Smartbin
+
+# 2. Khởi chạy toàn bộ 10 dịch vụ
+docker compose up -d --build
+
+# 3. Kiểm tra trạng thái các container
+docker compose ps
+```
+
+* 🌍 **Truy cập qua Gateway tập trung**: `http://localhost:3090`
+* 📱 **Truy cập App Mobile**: `http://localhost:3090/appmobile`
+* 🗺️ **Truy cập Bản Đồ Giám Sát**: `http://localhost:3090/core`
+* 📊 **Truy cập Slide Thuyết Trình**: `http://localhost:3090/presentation`
+
+---
+
+### 4.2. Khởi chạy Cloudflare Tunnel công khai
+Nếu bạn muốn đưa toàn bộ hệ thống lên Internet cho điện thoại thực tế kết nối:
+
+```bash
+cloudflared tunnel --url http://localhost:3090
+```
+*(Mọi đường dẫn `/appmobile`, `/core`, `/bulky`, v.v. đều hoạt động mượt mà qua URL HTTPS công khai của Cloudflare)*.
+
+---
+
+## 👥 5. Liên Kết Nhánh Phát Triển (Feature Branches)
+
+Dự án duy trì các nhánh con độc lập tương ứng với từng module để các thành viên phát triển song song:
+
+* `main`: Nhánh chính Monorepo hợp nhất toàn bộ hệ thống.
+* `webapp`: Nhánh phát triển `apps/mobile-tracker`.
+* `project-main`: Nhánh phát triển `apps/core-dashboard`.
+* `smartbin-gateway`: Nhánh phát triển Nginx Gateway.
+* `dev-congnghip`: Nhánh phát triển `services/dispatch`.
+* `dev-EnglandLee`: Nhánh phát triển `services/bulky-waste`.
+* `smartbin-hrm-service`: Nhánh phát triển `services/hrm`.
+* `smartbin-citizen-service`: Nhánh phát triển `services/citizen`.
+* `smartbin-admin-billing-service`: Nhánh phát triển `services/admin-billing`.
+* `project`: Nhánh phát triển `services/smart-trashcan-3d`.
+* `smartbin-presentation`: Nhánh lưu trữ Slide thuyết trình.
+* `traccar-backend`: Nhánh backend Traccar Java Server.
+* `traccar-client-android`: Nhánh ứng dụng di động Android gốc.
+
+---
+
+## 📜 6. Giấy Phép & Bản Quyền
+Phát triển bởi đội ngũ **Smartbin Team** © 2026.
+Mã nguồn mở phục vụ nghiên cứu và phát triển đô thị thông minh.

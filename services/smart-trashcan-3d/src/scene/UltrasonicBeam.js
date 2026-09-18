@@ -1,0 +1,148 @@
+import * as THREE from 'three';
+import { APP_CONFIG } from '../config.js';
+
+/**
+ * UltrasonicBeam: Renders a slender 3D volumetric sonar/ultrasonic cone
+ * confined strictly inside the trash can opening without flaring outside.
+ */
+export class UltrasonicBeam {
+  /**
+   * @param {THREE.Scene|THREE.Group} parent - Parent scene or group
+   */
+  constructor(parent) {
+    this.parent = parent;
+    const binHeight = APP_CONFIG.BIN?.HEIGHT || 2.20;
+    this.sensorY = binHeight * 0.88; // e.g. 1.94m for 2.2m bin
+    this.maxHeight = binHeight * 0.78; // e.g. 1.72m for 2.2m bin
+    this.currentColor = 0x10b981; // Green
+    this.baseOpacity = 0.35;
+
+    // Root group positioned at the ultrasonic sensor under the lid
+    this.group = new THREE.Group();
+    this.group.name = 'UltrasonicBeam';
+    this.group.position.set(0, this.sensorY, 0);
+
+    this._buildMesh();
+    if (this.parent) {
+      this.parent.add(this.group);
+    }
+  }
+
+  attachTo(parentGroup) {
+    if (this.group.parent) {
+      this.group.parent.remove(this.group);
+    }
+    this.parent = parentGroup;
+    const binHeight = APP_CONFIG.BIN?.HEIGHT || 2.20;
+    this.sensorY = binHeight * 0.88;
+    this.maxHeight = binHeight * 0.78;
+    this.group.position.set(0, this.sensorY, 0);
+    this.group.rotation.set(0, 0, 0);
+    if (this.parent) {
+      this.parent.add(this.group);
+    }
+  }
+
+  _buildMesh() {
+    // Slender cone fitting neatly inside the bin opening
+    const coneGeo = new THREE.CylinderGeometry(0.02, 0.12, 1.0, 32, 1, true);
+    coneGeo.translate(0, -0.5, 0);
+
+    this.beamMaterial = new THREE.MeshBasicMaterial({
+      color: this.currentColor,
+      transparent: true,
+      opacity: this.baseOpacity,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    this.beamMesh = new THREE.Mesh(coneGeo, this.beamMaterial);
+    this.group.add(this.beamMesh);
+    this.mesh = this.beamMesh;
+
+    // High-intensity narrow central core beam
+    const coreGeo = new THREE.CylinderGeometry(0.006, 0.04, 1.0, 16, 1, true);
+    coreGeo.translate(0, -0.5, 0);
+
+    this.coreMaterial = new THREE.MeshBasicMaterial({
+      color: this.currentColor,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    this.coreMesh = new THREE.Mesh(coreGeo, this.coreMaterial);
+    this.group.add(this.coreMesh);
+
+    // Bottom target contact circle/ring at the waste level
+    const ringGeo = new THREE.RingGeometry(0.015, 0.11, 32);
+    ringGeo.rotateX(Math.PI / 2);
+
+    this.ringMaterial = new THREE.MeshBasicMaterial({
+      color: this.currentColor,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    this.targetRing = new THREE.Mesh(ringGeo, this.ringMaterial);
+    this.targetRing.position.y = -this.maxHeight;
+    this.group.add(this.targetRing);
+
+    // Sensor emitter bead
+    const emitterGeo = new THREE.SphereGeometry(0.025, 16, 16);
+    this.emitterMaterial = new THREE.MeshBasicMaterial({
+      color: this.currentColor,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending
+    });
+    this.emitterMesh = new THREE.Mesh(emitterGeo, this.emitterMaterial);
+    this.emitterMesh.position.set(0, 0, 0);
+    this.group.add(this.emitterMesh);
+  }
+
+  update(fillPct = 0, visible = true, time = 0) {
+    const isVisible = Boolean(visible);
+    this.group.visible = isVisible;
+    this.mesh.visible = isVisible;
+
+    if (!isVisible) return;
+
+    const clampedPct = THREE.MathUtils.clamp(fillPct, 0, 100);
+    // When 0% full, distance is 2.1m (hits bottom). When 100% full, distance is ~0.1m
+    const targetLength = Math.max(0.1, this.maxHeight * (1 - clampedPct / 100) - 0.05);
+
+    // Subtle taper scaling
+    const spreadFactor = 0.6 + 0.4 * (targetLength / this.maxHeight);
+
+    this.beamMesh.scale.set(spreadFactor, targetLength, spreadFactor);
+    this.coreMesh.scale.set(spreadFactor, targetLength, spreadFactor);
+
+    this.targetRing.position.y = -targetLength;
+    this.targetRing.scale.set(spreadFactor, spreadFactor, spreadFactor);
+
+    // Pulsing glow
+    const pulse = Math.sin(time * 5);
+    this.beamMaterial.opacity = THREE.MathUtils.clamp(this.baseOpacity + pulse * 0.1, 0.15, 0.5);
+    this.coreMaterial.opacity = THREE.MathUtils.clamp(0.55 + pulse * 0.15, 0.25, 0.8);
+    this.ringMaterial.opacity = THREE.MathUtils.clamp(0.6 + pulse * 0.2, 0.3, 0.9);
+  }
+
+  setColor(colorHex) {
+    this.currentColor = colorHex;
+    this.beamMaterial.color.set(colorHex);
+    this.coreMaterial.color.set(colorHex);
+    this.ringMaterial.color.set(colorHex);
+    this.emitterMaterial.color.set(colorHex);
+  }
+
+  dispose() {
+    this.scene.remove(this.group);
+  }
+}
