@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Microservice App Web: Quản lý & Giám sát Trung tâm (Smartbin Web App)
+  # ----------------------------------------------------------------------------
+  smartbin-web:
+    build:
+      context: ./traccar-web
+      dockerfile: Dockerfile
+    image: smartbin-web:latest
+    container_name: smartbin-web-app
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - smartbin-network
+
+  # ----------------------------------------------------------------------------
+  # 2. Microservice Độc lập: Thiết bị Di động phát GPS & SOS (Mobile Tracker)
+  # ----------------------------------------------------------------------------
+  smartbin-mobile-tracker:
+    build:
+      context: ../smartbin-mobile-tracker
+      dockerfile: Dockerfile
+    image: smartbin-mobile-tracker:latest
+    container_name: smartbin-mobile-tracker-app
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - smartbin-network
+
+networks:
+  smartbin-network:
+    driver: bridge
