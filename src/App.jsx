@@ -29,7 +29,11 @@ export default function App() {
   });
 
   const [serverUrl, setServerUrl] = useState(() => {
-    return localStorage.getItem('smartbin_server_url') || '/gps';
+    const saved = localStorage.getItem('smartbin_server_url');
+    if (saved && saved !== '/gps' && saved !== '/appmobile/gps') {
+      return saved;
+    }
+    return '';
   });
 
   const [intervalSec, setIntervalSec] = useState(() => {
@@ -98,7 +102,10 @@ export default function App() {
       let resolvedIndex = 1;
 
       try {
-        const res = await fetch(`/client-ip?token=${encodeURIComponent(clientToken)}`);
+        const clientIpUrl = window.location.pathname.startsWith('/appmobile')
+          ? `/appmobile/client-ip?token=${encodeURIComponent(clientToken)}`
+          : `/client-ip?token=${encodeURIComponent(clientToken)}`;
+        const res = await fetch(clientIpUrl);
         if (res.ok) {
           const data = await res.json();
           if (data?.deviceId) {
@@ -169,7 +176,8 @@ export default function App() {
 
     if (isSos) queryParams.append('alarm', 'sos');
 
-    const endpoint = serverUrlRef.current.trim() || '/gps';
+    const defaultGps = window.location.pathname.startsWith('/appmobile') ? '/appmobile/gps' : '/gps';
+    const endpoint = serverUrlRef.current.trim() || defaultGps;
     const fullUrl = `${endpoint}?${queryParams.toString()}`;
 
     try {

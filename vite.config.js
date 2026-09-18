@@ -79,6 +79,7 @@ const clientIpPlugin = () => ({
 });
 
 export default defineConfig({
+  base: './',
   plugins: [react(), clientIpPlugin()],
   server: {
     port: 3001,
