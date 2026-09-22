@@ -340,16 +340,15 @@ export function BulkyRequestWizard({
           ...prev,
           confirmedItems: res.items.map((item) => {
             const material = item.suggestedMaterial || 'STANDARD';
-            const baseWeight =
-              item.baseWeightKg ||
-              item.baseWeight ||
-              BASE_WEIGHTS[item.catalogItemCode || item.itemType] ||
-              30;
-            const weightFactor = MATERIAL_FACTORS[material]?.weightFactor || 1;
-            const estimatedWeightKg = Math.round(baseWeight * weightFactor);
+            const catalogItemCode = item.catalogItemCode || item.itemType || 'OTHER';
+            const estimatedWeightKg = calculateItemEstimatedWeightKg({
+              ...item,
+              catalogItemCode,
+              material,
+            });
 
             return {
-              catalogItemCode: item.catalogItemCode || item.itemType || 'OTHER',
+              catalogItemCode,
               displayName: item.displayName || item.itemType,
               quantity: item.suggestedQuantity || 1,
               dimensionsCm: item.dimensionsCm || { length: 150, width: 80, height: 80 },
@@ -372,22 +371,27 @@ export function BulkyRequestWizard({
     }
   };
 
-  const currentBoxes =
-    aiResult?.boundingBoxes?.length > 0
-      ? aiResult.boundingBoxes
-      : formData.confirmedItems?.some((it) => it.box_2d)
-      ? formData.confirmedItems
-          .filter((it) => it.box_2d)
-          .map((it) => ({
-            box_2d: it.box_2d,
-            displayName: it.displayName,
-            confidence: it.confidence,
-            itemType: it.catalogItemCode || it.itemType,
-            suggestedMaterial: it.material,
-          }))
+  const currentBoxes = (() => {
+    const itemBoxes = (formData.confirmedItems || []).map((it, idx) => {
+      const boxCoords = it.box_2d || formData.imageMetadata?.[0]?.boxes?.[idx]?.box_2d;
+      return {
+        box_2d: boxCoords || null,
+        displayName: it.displayName || it.catalogItemCode,
+        confidence: it.confidence || 0.95,
+        itemType: it.catalogItemCode || it.itemType || 'OTHER',
+        suggestedMaterial: it.material,
+        isHazardous: false,
+      };
+    });
+
+    const hazardousBoxes = (aiResult?.boundingBoxes || []).filter((b) => b.isHazardous);
+    const combined = [...itemBoxes, ...hazardousBoxes];
+    return combined.some((b) => b.box_2d)
+      ? combined
       : formData.imageMetadata?.[0]?.boxes?.length > 0
-      ? formData.imageMetadata[0].boxes
-      : [];
+        ? formData.imageMetadata[0].boxes
+        : [];
+  })();
 
 
   return (
