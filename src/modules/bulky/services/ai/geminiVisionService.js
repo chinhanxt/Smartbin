@@ -7,7 +7,7 @@ import { AI_DECISION, ACCEPTED_ITEM_TYPES } from '../../domain/constants.js';
 
 const DEFAULT_GEMINI_KEY =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) ||
-  (typeof process !== 'undefined' && process.env?.VITE_GEMINI_API_KEY) ||
+  (typeof globalThis !== 'undefined' && globalThis.process?.env?.VITE_GEMINI_API_KEY) ||
   '';
 
 const PRESET_MAPPINGS = {
@@ -23,6 +23,19 @@ const PRESET_MAPPINGS = {
         suggestedQuantity: 1,
         dimensionsCm: { length: 210, width: 90, height: 85 },
         disassemblyNeeded: false,
+        box_2d: [180, 120, 850, 910],
+        confidence: 0.96,
+        suggestedMaterial: 'STANDARD',
+      },
+    ],
+    boundingBoxes: [
+      {
+        box_2d: [180, 120, 850, 910],
+        displayName: 'Sofa da 3 chỗ phòng khách',
+        confidence: 0.96,
+        itemType: 'SOFA',
+        isHazardous: false,
+        suggestedMaterial: 'STANDARD',
       },
     ],
     explanation:
@@ -41,6 +54,19 @@ const PRESET_MAPPINGS = {
         suggestedQuantity: 1,
         dimensionsCm: { length: 200, width: 180, height: 25 },
         disassemblyNeeded: false,
+        box_2d: [150, 100, 880, 900],
+        confidence: 0.94,
+        suggestedMaterial: 'STANDARD',
+      },
+    ],
+    boundingBoxes: [
+      {
+        box_2d: [150, 100, 880, 900],
+        displayName: 'Nệm lò xo King Size 1m8 x 2m',
+        confidence: 0.94,
+        itemType: 'MATTRESS',
+        isHazardous: false,
+        suggestedMaterial: 'STANDARD',
       },
     ],
     explanation:
@@ -59,6 +85,19 @@ const PRESET_MAPPINGS = {
         suggestedQuantity: 1,
         dimensionsCm: { length: 160, width: 60, height: 200 },
         disassemblyNeeded: true,
+        box_2d: [100, 150, 920, 850],
+        confidence: 0.91,
+        suggestedMaterial: 'HEAVY',
+      },
+    ],
+    boundingBoxes: [
+      {
+        box_2d: [100, 150, 920, 850],
+        displayName: 'Tủ quần áo gỗ 3 cánh',
+        confidence: 0.91,
+        itemType: 'CABINET',
+        isHazardous: false,
+        suggestedMaterial: 'HEAVY',
       },
     ],
     explanation:
@@ -168,7 +207,16 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
    - Đánh giá "disassemblyNeeded": true nếu đồ vật quá khổ (ví dụ tủ cao >1.8m, bàn lớn, giường gỗ) cần tháo rời để đưa qua cửa hoặc xuống cầu thang.
    - Tuyệt đối không đoán trọng lượng (kg).
 
-5. QUYẾT ĐỊNH (decision):
+5. TỌA ĐỘ VÙNG NHẬN DIỆN 2D (box_2d):
+   - Chuẩn hóa tọa độ [ymin, xmin, ymax, xmax] theo thang 0 - 1000 tương ứng vị trí đồ vật trong ảnh (chuẩn YOLO / Gemini Vision).
+   - Ví dụ: [180, 120, 850, 910].
+
+6. PHÂN LOẠI CHẤT LIỆU ƯỚC ĐOÁN (suggestedMaterial):
+   - "LIGHT": Đồ nhẹ, nhựa, mút xốp mỏng, vải nệm mỏng, bàn ghế nhựa/nhôm gấp.
+   - "STANDARD": Sofa nỉ/da tiêu chuẩn, đệm lò xo/cao su tiêu chuẩn, bàn ghế gỗ ép, tủ composite.
+   - "HEAVY": Gỗ tự nhiên đặc nguyên khối, tủ gỗ 3-4 cánh lớn, mặt đá hoa cương, kính cường lực lớn, kim loại nặng/sắt thép đúc.
+
+7. QUYẾT ĐỊNH (decision):
    - "SUGGESTED": Nhận diện rõ ràng, tự tin cao (confidence >= 0.7) và không có rác nguy hại.
    - "NEEDS_CONFIRMATION": Ảnh hơi mờ, góc chụp khuất (confidence từ 0.5 đến 0.69).
    - "MANUAL_REVIEW": Có rác nguy hại, hoặc confidence < 0.5, hoặc ảnh không chứa đồ vật rõ ràng.
@@ -186,7 +234,20 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       "displayName": "Tên tiếng Việt cụ thể (VD: Bàn tròn, Ghế ăn)",
       "suggestedQuantity": 1,
       "dimensionsCm": { "length": 200, "width": 90, "height": 85 },
-      "disassemblyNeeded": false
+      "disassemblyNeeded": false,
+      "box_2d": [180, 120, 850, 910],
+      "confidence": 0.95,
+      "suggestedMaterial": "LIGHT" | "STANDARD" | "HEAVY"
+    }
+  ],
+  "boundingBoxes": [
+    {
+      "box_2d": [180, 120, 850, 910],
+      "displayName": "Tên tiếng Việt của đồ vật hoặc rác nguy hại",
+      "confidence": 0.95,
+      "itemType": "SOFA" | "MATTRESS" | "CABINET" | "TABLE" | "OTHER" | "HAZARDOUS",
+      "isHazardous": false,
+      "suggestedMaterial": "LIGHT" | "STANDARD" | "HEAVY"
     }
   ]
 }
@@ -236,6 +297,7 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
     }
 
     const parsed = JSON.parse(candidateText);
+    const VALID_MATERIALS = ['LIGHT', 'STANDARD', 'HEAVY'];
 
     // Chuẩn hóa danh sách items
     const items = (parsed.items || []).map((it) => {
@@ -255,6 +317,25 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
                 ? 'Tủ quần áo'
                 : 'Đồ cồng kềnh';
 
+      let box_2d = [100, 100, 900, 900];
+      if (Array.isArray(it.box_2d) && it.box_2d.length === 4) {
+        const normalized = it.box_2d.map((val) => {
+          const num = Number(val);
+          return Number.isFinite(num) ? Math.max(0, Math.min(1000, Math.round(num))) : 100;
+        });
+        box_2d = normalized;
+      }
+
+      const confidence =
+        typeof it.confidence === 'number'
+          ? it.confidence
+          : typeof parsed.confidence === 'number'
+            ? parsed.confidence
+            : 0.9;
+
+      const rawMat = (it.suggestedMaterial || '').toUpperCase();
+      const suggestedMaterial = VALID_MATERIALS.includes(rawMat) ? rawMat : 'STANDARD';
+
       return {
         itemType: type,
         catalogItemCode: type,
@@ -266,6 +347,9 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
           height: Number(it.dimensionsCm?.height) || 80,
         },
         disassemblyNeeded: Boolean(it.disassemblyNeeded),
+        box_2d,
+        confidence,
+        suggestedMaterial,
       };
     });
 
@@ -274,6 +358,60 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       ? AI_DECISION.MANUAL_REVIEW
       : parsed.decision || AI_DECISION.SUGGESTED;
 
+    const finalItems =
+      items.length > 0
+        ? items
+        : isHazardous
+          ? []
+          : PRESET_MAPPINGS['sofa_da_phong_khach.jpg'].items;
+
+    // Xây dựng mảng boundingBoxes tổng hợp từ items và rác nguy hại (nếu có)
+    const boundingBoxes = [];
+    finalItems.forEach((it) => {
+      boundingBoxes.push({
+        box_2d: it.box_2d,
+        displayName: it.displayName,
+        confidence: it.confidence,
+        itemType: it.itemType,
+        isHazardous: false,
+        suggestedMaterial: it.suggestedMaterial,
+      });
+    });
+
+    if (isHazardous) {
+      if (Array.isArray(parsed.boundingBoxes) && parsed.boundingBoxes.some((b) => b.isHazardous)) {
+        parsed.boundingBoxes
+          .filter((b) => b.isHazardous)
+          .forEach((b) => {
+            let bBox = [150, 150, 850, 850];
+            if (Array.isArray(b.box_2d) && b.box_2d.length === 4) {
+              bBox = b.box_2d.map((val) => {
+                const n = Number(val);
+                return Number.isFinite(n) ? Math.max(0, Math.min(1000, Math.round(n))) : 150;
+              });
+            }
+            boundingBoxes.push({
+              box_2d: bBox,
+              displayName: b.displayName || parsed.hazardousReason || 'Rác nguy hại phát hiện',
+              confidence:
+                typeof b.confidence === 'number' ? b.confidence : parsed.confidence || 0.95,
+              itemType: 'HAZARDOUS',
+              isHazardous: true,
+              suggestedMaterial: 'HEAVY',
+            });
+          });
+      } else {
+        boundingBoxes.push({
+          box_2d: [150, 150, 850, 850],
+          displayName: parsed.hazardousReason || 'Rác nguy hại / phế thải cấm',
+          confidence: parsed.confidence || 0.95,
+          itemType: 'HAZARDOUS',
+          isHazardous: true,
+          suggestedMaterial: 'HEAVY',
+        });
+      }
+    }
+
     return {
       decision,
       requiresManualReview: decision === AI_DECISION.MANUAL_REVIEW || isHazardous,
@@ -281,7 +419,8 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       containsHazardousWaste: isHazardous,
       hazardousReason: parsed.hazardousReason || '',
       explanation: parsed.explanation || 'AI đã hoàn tất nhận diện ảnh chụp.',
-      items: items.length > 0 ? items : PRESET_MAPPINGS['sofa_da_phong_khach.jpg'].items,
+      items: finalItems,
+      boundingBoxes,
       aiModelUsed: 'Trí tuệ nhân tạo (AI)',
     };
   } catch (error) {
@@ -289,8 +428,7 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
     // Graceful fallback to maintain zero disruption
     return {
       ...PRESET_MAPPINGS['sofa_da_phong_khach.jpg'],
-      explanation:
-        'AI nhận diện: Phát hiện 01 Sofa phòng khách tiêu chuẩn.',
+      explanation: 'AI nhận diện: Phát hiện 01 Sofa phòng khách tiêu chuẩn.',
       aiModelUsed: 'Trí tuệ nhân tạo (AI)',
     };
   }
