@@ -173,4 +173,25 @@ describe('BulkyPaymentPage', () => {
       screen.getByRole('button', { name: /Yêu cầu hoàn tiền toàn phần/i }),
     ).toBeInTheDocument();
   });
+
+  it('displays deposit hold notice and tolerance guarantee message', () => {
+    renderWithStore(<BulkyPaymentPage />, {
+      initialState: {
+        ordersById: {
+          'ord-1': {
+            ...baseOrder,
+            acceptedQuote: {
+              ...baseQuote,
+              estimatedRange: { minVnd: 150000, maxVnd: 195000, depositHoldVnd: 150000 },
+            },
+          },
+        },
+        quotesById: { 'q-1': baseQuote },
+        holdsById: { 'h-1': baseHold },
+      },
+    });
+
+    expect(screen.getByText(/Bạn đang thanh toán số tiền tạm giữ chỗ/i)).toBeInTheDocument();
+    expect(screen.getByText(/dung sai ±15% không phụ thu/i)).toBeInTheDocument();
+  });
 });

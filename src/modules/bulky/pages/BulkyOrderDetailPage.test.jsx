@@ -191,4 +191,43 @@ describe('BulkyOrderDetailPage', () => {
       expect(accepted).toBe(true);
     });
   });
+
+  it('displays material tags on items, estimated range, and handover tolerance guarantee status', () => {
+    const orderWithMaterialAndTolerance = {
+      ...baseOrder,
+      confirmedItems: [
+        {
+          catalogItemCode: 'SOFA',
+          displayName: 'Sofa da',
+          quantity: 1,
+          material: 'HEAVY',
+        },
+      ],
+      acceptedQuote: {
+        totalVnd: 150000,
+        estimatedRange: {
+          minVnd: 150000,
+          maxVnd: 195000,
+          depositHoldVnd: 150000,
+        },
+        tolerancePolicy: {
+          allowedPercent: 15,
+          message:
+            'Miễn phí phụ thu nếu khối lượng hoặc kích thước thực tế sai lệch không quá ±15% so với khai báo.',
+        },
+      },
+      handoverToleranceStatus: 'VERIFIED_WITHIN_TOLERANCE',
+    };
+
+    renderWithStore(<BulkyOrderDetailPage />, {
+      initialState: {
+        ordersById: { 'ord-1': orderWithMaterialAndTolerance },
+      },
+    });
+
+    expect(screen.getByText(/Gỗ đặc \/ Mặt đá \/ Kính/i)).toBeInTheDocument();
+    expect(screen.getByText(/Khoảng giá dự toán/i)).toBeInTheDocument();
+    expect(screen.getByText(/195\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/VERIFIED_WITHIN_TOLERANCE/i)).toBeInTheDocument();
+  });
 });

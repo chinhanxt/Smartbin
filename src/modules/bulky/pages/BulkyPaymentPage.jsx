@@ -25,6 +25,7 @@ export function BulkyPaymentPage({ thunks, onPaymentSuccess }) {
   const canManage = useSelector(selectCanManageBulky);
   const order = useSelector((state) => selectBulkyOrderById(state, orderId));
   const paymentsById = useSelector((state) => state.bulky?.paymentsById || {});
+  const quotesById = useSelector((state) => state.bulky?.quotesById || {});
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -35,6 +36,13 @@ export function BulkyPaymentPage({ thunks, onPaymentSuccess }) {
   const existingAttempt = Object.values(paymentsById).find((p) => p.orderId === orderId);
   const paymentAttemptId = existingAttempt?.paymentAttemptId || `pay-${orderId}`;
   const amountVnd = order?.acceptedQuote?.totalVnd || existingAttempt?.amountVnd || 0;
+  const targetQuote =
+    order?.acceptedQuote || (order?.activeQuoteId ? quotesById[order.activeQuoteId] : null);
+  const depositHoldVnd =
+    targetQuote?.estimatedRange?.depositHoldVnd ||
+    targetQuote?.estimatedRange?.minVnd ||
+    targetQuote?.totalVnd ||
+    amountVnd;
 
   useEffect(() => {
     const ensurePaymentAttempt = async () => {
@@ -255,6 +263,11 @@ export function BulkyPaymentPage({ thunks, onPaymentSuccess }) {
                     {formatVnd(amountVnd)}
                   </Typography>
                 </Box>
+                {(targetQuote?.estimatedRange || order?.acceptedQuote?.estimatedRange) && (
+                  <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+                    Bạn đang thanh toán số tiền tạm giữ chỗ <strong>{formatVnd(depositHoldVnd)}</strong>. Quyết toán thực tế dựa trên nghiệm thu khi bàn giao (dung sai ±15% không phụ thu).
+                  </Alert>
+                )}
               </CardContent>
             </Card>
 

@@ -103,6 +103,53 @@ describe('BulkyQuotePage', () => {
     expect(screen.getByText(/Bốc xếp tận cửa/)).toBeInTheDocument();
   });
 
+  it('displays estimated price range and tolerance policy banner', () => {
+    renderWithStore(<BulkyQuotePage />, {
+      initialState: {
+        ordersById: {
+          'ord-1': {
+            orderId: 'ord-1',
+            orderStatus: ORDER_STATUS.AWAITING_PAYMENT,
+            requestedDate: '2026-09-20',
+            activeQuoteId: 'q-range',
+            activeHoldId: 'h-1',
+            confirmedItems: [{ catalogItemCode: 'SOFA', displayName: 'Sofa da', quantity: 1 }],
+          },
+        },
+        quotesById: {
+          'q-range': {
+            quoteId: 'q-range',
+            totalVnd: 150000,
+            subtotalVnd: 150000,
+            estimatedRange: {
+              minVnd: 150000,
+              maxVnd: 195000,
+              depositHoldVnd: 150000,
+            },
+            tolerancePolicy: {
+              allowedPercent: 15,
+              message:
+                'Miễn phí phụ thu nếu khối lượng hoặc kích thước thực tế sai lệch không quá ±15% so với khai báo.',
+            },
+            lineItems: [{ code: 'SOFA', label: 'Sofa da', quantity: 1, amountVnd: 150000 }],
+            expiresAt: '2099-01-01T00:00:00.000Z',
+          },
+        },
+        holdsById: {
+          'h-1': {
+            holdId: 'h-1',
+            status: 'ACTIVE',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+          },
+        },
+      },
+    });
+
+    expect(screen.getByText(/Khoảng giá dự toán/i)).toBeInTheDocument();
+    expect(screen.getByText(/dung sai/i)).toBeInTheDocument();
+    expect(screen.getByText(/Số tiền tạm giữ chỗ/i)).toBeInTheDocument();
+  });
+
   it('renders expired hold warning and re-quote action when quote has expired', () => {
     renderWithStore(<BulkyQuotePage />, {
       initialState: {

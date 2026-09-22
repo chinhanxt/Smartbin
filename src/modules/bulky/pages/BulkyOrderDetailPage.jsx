@@ -32,7 +32,12 @@ import { OrderTimeline } from '../features/orders/OrderTimeline.jsx';
 import { RescheduleDialog } from '../features/orders/RescheduleDialog.jsx';
 import { CancelDialog } from '../features/orders/CancelDialog.jsx';
 import { RefundTracker } from '../features/orders/RefundTracker.jsx';
-import { ORDER_STATUS, PAYMENT_STATUS, REFUND_STATUS } from '../domain/constants.js';
+import {
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+  REFUND_STATUS,
+  MATERIAL_FACTORS,
+} from '../domain/constants.js';
 
 export function BulkyOrderDetailPage({ thunks }) {
   const { orderId } = useParams();
@@ -59,6 +64,41 @@ export function BulkyOrderDetailPage({ thunks }) {
 
   const formatVnd = (val) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+
+  const handoverToleranceStatus =
+    order?.handoverToleranceStatus ||
+    order?.toleranceStatus ||
+    order?.handoverStatus ||
+    (order?.orderStatus === ORDER_STATUS.COMPLETED
+      ? 'VERIFIED_WITHIN_TOLERANCE'
+      : 'PENDING_ON_SITE_REVIEW');
+
+  const getHandoverStatusLabel = (status) => {
+    switch (status) {
+      case 'VERIFIED_WITHIN_TOLERANCE':
+        return 'Đạt dung sai (VERIFIED_WITHIN_TOLERANCE)';
+      case 'PENDING_ON_SITE_REVIEW':
+        return 'Chờ nghiệm thu tại chỗ (PENDING_ON_SITE_REVIEW)';
+      case 'REFUND_DISCREPANCY':
+        return 'Hoàn tiền chênh lệch (REFUND_DISCREPANCY)';
+      case 'SUPPLEMENTAL_REVIEW':
+        return 'Phụ thu bổ sung (SUPPLEMENTAL_REVIEW)';
+      default:
+        return status || 'Chờ nghiệm thu';
+    }
+  };
+
+  const estimatedRange = order?.acceptedQuote?.estimatedRange || (order?.acceptedQuote?.totalVnd ? {
+    minVnd: order.acceptedQuote.totalVnd,
+    maxVnd: Math.round(order.acceptedQuote.totalVnd * 1.3),
+    depositHoldVnd: order.acceptedQuote.totalVnd,
+  } : null);
+
+  const tolerancePolicy = order?.acceptedQuote?.tolerancePolicy || {
+    allowedPercent: 15,
+    message:
+      'Miễn phí phụ thu nếu khối lượng hoặc kích thước thực tế sai lệch không quá ±15% so với khai báo.',
+  };
 
   const getOrderStatusLabel = (status) => {
     switch (status) {
@@ -418,6 +458,29 @@ export function BulkyOrderDetailPage({ thunks }) {
                   {formatVnd(order.acceptedQuote?.totalVnd)}
                 </span>
               </Typography>
+              {estimatedRange && (
+                <Typography variant="body2" sx={{ color: '#475569' }}>
+                  <strong style={{ color: '#0f172a' }}>Khoảng giá dự toán:</strong>{' '}
+                  <span style={{ fontWeight: 600, color: '#0369a1' }}>
+                    {formatVnd(estimatedRange.minVnd)} – {formatVnd(estimatedRange.maxVnd)}
+                  </span>
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', pt: 0.5 }}>
+                <Typography variant="body2" sx={{ color: '#475569' }}>
+                  <strong style={{ color: '#0f172a' }}>Nghiệm thu bàn giao:</strong>
+                </Typography>
+                <Chip
+                  label={getHandoverStatusLabel(handoverToleranceStatus)}
+                  size="small"
+                  color={handoverToleranceStatus === 'VERIFIED_WITHIN_TOLERANCE' ? 'success' : 'info'}
+                  variant={handoverToleranceStatus === 'VERIFIED_WITHIN_TOLERANCE' ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                />
+              </Box>
+              <Alert severity="success" sx={{ mt: 1, py: 0.5, px: 1.5, borderRadius: 2 }}>
+                🛡️ <strong>Cam kết dung sai ±{tolerancePolicy.allowedPercent}%:</strong> {tolerancePolicy.message}
+              </Alert>
             </Stack>
           </CardContent>
         </Card>
@@ -588,22 +651,50 @@ export function BulkyOrderDetailPage({ thunks }) {
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                   <TableCell sx={{ color: '#475569', fontWeight: 600 }}>Tên đồ vật</TableCell>
+                  <TableCell sx={{ color: '#475569', fontWeight: 600 }}>Chất liệu</TableCell>
                   <TableCell align="right" sx={{ color: '#475569', fontWeight: 600 }}>Số lượng</TableCell>
                   <TableCell align="right" sx={{ color: '#475569', fontWeight: 600 }}>Kích thước (DxRxC cm)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(order.confirmedItems || []).map((item, idx) => (
-                  <TableRow key={idx} sx={{ '&:hover': { backgroundColor: '#f8fafc' } }}>
-                    <TableCell sx={{ color: '#0f172a', fontWeight: 500 }}>{item.displayName || item.catalogItemCode}</TableCell>
-                    <TableCell align="right" sx={{ color: '#0f172a', fontWeight: 600 }}>{item.quantity}</TableCell>
-                    <TableCell align="right" sx={{ color: '#64748b' }}>
-                      {item.dimensionsCm
-                        ? `${item.dimensionsCm.length || 0}x${item.dimensionsCm.width || 0}x${item.dimensionsCm.height || 0}`
-                        : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(order.confirmedItems || []).map((item, idx) => {
+                  const materialMeta =
+                    MATERIAL_FACTORS[item.material] ||
+                    (item.material ? { label: item.material } : null);
+                  return (
+                    <TableRow key={idx} sx={{ '&:hover': { backgroundColor: '#f8fafc' } }}>
+                      <TableCell sx={{ color: '#0f172a', fontWeight: 500 }}>
+                        {item.displayName || item.catalogItemCode}
+                      </TableCell>
+                      <TableCell>
+                        {materialMeta ? (
+                          <Chip
+                            label={materialMeta.label}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                          />
+                        ) : (
+                          <Chip
+                            label={MATERIAL_FACTORS.STANDARD.label}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontSize: '0.75rem', color: '#64748b' }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell align="right" sx={{ color: '#0f172a', fontWeight: 600 }}>
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell align="right" sx={{ color: '#64748b' }}>
+                        {item.dimensionsCm
+                          ? `${item.dimensionsCm.length || 0}x${item.dimensionsCm.width || 0}x${item.dimensionsCm.height || 0}`
+                          : '-'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>

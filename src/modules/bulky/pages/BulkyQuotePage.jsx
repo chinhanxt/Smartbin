@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Container, Box, Typography, Button, Alert, Stack, CircularProgress } from '@mui/material';
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  Alert,
+  Stack,
+  CircularProgress,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+} from '@mui/material';
 import { QuoteBreakdown } from '../features/quote/QuoteBreakdown.jsx';
 import { CapacitySelector } from '../features/quote/CapacitySelector.jsx';
 import { selectBulkyOrderById, selectCanManageBulky } from '../store/selectors.js';
@@ -22,6 +34,21 @@ export function BulkyQuotePage({ thunks, onProceedToPayment }) {
 
   const activeQuote = order?.activeQuoteId ? quotesById[order.activeQuoteId] : null;
   const activeHold = order?.activeHoldId ? holdsById[order.activeHoldId] : null;
+
+  const formatVnd = (val) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+
+  const estimatedRange = activeQuote?.estimatedRange || (activeQuote?.totalVnd ? {
+    minVnd: activeQuote.totalVnd,
+    maxVnd: Math.round(activeQuote.totalVnd * 1.3),
+    depositHoldVnd: activeQuote.totalVnd,
+  } : null);
+
+  const tolerancePolicy = activeQuote?.tolerancePolicy || {
+    allowedPercent: 15,
+    message:
+      'Miễn phí phụ thu nếu khối lượng hoặc kích thước thực tế sai lệch không quá ±15% so với khai báo.',
+  };
 
   const isExpired =
     activeHold?.status === 'EXPIRED' ||
@@ -123,7 +150,99 @@ export function BulkyQuotePage({ thunks, onProceedToPayment }) {
           />
 
           {activeQuote ? (
-            <QuoteBreakdown quote={activeQuote} hold={activeHold} />
+            <>
+              {activeQuote.estimatedRange && (
+                <Card
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    backgroundColor: '#ffffff',
+                    borderColor: '#e2e8f0',
+                    borderRadius: 2.5,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
+                    <Stack spacing={2}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 2,
+                          backgroundColor: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ color: '#0369a1', fontWeight: 700 }}>
+                              📊 Khoảng giá dự toán:
+                            </Typography>
+                            <Typography variant="h6" sx={{ color: '#0284c7', fontWeight: 800, mt: 0.5 }}>
+                              {formatVnd(estimatedRange?.minVnd)} – {formatVnd(estimatedRange?.maxVnd)}
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={`Cam kết ±${tolerancePolicy.allowedPercent}%`}
+                            color="primary"
+                            sx={{ fontWeight: 700, backgroundColor: '#0284c7' }}
+                          />
+                        </Box>
+                        <Divider sx={{ my: 1.5, borderColor: '#bae6fd' }} />
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 1,
+                          }}
+                        >
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ color: '#0f172a', fontWeight: 700 }}>
+                              💳 Số tiền tạm giữ chỗ:
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>
+                              (Thanh toán trước để điều phối xe, quyết toán theo nghiệm thu thực tế khi bàn giao)
+                            </Typography>
+                          </Box>
+                          <Typography variant="h5" sx={{ color: '#16a34a', fontWeight: 800 }}>
+                            {formatVnd(estimatedRange?.depositHoldVnd)}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Tolerance Policy Banner */}
+                      <Alert
+                        severity="success"
+                        sx={{
+                          borderRadius: 2,
+                          backgroundColor: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          '& .MuiAlert-icon': { color: '#16a34a' },
+                        }}
+                      >
+                        <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#166534' }}>
+                          🛡️ Chính sách nghiệm thu dung sai ±{tolerancePolicy.allowedPercent}%:
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#15803d', mt: 0.5 }}>
+                          {tolerancePolicy.message}
+                        </Typography>
+                      </Alert>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
+
+              <QuoteBreakdown quote={activeQuote} hold={activeHold} />
+            </>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Button

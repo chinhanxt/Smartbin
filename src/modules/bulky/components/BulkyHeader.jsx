@@ -534,15 +534,17 @@ export function BulkyHeader({ thunks }) {
         onClose={() => setOpenModal(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: 3, p: 1 },
+        slotProps={{
+          paper: {
+            sx: { borderRadius: 3, p: 1 },
+          },
         }}
       >
         <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a' }}>
+          <Typography component="span" variant="h6" fontWeight="bold" sx={{ color: '#0f172a', display: 'block' }}>
             Đăng Nhập / Chuyển Đổi Tài Khoản &amp; Vai Trò
           </Typography>
-          <Typography variant="body2" sx={{ color: '#64748b' }}>
+          <Typography component="span" variant="body2" sx={{ color: '#64748b', display: 'block' }}>
             Chọn tài khoản để trải nghiệm đúng quyền hạn nghiệp vụ giữa Người dân và Điều phối viên.
           </Typography>
         </DialogTitle>
