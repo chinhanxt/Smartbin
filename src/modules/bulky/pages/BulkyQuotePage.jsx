@@ -151,7 +151,7 @@ export function BulkyQuotePage({ thunks, onProceedToPayment }) {
 
           {activeQuote ? (
             <>
-              {activeQuote.estimatedRange && (
+              {estimatedRange && (
                 <Card
                   variant="outlined"
                   sx={{
