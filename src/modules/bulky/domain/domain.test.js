@@ -6,6 +6,8 @@ import {
   HOLD_STATUS,
   AI_DECISION,
   CHANGE_DECISION,
+  MATERIAL_TYPES,
+  MATERIAL_FACTORS,
 } from './constants.js';
 import { BulkyServiceError } from './errors.js';
 import { transitionOrder } from './transitions.js';
@@ -33,6 +35,19 @@ describe('bulky domain contracts', () => {
     expect(PAYMENT_STATUS.SUCCESS).toBe('SUCCESS');
     expect(REFUND_STATUS.PROCESSING).toBe('PROCESSING');
     expect(HOLD_STATUS.EXPIRED).toBe('EXPIRED');
+  });
+
+  it('defines material types and factors with frozen metadata', () => {
+    expect(Object.isFrozen(MATERIAL_TYPES)).toBe(true);
+    expect(Object.isFrozen(MATERIAL_FACTORS)).toBe(true);
+    expect(MATERIAL_TYPES).toEqual({
+      LIGHT: 'LIGHT',
+      STANDARD: 'STANDARD',
+      HEAVY: 'HEAVY',
+    });
+    expect(MATERIAL_FACTORS.LIGHT.priceFactor).toBe(0.85);
+    expect(MATERIAL_FACTORS.STANDARD.priceFactor).toBe(1.0);
+    expect(MATERIAL_FACTORS.HEAVY.priceFactor).toBe(1.35);
   });
 
   it('recognizes stale holds by the injected clock', () => {
@@ -73,6 +88,35 @@ describe('bulky domain contracts', () => {
     expect(Number.isInteger(quote.totalVnd)).toBe(true);
     expect(quote.expiresAt).toBe('2026-01-01T00:30:00.000Z');
     expect(isQuoteExpired(quote, '2026-01-01T00:30:00.000Z')).toBe(true);
+  });
+
+  it('calculates quote with material factors and estimated range', () => {
+    const quote = calculateQuote({
+      confirmedItems: [
+        { catalogItemCode: 'TABLE', quantity: 1, material: 'HEAVY' },
+        { catalogItemCode: 'CHAIR', quantity: 2, material: 'LIGHT' },
+      ],
+      handlingConditions: {},
+      serviceArea: { code: 'D5' },
+      priceBook: {
+        version: 'v1',
+        items: { TABLE: 100000, CHAIR: 50000 },
+      },
+      now: '2026-09-22T10:00:00.000Z',
+    });
+
+    expect(quote.estimatedRange).toBeDefined();
+    expect(quote.estimatedRange.minVnd).toBeGreaterThan(0);
+    expect(quote.estimatedRange.maxVnd).toBeGreaterThan(quote.estimatedRange.minVnd);
+    expect(quote.estimatedRange.depositHoldVnd).toBe(quote.estimatedRange.minVnd);
+    expect(quote.tolerancePolicy.allowedPercent).toBe(15);
+    expect(quote.totalVnd).toBe(220000);
+    expect(quote.estimatedRange.minVnd).toBe(220000);
+    expect(quote.estimatedRange.maxVnd).toBe(286000);
+    expect(quote.lineItems[0].material).toBe('HEAVY');
+    expect(quote.lineItems[0].unitPriceVnd).toBe(135000);
+    expect(quote.lineItems[1].material).toBe('LIGHT');
+    expect(quote.lineItems[1].unitPriceVnd).toBe(42500);
   });
 
   it('hashes nested facts and includes the service-area fee', () => {

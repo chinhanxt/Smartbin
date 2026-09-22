@@ -1,4 +1,5 @@
 import { BulkyServiceError } from './errors.js';
+import { MATERIAL_FACTORS } from './constants.js';
 
 const asVnd = (value, field) => {
   const n = Number(value);
@@ -39,9 +40,24 @@ export function calculateQuote({
   for (const item of confirmedItems) {
     const code = item.catalogItemCode || item.itemType;
     const quantity = asVnd(item.quantity, 'quantity');
-    const unitPriceVnd = asVnd(priceBook.items?.[code], `priceBook.items.${code}`);
+    const baseUnitVnd = asVnd(priceBook.items?.[code], `priceBook.items.${code}`);
+    const material = item.material || 'STANDARD';
+    const factor = MATERIAL_FACTORS[material]?.priceFactor || 1;
+
+    const unitPriceVnd = Math.round(baseUnitVnd * factor);
     const amountVnd = quantity * unitPriceVnd;
-    lineItems.push({ code, label: item.displayName || code, quantity, unitPriceVnd, amountVnd });
+    const itemMinVnd = amountVnd;
+    const itemMaxVnd = Math.round(amountVnd * 1.3);
+    lineItems.push({
+      code,
+      label: item.displayName || code,
+      material,
+      quantity,
+      unitPriceVnd,
+      amountVnd,
+      itemMinVnd,
+      itemMaxVnd,
+    });
     subtotalVnd += amountVnd;
   }
   const add = (code, label, amount) => {
@@ -76,6 +92,19 @@ export function calculateQuote({
     });
   const createdAt = now;
   const expiresAt = new Date(new Date(now).getTime() + quoteTtlMinutes * 60000).toISOString();
+  const totalVnd = subtotalVnd - discountVnd + taxVnd;
+  const minVnd = totalVnd;
+  const maxVnd = Math.round(minVnd * 1.3);
+  const estimatedRange = {
+    minVnd,
+    maxVnd,
+    depositHoldVnd: minVnd,
+  };
+  const tolerancePolicy = {
+    allowedPercent: 15,
+    message:
+      'Miễn phí phụ thu nếu khối lượng hoặc kích thước thực tế sai lệch không quá ±15% so với khai báo.',
+  };
   return {
     quoteId: `quote-${new Date(now).getTime()}`,
     priceBookVersion: priceBook.version,
@@ -85,7 +114,9 @@ export function calculateQuote({
     subtotalVnd,
     discountVnd,
     taxVnd,
-    totalVnd: subtotalVnd - discountVnd + taxVnd,
+    totalVnd,
+    estimatedRange,
+    tolerancePolicy,
     currency: 'VND',
     scope: priceBook.scope || [],
     exclusions: priceBook.exclusions || [],
