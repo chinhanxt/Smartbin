@@ -219,42 +219,7 @@ export function BulkyImageBoundingBoxOverlay({
               pointerEvents: 'none',
             }}
           >
-            {/* Lớp hình chữ nhật Bounding Box */}
-            {validBoxes.map((box, index) => {
-              const coords = normalizeBoxCoordinates(box.box_2d);
-              if (!coords) return null;
-              const isSelected = selectedBoxIndex === index;
-              const color = getCategoryColor(box);
-
-              return (
-                <rect
-                  key={`bbox-rect-${index}`}
-                  data-testid={`bbox-rect-${index}`}
-                  x={coords.x}
-                  y={coords.y}
-                  width={coords.width}
-                  height={coords.height}
-                  rx="8"
-                  stroke={color}
-                  strokeWidth={isSelected ? 6 : 3}
-                  strokeDasharray={box.isHazardous ? '10 5' : undefined}
-                  fill={isSelected ? `${color}4d` : `${color}26`}
-                  style={{
-                    cursor: 'pointer',
-                    pointerEvents: 'auto',
-                    transition: 'all 0.15s ease-in-out',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectBox?.(index);
-                  }}
-                  onMouseEnter={() => onSelectBox?.(index)}
-                  onMouseLeave={() => onSelectBox?.(null)}
-                />
-              );
-            })}
-
-            {/* Lớp Badge nhãn nổi tên món đồ & độ tin cậy % */}
+            {/* Nhóm Bounding Box & Badge nhãn nổi tương tác */}
             {validBoxes.map((box, index) => {
               const coords = normalizeBoxCoordinates(box.box_2d);
               if (!coords) return null;
@@ -270,8 +235,7 @@ export function BulkyImageBoundingBoxOverlay({
 
               return (
                 <g
-                  key={`bbox-badge-${index}`}
-                  data-testid={`bbox-badge-${index}`}
+                  key={`bbox-group-${index}`}
                   style={{
                     cursor: 'pointer',
                     pointerEvents: 'auto',
@@ -283,24 +247,41 @@ export function BulkyImageBoundingBoxOverlay({
                   onMouseEnter={() => onSelectBox?.(index)}
                   onMouseLeave={() => onSelectBox?.(null)}
                 >
-                  <path
-                    d={getRoundedRectPath(badgeX, badgeY, badgeWidth, badgeHeight, 6)}
-                    fill={color}
-                    stroke={isSelected ? '#ffffff' : 'none'}
-                    strokeWidth={isSelected ? 2 : 0}
-                    opacity={isSelected ? 1 : 0.94}
+                  <rect
+                    data-testid={`bbox-rect-${index}`}
+                    x={coords.x}
+                    y={coords.y}
+                    width={coords.width}
+                    height={coords.height}
+                    rx="8"
+                    stroke={color}
+                    strokeWidth={isSelected ? 6 : 3}
+                    strokeDasharray={box.isHazardous ? '10 5' : undefined}
+                    fill={isSelected ? `${color}4d` : `${color}26`}
+                    style={{
+                      transition: 'all 0.15s ease-in-out',
+                    }}
                   />
-                  <text
-                    x={badgeX + 10}
-                    y={badgeY + 19}
-                    fill="#ffffff"
-                    fontSize="14"
-                    fontWeight={isSelected ? '700' : '600'}
-                    fontFamily="Roboto, Helvetica, Arial, sans-serif"
-                    style={{ userSelect: 'none', pointerEvents: 'none' }}
-                  >
-                    {labelText}
-                  </text>
+                  <g data-testid={`bbox-badge-${index}`}>
+                    <path
+                      d={getRoundedRectPath(badgeX, badgeY, badgeWidth, badgeHeight, 6)}
+                      fill={color}
+                      stroke={isSelected ? '#ffffff' : 'none'}
+                      strokeWidth={isSelected ? 2 : 0}
+                      opacity={isSelected ? 1 : 0.94}
+                    />
+                    <text
+                      x={badgeX + 10}
+                      y={badgeY + 19}
+                      fill="#ffffff"
+                      fontSize="14"
+                      fontWeight={isSelected ? '700' : '600'}
+                      fontFamily="Roboto, Helvetica, Arial, sans-serif"
+                      style={{ userSelect: 'none', pointerEvents: 'none' }}
+                    >
+                      {labelText}
+                    </text>
+                  </g>
                 </g>
               );
             })}
