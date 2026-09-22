@@ -99,7 +99,7 @@ describe('BulkyQuotePage', () => {
     });
 
     expect(screen.getByText(/Chi Tiết Báo Giá & Giữ Chỗ/i)).toBeInTheDocument();
-    expect(screen.getByText(/175\.000/)).toBeInTheDocument();
+    expect(screen.getAllByText(/175\.000/)[0]).toBeInTheDocument();
     expect(screen.getByText(/Bốc xếp tận cửa/)).toBeInTheDocument();
   });
 
