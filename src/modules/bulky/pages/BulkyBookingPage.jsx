@@ -115,7 +115,7 @@ export function BulkyBookingPage({
               alignItems: 'center',
               gap: 0.8,
               px: 1.5,
-              py: 0.5,
+              py: 0.6,
               borderRadius: 2,
               backgroundColor: '#eff6ff',
               color: '#1d4ed8',
@@ -123,7 +123,7 @@ export function BulkyBookingPage({
               fontWeight: 600,
             }}
           >
-            <span>🏛️</span> Dịch Vụ Công Xã Thông Minh
+            Dịch Vụ Thu Gom Đô Thị
           </Box>
         </Box>
 
@@ -132,14 +132,13 @@ export function BulkyBookingPage({
           <Typography
             variant="h4"
             component="h1"
-            gutterBottom
             fontWeight="bold"
-            sx={{ color: '#0f172a', letterSpacing: '-0.02em' }}
+            sx={{ color: '#0f172a', letterSpacing: '-0.02em', mb: 0.8 }}
           >
             Đặt Lịch Thu Gom Rác Cồng Kềnh
           </Typography>
-          <Typography variant="body1" sx={{ color: '#64748b', maxWidth: 540, mx: 'auto' }}>
-            Quy trình minh bạch — Định giá tự động từ bảng giá chuẩn và hỗ trợ nhận diện AI thông minh
+          <Typography variant="body2" sx={{ color: '#64748b', maxWidth: 500, mx: 'auto' }}>
+            Quy trình 3 bước nhanh chóng • Báo giá minh bạch • Thu gom tận nơi
           </Typography>
         </Box>
 
