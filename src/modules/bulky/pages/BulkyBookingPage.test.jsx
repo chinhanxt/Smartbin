@@ -193,4 +193,98 @@ describe('BulkyBookingPage', () => {
       );
     });
   });
+
+  it('renders bounding box overlay when preset image is selected and supports bidirectional hover highlighting', async () => {
+    renderWithStore(<BulkyBookingPage />);
+
+    // Initially no bounding box overlay
+    expect(screen.queryByTestId('bounding-box-svg')).not.toBeInTheDocument();
+
+    // Click sample preset "Sofa da phòng khách"
+    const presetBtn = screen.getByRole('button', { name: /Sofa da phòng khách/i });
+    fireEvent.click(presetBtn);
+
+    // Bounding box overlay and SVG should appear
+    expect(screen.getByTestId('bounding-box-image')).toBeInTheDocument();
+    expect(screen.getByTestId('bounding-box-svg')).toBeInTheDocument();
+    const bboxRect = screen.getByTestId('bbox-rect-0');
+    expect(bboxRect).toBeInTheDocument();
+    expect(bboxRect).toHaveAttribute('stroke-width', '3');
+
+    // Item card should be present
+    const itemCard = screen.getByTestId('confirmed-item-card-0');
+    expect(itemCard).toBeInTheDocument();
+
+    // Hover on bbox rect -> card highlights
+    fireEvent.mouseEnter(bboxRect);
+    expect(itemCard).toHaveStyle({ borderColor: '#1d4ed8' });
+
+    // Mouse leave bbox rect -> card unhighlights
+    fireEvent.mouseLeave(bboxRect);
+    expect(itemCard).not.toHaveStyle({ borderColor: '#1d4ed8' });
+
+    // Hover on item card -> bbox rect highlights with stroke-width 6
+    fireEvent.mouseEnter(itemCard);
+    expect(screen.getByTestId('bbox-rect-0')).toHaveAttribute('stroke-width', '6');
+
+    // Mouse leave item card -> bbox rect returns to stroke-width 3
+    fireEvent.mouseLeave(itemCard);
+    expect(screen.getByTestId('bbox-rect-0')).toHaveAttribute('stroke-width', '3');
+  });
+
+  it('applies suggestedMaterial and updates estimated weight when AI scans images', async () => {
+    const mockAnalyze = vi.fn().mockResolvedValue({
+      decision: 'SUGGESTED',
+      items: [
+        {
+          itemType: 'CABINET',
+          catalogItemCode: 'CABINET',
+          displayName: 'Tủ quần áo gỗ 3 cánh',
+          suggestedQuantity: 1,
+          dimensionsCm: { length: 160, width: 60, height: 200 },
+          box_2d: [100, 150, 920, 850],
+          confidence: 0.91,
+          suggestedMaterial: 'HEAVY',
+        },
+      ],
+      boundingBoxes: [
+        {
+          box_2d: [100, 150, 920, 850],
+          displayName: 'Tủ quần áo gỗ 3 cánh',
+          confidence: 0.91,
+          itemType: 'CABINET',
+          isHazardous: false,
+          suggestedMaterial: 'HEAVY',
+        },
+      ],
+    });
+
+    renderWithStore(
+      <BulkyBookingPage services={{ recognition: { analyzeImages: mockAnalyze } }} />,
+    );
+
+    // Add preset photo
+    const presetBtn = screen.getByRole('button', { name: /Tủ quần áo gỗ/i });
+    fireEvent.click(presetBtn);
+
+    // Click "Quét với AI"
+    const scanBtn = screen.getByRole('button', { name: /Quét với AI/i });
+    fireEvent.click(scanBtn);
+
+    await waitFor(() => {
+      expect(mockAnalyze).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify AI recognition result alert
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Đã nhận diện đồ vật và tự động điền danh mục bên dưới/i),
+      ).toBeInTheDocument();
+    });
+
+    // Estimated weight for CABINET (base 40kg) with HEAVY (x1.8) -> ~72 kg / chiếc
+    expect(screen.getByText(/~72 kg \/ chiếc/i)).toBeInTheDocument();
+    expect(screen.getByTestId('bbox-rect-0')).toBeInTheDocument();
+  });
 });
+

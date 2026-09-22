@@ -46,6 +46,7 @@ import {
   MinusIcon,
   getItemSvgIcon,
 } from '../../components/BulkyIcons.jsx';
+import BulkyImageBoundingBoxOverlay from '../../components/BulkyImageBoundingBoxOverlay.jsx';
 
 const STEPS = [
   { id: 0, label: 'Chụp ảnh & AI quét đồ trực tiếp' },
@@ -98,6 +99,7 @@ export function BulkyRequestWizard({
   const [errors, setErrors] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(initialDraft?.recognitionResult || null);
+  const [selectedBoxIndex, setSelectedBoxIndex] = useState(null);
 
   const tomorrowDateStr = () => {
     const d = new Date();
@@ -167,25 +169,91 @@ export function BulkyRequestWizard({
     {
       name: 'Sofa da phòng khách',
       icon: <SofaIcon size={16} />,
-      meta: { filename: 'sofa_da_phong_khach.jpg', sizeBytes: 1024 * 380, mimeType: 'image/jpeg' },
+      meta: {
+        filename: 'sofa_da_phong_khach.jpg',
+        sizeBytes: 1024 * 380,
+        mimeType: 'image/jpeg',
+        dataUrl:
+          'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop',
+        boxes: [
+          {
+            box_2d: [180, 120, 850, 910],
+            displayName: 'Sofa da 3 chỗ phòng khách',
+            confidence: 0.96,
+            itemType: 'SOFA',
+            isHazardous: false,
+            suggestedMaterial: 'STANDARD',
+          },
+        ],
+      },
     },
     {
       name: 'Nệm lò xo đôi',
       icon: <BedIcon size={16} />,
-      meta: { filename: 'nem_lo_xo_1m8.jpg', sizeBytes: 1024 * 450, mimeType: 'image/jpeg' },
+      meta: {
+        filename: 'nem_lo_xo_1m8.jpg',
+        sizeBytes: 1024 * 450,
+        mimeType: 'image/jpeg',
+        dataUrl:
+          'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&auto=format&fit=crop',
+        boxes: [
+          {
+            box_2d: [150, 100, 880, 900],
+            displayName: 'Nệm lò xo King Size 1m8 x 2m',
+            confidence: 0.94,
+            itemType: 'MATTRESS',
+            isHazardous: false,
+            suggestedMaterial: 'STANDARD',
+          },
+        ],
+      },
     },
     {
       name: 'Tủ quần áo gỗ',
       icon: <CabinetIcon size={16} />,
-      meta: { filename: 'tu_go_3_canh.jpg', sizeBytes: 1024 * 620, mimeType: 'image/jpeg' },
+      meta: {
+        filename: 'tu_go_3_canh.jpg',
+        sizeBytes: 1024 * 620,
+        mimeType: 'image/jpeg',
+        dataUrl:
+          'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=800&auto=format&fit=crop',
+        boxes: [
+          {
+            box_2d: [100, 150, 920, 850],
+            displayName: 'Tủ quần áo gỗ 3 cánh',
+            confidence: 0.91,
+            itemType: 'CABINET',
+            isHazardous: false,
+            suggestedMaterial: 'HEAVY',
+          },
+        ],
+      },
     },
   ];
 
   const handleAddPresetPhoto = (presetMeta) => {
-    setFormData((prev) => ({
-      ...prev,
-      imageMetadata: [...prev.imageMetadata, presetMeta],
-    }));
+    setFormData((prev) => {
+      const nextMeta = [...prev.imageMetadata, presetMeta];
+      let nextItems = [...prev.confirmedItems];
+      if (presetMeta.boxes && presetMeta.boxes.length > 0 && !nextItems[0]?.box_2d) {
+        nextItems = nextItems.map((it, idx) => {
+          if (idx === 0) {
+            return {
+              ...it,
+              box_2d: presetMeta.boxes[0].box_2d,
+              confidence: presetMeta.boxes[0].confidence,
+              displayName: it.displayName || presetMeta.boxes[0].displayName,
+            };
+          }
+          return it;
+        });
+      }
+      return {
+        ...prev,
+        imageMetadata: nextMeta,
+        confirmedItems: nextItems,
+      };
+    });
     if (errors.images) {
       setErrors((prev) => {
         const next = { ...prev };
@@ -196,6 +264,7 @@ export function BulkyRequestWizard({
   };
 
   const handleRemovePhoto = (index) => {
+    setSelectedBoxIndex(null);
     setFormData((prev) => ({
       ...prev,
       imageMetadata: prev.imageMetadata.filter((_, i) => i !== index),
@@ -269,12 +338,27 @@ export function BulkyRequestWizard({
         const hasDisassemblyNeeded = res.items.some((it) => it.disassemblyNeeded);
         setFormData((prev) => ({
           ...prev,
-          confirmedItems: res.items.map((item) => ({
-            catalogItemCode: item.catalogItemCode || item.itemType || 'OTHER',
-            displayName: item.displayName || item.itemType,
-            quantity: item.suggestedQuantity || 1,
-            dimensionsCm: item.dimensionsCm || { length: 150, width: 80, height: 80 },
-          })),
+          confirmedItems: res.items.map((item) => {
+            const material = item.suggestedMaterial || 'STANDARD';
+            const baseWeight =
+              item.baseWeightKg ||
+              item.baseWeight ||
+              BASE_WEIGHTS[item.catalogItemCode || item.itemType] ||
+              30;
+            const weightFactor = MATERIAL_FACTORS[material]?.weightFactor || 1;
+            const estimatedWeightKg = Math.round(baseWeight * weightFactor);
+
+            return {
+              catalogItemCode: item.catalogItemCode || item.itemType || 'OTHER',
+              displayName: item.displayName || item.itemType,
+              quantity: item.suggestedQuantity || 1,
+              dimensionsCm: item.dimensionsCm || { length: 150, width: 80, height: 80 },
+              material,
+              estimatedWeightKg,
+              box_2d: item.box_2d,
+              confidence: item.confidence,
+            };
+          }),
           handlingConditions: {
             ...prev.handlingConditions,
             requiresDisassembly: hasDisassemblyNeeded || prev.handlingConditions.requiresDisassembly,
@@ -287,6 +371,24 @@ export function BulkyRequestWizard({
       setIsAnalyzing(false);
     }
   };
+
+  const currentBoxes =
+    aiResult?.boundingBoxes?.length > 0
+      ? aiResult.boundingBoxes
+      : formData.confirmedItems?.some((it) => it.box_2d)
+      ? formData.confirmedItems
+          .filter((it) => it.box_2d)
+          .map((it) => ({
+            box_2d: it.box_2d,
+            displayName: it.displayName,
+            confidence: it.confidence,
+            itemType: it.catalogItemCode || it.itemType,
+            suggestedMaterial: it.material,
+          }))
+      : formData.imageMetadata?.[0]?.boxes?.length > 0
+      ? formData.imageMetadata[0].boxes
+      : [];
+
 
   return (
     <Box sx={{ width: '100%', maxWidth: 740, mx: 'auto' }}>
@@ -516,6 +618,19 @@ export function BulkyRequestWizard({
                 </Box>
               )}
 
+              {/* Bounding Box AI Overlay */}
+              {formData.imageMetadata.length > 0 && (
+                <Box sx={{ width: '100%', mt: 0.5 }}>
+                  <BulkyImageBoundingBoxOverlay
+                    image={formData.imageMetadata[0]}
+                    boxes={currentBoxes}
+                    selectedBoxIndex={selectedBoxIndex}
+                    onSelectBox={setSelectedBoxIndex}
+                  />
+                </Box>
+              )}
+
+
               {/* AI Action Banner */}
               <Box
                 sx={{
@@ -635,13 +750,22 @@ export function BulkyRequestWizard({
                   <Card
                     key={idx}
                     variant="outlined"
+                    data-testid={`confirmed-item-card-${idx}`}
+                    onMouseEnter={() => setSelectedBoxIndex(idx)}
+                    onMouseLeave={() => setSelectedBoxIndex(null)}
                     sx={{
                       p: 2.5,
                       borderRadius: 2.5,
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #e2e8f0',
-                      transition: 'border-color 0.2s',
-                      '&:hover': { borderColor: '#cbd5e1' },
+                      backgroundColor: selectedBoxIndex === idx ? '#f8faff' : '#ffffff',
+                      borderColor: selectedBoxIndex === idx ? '#1d4ed8' : '#e2e8f0',
+                      boxShadow:
+                        selectedBoxIndex === idx
+                          ? '0 0 0 2px rgba(29, 78, 216, 0.15)'
+                          : 'none',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        borderColor: selectedBoxIndex === idx ? '#1d4ed8' : '#cbd5e1',
+                      },
                     }}
                   >
                     <Stack spacing={2}>
@@ -686,6 +810,7 @@ export function BulkyRequestWizard({
                           <IconButton
                             size="small"
                             onClick={() => {
+                              setSelectedBoxIndex(null);
                               setFormData((prev) => ({
                                 ...prev,
                                 confirmedItems: prev.confirmedItems.filter((_, i) => i !== idx),
@@ -697,6 +822,7 @@ export function BulkyRequestWizard({
                           </IconButton>
                         )}
                       </Box>
+
 
                       {/* Item Controls Row */}
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr' }, gap: 2, alignItems: 'center' }}>
