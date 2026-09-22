@@ -319,9 +319,10 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
 
       let box_2d = [100, 100, 900, 900];
       if (Array.isArray(it.box_2d) && it.box_2d.length === 4) {
-        const normalized = it.box_2d.map((val) => {
+        const fallbackDefault = [100, 100, 900, 900];
+        const normalized = it.box_2d.map((val, idx) => {
           const num = Number(val);
-          return Number.isFinite(num) ? Math.max(0, Math.min(1000, Math.round(num))) : 100;
+          return Number.isFinite(num) ? Math.max(0, Math.min(1000, Math.round(num))) : fallbackDefault[idx];
         });
         box_2d = normalized;
       }
@@ -385,9 +386,10 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
           .forEach((b) => {
             let bBox = [150, 150, 850, 850];
             if (Array.isArray(b.box_2d) && b.box_2d.length === 4) {
-              bBox = b.box_2d.map((val) => {
+              const hazFallback = [150, 150, 850, 850];
+              bBox = b.box_2d.map((val, idx) => {
                 const n = Number(val);
-                return Number.isFinite(n) ? Math.max(0, Math.min(1000, Math.round(n))) : 150;
+                return Number.isFinite(n) ? Math.max(0, Math.min(1000, Math.round(n))) : hazFallback[idx];
               });
             }
             boundingBoxes.push({
