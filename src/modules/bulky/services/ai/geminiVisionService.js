@@ -254,56 +254,114 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
 `;
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const candidateModels = ['gemini-2.5-flash', 'gemini-3.6-flash'];
+    let jsonRes = null;
+    let lastError = null;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
+    for (const model of candidateModels) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
-              role: 'user',
-              parts: [{ text: systemPrompt }, ...imageParts],
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [{ text: systemPrompt }, ...imageParts],
+                  },
+                ],
+                generationConfig: {
+                  response_mime_type: 'application/json',
+                  temperature: 0.1,
+                },
+              }),
+              signal: options.signal || controller.signal,
             },
-          ],
-          generationConfig: {
-            response_mime_type: 'application/json',
-            temperature: 0.1,
-          },
-        }),
-        signal: options.signal || controller.signal,
-      },
-    );
+          );
 
-    clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.warn('Gemini API returned error status:', res.status, errText);
-      // Fallback khi API trả về lỗi
+          if (res.ok) {
+            jsonRes = await res.json();
+            if (jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text) {
+              break;
+            }
+          } else {
+            const errText = await res.text();
+            console.warn(`Gemini API ${model} (attempt ${attempt + 1}) returned status:`, res.status, errText);
+            lastError = new Error(`Gemini API ${model} returned HTTP ${res.status}`);
+            if (res.status !== 503 && res.status !== 429) {
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn(`Error calling Gemini model ${model} (attempt ${attempt + 1}):`, err.message);
+          lastError = err;
+        }
+      }
+
+      if (jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        break;
+      }
+    }
+
+    if (!jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      console.error('All Vision AI model attempts failed:', lastError);
       return {
-        ...PRESET_MAPPINGS['sofa_da_phong_khach.jpg'],
+        decision: AI_DECISION.MANUAL_REVIEW,
+        requiresManualReview: true,
+        confidence: 0,
+        containsHazardousWaste: false,
+        hazardousReason: '',
+        explanation:
+          'Hệ thống AI hiện đang quá tải hoặc gián đoạn kết nối. Vui lòng bấm Quét lại hoặc kiểm tra/thêm danh mục đồ vật bên dưới.',
+        items: [],
+        boundingBoxes: [],
         aiModelUsed: 'Trí tuệ nhân tạo (AI)',
       };
     }
 
-    const jsonRes = await res.json();
     const candidateText = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) {
-      throw new Error('No candidate content returned from Vision AI API');
-    }
-
     const parsed = JSON.parse(candidateText);
     const VALID_MATERIALS = ['LIGHT', 'STANDARD', 'HEAVY'];
 
     // Chuẩn hóa danh sách items
     const items = (parsed.items || []).map((it) => {
-      let type = (it.itemType || 'OTHER').toUpperCase();
-      if (!ACCEPTED_ITEM_TYPES.includes(type) && type !== 'OTHER') {
-        type = 'OTHER';
+      let type = (it.itemType || 'OTHER').toUpperCase().trim();
+      if (!ACCEPTED_ITEM_TYPES.includes(type)) {
+        if (type.includes('MATTRESS') || type.includes('DEM') || type.includes('NEM') || type.includes('BED')) {
+          type = 'MATTRESS';
+        } else if (type.includes('SOFA') || type.includes('COUCH')) {
+          type = 'SOFA';
+        } else if (
+          type.includes('TABLE') ||
+          type.includes('DESK') ||
+          type.includes('BAN') ||
+          type.includes('GHE') ||
+          type.includes('CHAIR')
+        ) {
+          type = 'TABLE';
+        } else if (
+          type.includes('CABINET') ||
+          type.includes('WARDROBE') ||
+          type.includes('TU') ||
+          type.includes('SHELF') ||
+          type.includes('KE')
+        ) {
+          type = 'CABINET';
+        } else {
+          type = 'OTHER';
+        }
       }
 
       const defaultVietnameseName =
@@ -359,12 +417,7 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       ? AI_DECISION.MANUAL_REVIEW
       : parsed.decision || AI_DECISION.SUGGESTED;
 
-    const finalItems =
-      items.length > 0
-        ? items
-        : isHazardous
-          ? []
-          : PRESET_MAPPINGS['sofa_da_phong_khach.jpg'].items;
+    const finalItems = items.length > 0 ? items : [];
 
     // Xây dựng mảng boundingBoxes tổng hợp từ items và rác nguy hại (nếu có)
     const boundingBoxes = [];
@@ -427,10 +480,16 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
     };
   } catch (error) {
     console.error('Error during Vision AI analysis:', error);
-    // Graceful fallback to maintain zero disruption
     return {
-      ...PRESET_MAPPINGS['sofa_da_phong_khach.jpg'],
-      explanation: 'AI nhận diện: Phát hiện 01 Sofa phòng khách tiêu chuẩn.',
+      decision: AI_DECISION.MANUAL_REVIEW,
+      requiresManualReview: true,
+      confidence: 0,
+      containsHazardousWaste: false,
+      hazardousReason: '',
+      explanation:
+        'Không thể kết nối đến dịch vụ AI. Vui lòng bấm Quét lại hoặc chọn đồ vật trực tiếp bên dưới.',
+      items: [],
+      boundingBoxes: [],
       aiModelUsed: 'Trí tuệ nhân tạo (AI)',
     };
   }

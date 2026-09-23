@@ -699,6 +699,10 @@ export function BulkyRequestWizard({
                     <Alert severity="error" sx={{ borderRadius: 2 }}>
                       Phát hiện rác không thuộc danh mục: <strong>{aiResult.hazardousReason || 'Chất cấm'}</strong>. Đơn cần xem xét thủ công.
                     </Alert>
+                  ) : aiResult.requiresManualReview && aiResult.explanation ? (
+                    <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                      {aiResult.explanation}
+                    </Alert>
                   ) : (
                     <Alert severity="success" sx={{ borderRadius: 2 }}>
                       ✓ Đã nhận diện đồ vật và tự động điền danh mục bên dưới.
