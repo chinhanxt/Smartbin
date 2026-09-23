@@ -189,18 +189,19 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
    - "MATTRESS": Đệm lò xo, đệm cao su, đệm mút bông ép
    - "CABINET": Tủ quần áo, tủ chén, kệ sách lớn, tủ giày dép, tủ tài liệu
    - "TABLE": Bàn ăn, bàn tròn, bàn trà, ghế ăn, ghế tựa, ghế cafe, ghế văn phòng
-   - "OTHER": Các đồ cồng kềnh sinh hoạt hợp lệ khác (gương kính lớn, bồn tắm...)
+   - "OTHER": TẤT CẢ các loại đồ cồng kềnh và phế thải khác, bao gồm: gạch ngói vỡ, phế thải xây dựng/xà bần sinh hoạt, tấm ván gỗ/gỗ cốp pha thừa, gương kính lớn, chậu cây, thiết bị vệ sinh (bồn cầu, lavabo, bồn tắm), phế thải hỗn hợp.
 
 2. TÊN ĐỒ VẬT CỤ THỂ (displayName - RẤT QUAN TRỌNG):
-   - Phân biệt rõ ràng từng món đồ bằng tiếng Việt cụ thể: ví dụ "Bàn tròn", "Ghế ăn / cafe", "Bàn làm việc gỗ", "Sofa da 3 chỗ", "Tủ quần áo 2 cánh".
+   - Tự động đặt tên tiếng Việt rõ ràng, cụ thể cho từng món đồ hoặc phế thải phát hiện được: ví dụ "Đệm lò xo cũ", "Tấm ván gỗ ép", "Phế thải gạch ngói / xà bần", "Bàn trà gỗ", "Ghế sofa đơn".
    - Không được để tên chung chung là mã tiếng Anh như "TABLE", "SOFA" hay "OTHER".
 
-3. QUY CHUẨN AN TOÀN MÔI TRƯỜNG & RÁC CẤM (THEO QUY ĐỊNH TRANG 11 DỰ ÁN):
-   - Rác nguy hại (bình gas, bình ắc quy chì, thùng sơn, dầu mỡ nhớt, hóa chất độc hại, rác y tế) hoặc rác phế thải xây dựng (xà bần, bê tông, gạch đá vữa) KHÔNG ĐƯỢC THU GOM CHUNG.
-   - Nếu phát hiện bất kỳ rác cấm/nguy hại nào:
+3. QUY CHUẨN AN TOÀN MÔI TRƯỜNG & RÁC NGUY HẠI CẤM THU GOM:
+   - CHỈ coi là rác nguy hại cấm thu gom khi phát hiện: bình gas cháy nổ, bình ắc quy chì, thùng hóa chất độc hại, rác y tế truyền nhiễm nguy cấp.
+   - Khi đó:
      -> Đặt "containsHazardousWaste": true
-     -> "hazardousReason": ghi rõ lý do và đồ nguy hại phát hiện được
+     -> "hazardousReason": ghi rõ lý do và chất nguy hại phát hiện được
      -> "decision": "MANUAL_REVIEW"
+   - CÁC LOẠI PHẾ THẢI DÂN DỤNG NHƯ: gạch ngói vỡ, bê tông vụn, xà bần sinh hoạt, tấm ván gỗ, kính vỡ... ĐƯỢC CHẤP NHẬN THU GOM và tự động phân loại vào nhóm "OTHER" với chất liệu phù hợp (HEAVY hoặc STANDARD), TUYỆT ĐỐI KHÔNG đánh dấu là rác nguy hại ("containsHazardousWaste": false, "decision": "SUGGESTED").
 
 4. ƯỚC LƯỢNG KÍCH THƯỚC 3D VÀ ĐIỀU KIỆN BỐC XẾP:
    - Ước lượng kích thước tham khảo (Dài x Rộng x Cao tính bằng cm).
@@ -212,14 +213,14 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
    - Ví dụ: [180, 120, 850, 910].
 
 6. PHÂN LOẠI CHẤT LIỆU ƯỚC ĐOÁN (suggestedMaterial):
-   - "LIGHT": Đồ nhẹ, nhựa, mút xốp mỏng, vải nệm mỏng, bàn ghế nhựa/nhôm gấp.
-   - "STANDARD": Sofa nỉ/da tiêu chuẩn, đệm lò xo/cao su tiêu chuẩn, bàn ghế gỗ ép, tủ composite.
-   - "HEAVY": Gỗ tự nhiên đặc nguyên khối, tủ gỗ 3-4 cánh lớn, mặt đá hoa cương, kính cường lực lớn, kim loại nặng/sắt thép đúc.
+   - "LIGHT": Đồ nhẹ, nhựa, mút xốp mỏng, vải nệm mỏng, bàn ghế nhựa/nhôm gấp, bao phế thải nhẹ.
+   - "STANDARD": Sofa nỉ/da tiêu chuẩn, đệm lò xo/cao su tiêu chuẩn, bàn ghế gỗ ép, ván gỗ cốp pha, tủ composite.
+   - "HEAVY": Gạch ngói, bê tông vụn, phế thải xây dựng, gỗ tự nhiên đặc nguyên khối, tủ gỗ 3-4 cánh lớn, mặt đá hoa cương, kính cường lực lớn, kim loại nặng/sắt thép đúc.
 
 7. QUYẾT ĐỊNH (decision):
-   - "SUGGESTED": Nhận diện rõ ràng, tự tin cao (confidence >= 0.7) và không có rác nguy hại.
+   - "SUGGESTED": Nhận diện rõ ràng, tự tin cao (confidence >= 0.7) và không có rác nguy hại cháy nổ/hóa chất độc.
    - "NEEDS_CONFIRMATION": Ảnh hơi mờ, góc chụp khuất (confidence từ 0.5 đến 0.69).
-   - "MANUAL_REVIEW": Có rác nguy hại, hoặc confidence < 0.5, hoặc ảnh không chứa đồ vật rõ ràng.
+   - "MANUAL_REVIEW": Chỉ khi có chất nguy hại cháy nổ/hóa chất độc, hoặc confidence < 0.5, hoặc ảnh không chứa đồ vật rõ ràng.
 
 ĐỊNH DẠNG TRẢ VỀ: Trả về DUY NHẤT một chuỗi JSON hợp lệ với cấu trúc sau:
 {
@@ -231,7 +232,7 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
   "items": [
     {
       "itemType": "SOFA" | "MATTRESS" | "CABINET" | "TABLE" | "OTHER",
-      "displayName": "Tên tiếng Việt cụ thể (VD: Bàn tròn, Ghế ăn)",
+      "displayName": "Tên tiếng Việt cụ thể (VD: Đệm lò xo cũ, Tấm ván gỗ ép, Phế thải gạch ngói)",
       "suggestedQuantity": 1,
       "dimensionsCm": { "length": 200, "width": 90, "height": 85 },
       "disassemblyNeeded": false,
