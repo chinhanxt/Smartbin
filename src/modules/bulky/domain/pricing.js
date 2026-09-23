@@ -40,7 +40,16 @@ export function calculateQuote({
   for (const item of confirmedItems) {
     const code = item.catalogItemCode || item.itemType;
     const quantity = asVnd(item.quantity, 'quantity');
-    const baseUnitVnd = asVnd(priceBook.items?.[code], `priceBook.items.${code}`);
+    const defaultBasePrices = {
+      SOFA: 150000,
+      MATTRESS: 100000,
+      CABINET: 120000,
+      TABLE: 80000,
+      OTHER: 60000,
+    };
+    const rawPrice =
+      priceBook.items?.[code] !== undefined ? priceBook.items[code] : defaultBasePrices[code] || 60000;
+    const baseUnitVnd = asVnd(rawPrice, `priceBook.items.${code}`);
     const material = item.material || 'STANDARD';
     const factor = MATERIAL_FACTORS[material]?.priceFactor || 1;
 

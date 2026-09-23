@@ -1,4 +1,4 @@
-export const DEFAULT_REPOSITORY_VERSION = 'smartbin:bulky:v2';
+export const DEFAULT_REPOSITORY_VERSION = 'smartbin:bulky:v3';
 
 export const DEFAULT_PRICE_BOOK = Object.freeze({
   version: '2026.1',

@@ -39,20 +39,32 @@ export function createMockStorage({
       const raw = backing.getItem(REPOSITORY_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed?.version === DEFAULT_REPOSITORY_VERSION) {
-          if (!parsed.orders || Object.keys(parsed.orders).length === 0) {
-            const seed = createDefaultSeed();
-            parsed.orders = seed.orders;
-            parsed.refunds = seed.refunds;
-            parsed.changeRequests = seed.changeRequests;
-            parsed.dispatchOutbox = seed.dispatchOutbox;
-            parsed.notifications = seed.notifications;
-            backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
-          } else if (!parsed.notifications) {
-            parsed.notifications = createDefaultSeed().notifications;
+        if (parsed) {
+          if (!parsed.priceBook?.items?.OTHER) {
+            parsed.priceBook = {
+              ...(parsed.priceBook || {}),
+              items: {
+                ...(parsed.priceBook?.items || {}),
+                OTHER: 60000,
+              },
+            };
             backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
           }
-          return clone(parsed);
+          if (parsed?.version === DEFAULT_REPOSITORY_VERSION) {
+            if (!parsed.orders || Object.keys(parsed.orders).length === 0) {
+              const seed = createDefaultSeed();
+              parsed.orders = seed.orders;
+              parsed.refunds = seed.refunds;
+              parsed.changeRequests = seed.changeRequests;
+              parsed.dispatchOutbox = seed.dispatchOutbox;
+              parsed.notifications = seed.notifications;
+              backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
+            } else if (!parsed.notifications) {
+              parsed.notifications = createDefaultSeed().notifications;
+              backing.setItem(REPOSITORY_STORAGE_KEY, JSON.stringify(parsed));
+            }
+            return clone(parsed);
+          }
         }
       }
     } catch {
