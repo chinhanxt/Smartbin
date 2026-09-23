@@ -7,6 +7,7 @@ export const DEFAULT_PRICE_BOOK = Object.freeze({
     MATTRESS: 100000,
     CABINET: 120000,
     TABLE: 80000,
+    OTHER: 60000,
   },
   floorFee: 20000,
   disassemblyFee: 30000,
@@ -56,6 +57,14 @@ export const DEFAULT_ACCEPTED_ITEMS = Object.freeze([
     maxQuantity: 5,
     defaultDimensionsCm: { length: 140, width: 80, height: 75 },
     notes: 'Bàn ăn gia đình, bàn làm việc gỗ khối',
+  },
+  {
+    code: 'OTHER',
+    displayName: 'Đồ cồng kềnh khác (Ván gỗ, Cánh cửa, Gương kính...)',
+    category: 'FURNITURE',
+    maxQuantity: 10,
+    defaultDimensionsCm: { length: 150, width: 80, height: 30 },
+    notes: 'Tấm ván gỗ, cánh cửa, đồ gỗ sinh hoạt lớn khác',
   },
 ]);
 

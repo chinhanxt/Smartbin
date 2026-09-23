@@ -745,7 +745,9 @@ export function BulkyRequestWizard({
                 </Button>
               </Box>
 
-              {errors.quoteCheck && <Alert severity="error">{errors.quoteCheck}</Alert>}
+              {errors.quoteCheck && errors.quoteCheck !== errors.confirmedItems && (
+                <Alert severity="error">{errors.quoteCheck}</Alert>
+              )}
               {errors.confirmedItems && <Alert severity="error">{errors.confirmedItems}</Alert>}
 
               {/* Items Cards */}

@@ -42,7 +42,7 @@ export const CHANGE_DECISION = freeze({
   REJECTED: 'REJECTED',
 });
 export const DISPATCH_EVENT_TYPE = freeze({ UPSERT: 'UPSERT', CANCEL: 'CANCEL' });
-export const ACCEPTED_ITEM_TYPES = freeze(['SOFA', 'MATTRESS', 'CABINET', 'TABLE']);
+export const ACCEPTED_ITEM_TYPES = freeze(['SOFA', 'MATTRESS', 'CABINET', 'TABLE', 'OTHER']);
 
 export const MATERIAL_TYPES = freeze({
   LIGHT: 'LIGHT',
