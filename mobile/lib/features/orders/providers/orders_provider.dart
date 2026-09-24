@@ -96,6 +96,9 @@ class OrdersProvider extends ChangeNotifier {
   /// Simulates holding deposit payment for an order.
   /// Moves status to [BulkyOrderStatus.CONFIRMED] and payment to [BulkyPaymentStatus.DEPOSIT_HELD].
   Future<void> simulateDepositPayment(String orderId) async {
+    if (_orders.isEmpty) {
+      await loadOrders();
+    }
     final index = _orders.indexWhere((o) => o.id == orderId);
     final now = DateTime.now();
 
@@ -117,6 +120,9 @@ class OrdersProvider extends ChangeNotifier {
 
   /// Cancels an order.
   Future<void> cancelOrder(String orderId) async {
+    if (_orders.isEmpty) {
+      await loadOrders();
+    }
     final index = _orders.indexWhere((o) => o.id == orderId);
 
     await _storage.updateOrderStatus(

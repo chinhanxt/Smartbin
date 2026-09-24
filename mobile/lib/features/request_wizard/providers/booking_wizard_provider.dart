@@ -55,9 +55,7 @@ class BookingWizardProvider extends ChangeNotifier {
   void initFromScan(AiRecognitionResult result, Uint8List? imageBytes) {
     _imageBytes = imageBytes;
     _items = List.from(result.items);
-    if (result.items.any((i) => i.requiresDisassembly)) {
-      _requiresDisassembly = true;
-    }
+    _requiresDisassembly = result.items.any((i) => i.requiresDisassembly);
     _recalculateQuote();
     notifyListeners();
   }
