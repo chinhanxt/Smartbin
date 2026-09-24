@@ -30,8 +30,8 @@ class BoundingBox {
   double get leftNormalized => xmin / 1000.0;
   double get bottomNormalized => ymax / 1000.0;
   double get rightNormalized => xmax / 1000.0;
-  double get widthNormalized => (xmax - xmin) / 1000.0;
-  double get heightNormalized => (ymax - ymin) / 1000.0;
+  double get widthNormalized => (xmax - xmin).abs() / 1000.0;
+  double get heightNormalized => (ymax - ymin).abs() / 1000.0;
 
   List<int> get box2d => [ymin, xmin, ymax, xmax];
 

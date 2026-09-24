@@ -32,10 +32,8 @@ class PricingEngine {
         throw ArgumentError('Số lượng của ${item.displayName} phải lớn hơn 0.');
       }
 
-      final basePrice = BASE_PRICES[item.category] ?? 60000;
-      final priceFactor = item.material.priceFactor;
-      final unitPriceVnd = (basePrice * priceFactor).round();
-      final itemMinVnd = unitPriceVnd * item.quantity;
+      final unitPriceVnd = item.unitPriceVnd;
+      final itemMinVnd = item.totalPriceVnd;
       final itemMaxVnd = (itemMinVnd * SPREAD_FACTOR).round();
 
       itemsBreakdown.add(
@@ -54,7 +52,9 @@ class PricingEngine {
     }
 
     // Logistics & Handling fees
-    final disassemblyFee = requiresDisassembly ? DISASSEMBLY_FEE : 0;
+    final needsDisassembly =
+        requiresDisassembly || items.any((i) => i.requiresDisassembly);
+    final disassemblyFee = needsDisassembly ? DISASSEMBLY_FEE : 0;
     final floorHandlingFee =
         (!hasElevator && floorNumber > 0) ? floorNumber * FLOOR_FEE_PER_FLOOR : 0;
 
