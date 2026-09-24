@@ -376,37 +376,37 @@ git commit -m "feat(mobile): implement 3-step bulky booking wizard with 1-click 
 - Consumes: `PricingEngine`, `MockBulkyStorage`, `OrdersProvider`.
 - Produces: Hoàn chỉnh luồng người dùng từ Báo giá ➔ Đặt cọc giữ chỗ 15 phút ➔ Quản lý danh sách đơn và xem chi tiết lộ trình xe thu gom.
 
-- [ ] **Step 1: Viết test `quote_and_orders_test.dart`**
+- [x] **Step 1: Viết test `quote_and_orders_test.dart`**
 
 Kiểm tra hiển thị banner cam kết dung sai $\pm 15\%$, kiểm tra nút thanh toán cọc chuyển trạng thái đơn sang `CONFIRMED`.
 
-- [ ] **Step 2: Triển khai `bulky_quote_screen.dart`**
+- [x] **Step 2: Triển khai `bulky_quote_screen.dart`**
 
 Bảng kê chi tiết từng món đồ, phụ phí bê vác/tháo dỡ, phí vận chuyển và banner bảo đảm dung sai.
 
-- [ ] **Step 3: Triển khai `bulky_payment_screen.dart`**
+- [x] **Step 3: Triển khai `bulky_payment_screen.dart`**
 
 Đồng hồ đếm ngược giữ chỗ 15 phút, hiển thị mã QR MoMo/VietQR và nút mô phỏng thanh toán thành công.
 
-- [ ] **Step 4: Triển khai `bulky_orders_list_screen.dart` & `bulky_order_detail_screen.dart`**
+- [x] **Step 4: Triển khai `bulky_orders_list_screen.dart` & `bulky_order_detail_screen.dart`**
 
 Hiển thị danh sách đơn hàng đã lưu, timeline di chuyển 4 bước của xe thu gom.
 
-- [ ] **Step 5: Kết nối toàn bộ vào `mobile/lib/main.dart`**
+- [x] **Step 5: Kết nối toàn bộ vào `mobile/lib/main.dart`**
 
 Cung cấp các Provider, BottomNavigationBar (Tab 1: Đặt lịch thu gom, Tab 2: Đơn của tôi).
 
-- [ ] **Step 6: Chạy toàn bộ test suite của ứng dụng Mobile**
+- [x] **Step 6: Chạy toàn bộ test suite của ứng dụng Mobile**
 
 Run: `cd mobile && flutter test`
-Expected: 100% tests pass.
+Expected: 100% tests pass (63/63 tests passed).
 
-- [ ] **Step 7: Khởi chạy kiểm thử trên Desktop hoặc Máy ảo**
+- [x] **Step 7: Khởi chạy kiểm thử trên Desktop hoặc Máy ảo**
 
 Run: `cd mobile && flutter run -d linux` (hoặc `flutter run -d chrome`)
 Expected: Ứng dụng chạy mượt mà, đầy đủ các tính năng.
 
-- [ ] **Step 8: Commit & Push**
+- [x] **Step 8: Commit & Push**
 
 ```bash
 git add mobile/
