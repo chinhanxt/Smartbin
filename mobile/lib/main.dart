@@ -4,6 +4,8 @@ import 'core/domain/models/bulky_order.dart';
 import 'core/domain/models/bulky_quote.dart';
 import 'core/theme/bulky_colors.dart';
 import 'core/theme/bulky_theme.dart';
+import 'features/auth/providers/auth_provider.dart';
+import 'features/auth/screens/bulky_account_screen.dart';
 import 'features/orders/providers/orders_provider.dart';
 import 'features/orders/screens/bulky_order_detail_screen.dart';
 import 'features/orders/screens/bulky_orders_list_screen.dart';
@@ -25,6 +27,9 @@ class BulkyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<AuthProvider>(
+          create: (_) => AuthProvider()..loadSession(),
+        ),
         ChangeNotifierProvider<ScanProvider>(
           create: (_) => ScanProvider(),
         ),
@@ -80,6 +85,11 @@ class BulkyApp extends StatelessWidget {
                 settings: settings,
                 builder: (_) => const BulkyOrdersListScreen(),
               );
+            case '/account':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyAccountScreen(),
+              );
             case '/wizard':
               return MaterialPageRoute(
                 settings: settings,
@@ -123,6 +133,7 @@ class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
     const screens = [
       BulkyBookingWizardScreen(),
       BulkyOrdersListScreen(),
+      BulkyAccountScreen(),
     ];
 
     return Scaffold(
@@ -149,6 +160,11 @@ class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
             icon: Icon(Icons.receipt_long_outlined),
             activeIcon: Icon(Icons.receipt_long),
             label: 'Đơn của tôi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Tài khoản',
           ),
         ],
       ),

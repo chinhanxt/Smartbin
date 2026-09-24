@@ -30,6 +30,14 @@ void main() {
     // Verify Orders screen is visible
     expect(find.text('Đơn Của Tôi'), findsOneWidget);
 
+    // Switch to Tab 2: Tài khoản
+    await tester.tap(find.text('Tài khoản'));
+    await tester.pumpAndSettle();
+
+    // Verify Account screen is visible
+    expect(find.text('Tài Khoản Công Dân'), findsOneWidget);
+    expect(find.text('Nguyễn Văn An'), findsOneWidget);
+
     // Switch back to Tab 0: Đặt lịch
     await tester.tap(find.text('Đặt lịch'));
     await tester.pumpAndSettle();

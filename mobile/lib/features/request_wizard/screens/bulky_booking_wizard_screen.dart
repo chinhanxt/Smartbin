@@ -42,6 +42,14 @@ class BulkyBookingWizardScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            key: const Key('appbar_account_button'),
+            icon: const Icon(Icons.account_circle_outlined, size: 24),
+            tooltip: 'Tài khoản công dân',
+            onPressed: () {
+              Navigator.pushNamed(context, '/account');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 22),
             tooltip: 'Làm mới / Đặt lại',
             onPressed: () {
