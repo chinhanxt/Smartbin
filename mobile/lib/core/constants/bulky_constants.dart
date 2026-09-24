@@ -182,6 +182,8 @@ enum BulkyOrderStatus {
         return 'Đã hủy';
     }
   }
+
+  String get displayName => label;
 }
 
 enum BulkyPaymentStatus {

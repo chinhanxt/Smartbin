@@ -149,7 +149,14 @@ class LivePricingBottomBar extends StatelessWidget {
                       child: ElevatedButton(
                         key: const Key('wizard_next_button'),
                         onPressed: canGoNext
-                            ? (onNext ?? () => wizard.nextStep())
+                            ? (onNext ??
+                                () {
+                                  if (currentStep == 2) {
+                                    Navigator.pushNamed(context, '/quote');
+                                  } else {
+                                    wizard.nextStep();
+                                  }
+                                })
                             : null,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),

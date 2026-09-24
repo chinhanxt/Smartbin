@@ -2,20 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bulky_mobile/main.dart';
 import 'package:bulky_mobile/core/theme/bulky_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('Smartbin Bulky home widget smoke test', (WidgetTester tester) async {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('Smartbin Bulky app smoke test and bottom navigation', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const BulkyApp());
+    await tester.pumpAndSettle();
 
-    // Verify AppBar title is displayed
-    expect(find.text('Smartbin - Thu Gom Rác Cồng Kềnh'), findsOneWidget);
+    // Verify Wizard AppBar title is displayed by default on Tab 0
+    expect(find.text('Đặt Thu Gom Rác Cồng Kềnh'), findsOneWidget);
 
-    // Verify intro message is displayed
-    expect(find.text('Dịch Vụ Thu Gom Rác Cồng Kềnh'), findsOneWidget);
+    // Verify BottomNavigationBar tabs are displayed
+    expect(find.text('Đặt lịch'), findsOneWidget);
+    expect(find.text('Đơn của tôi'), findsOneWidget);
+    expect(find.byIcon(Icons.add_circle), findsOneWidget);
+    expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
 
-    // Verify recycling icon is displayed
-    expect(find.byIcon(Icons.recycling_rounded), findsOneWidget);
+    // Switch to Tab 1: Đơn của tôi
+    await tester.tap(find.text('Đơn của tôi'));
+    await tester.pumpAndSettle();
+
+    // Verify Orders screen is visible
+    expect(find.text('Đơn Của Tôi'), findsOneWidget);
+
+    // Switch back to Tab 0: Đặt lịch
+    await tester.tap(find.text('Đặt lịch'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đặt Thu Gom Rác Cồng Kềnh'), findsOneWidget);
 
     // Verify BulkyColors palette constants
     expect(BulkyColors.primary, const Color(0xFF1D4ED8));

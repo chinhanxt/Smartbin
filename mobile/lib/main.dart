@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'core/domain/models/bulky_order.dart';
+import 'core/domain/models/bulky_quote.dart';
 import 'core/theme/bulky_colors.dart';
 import 'core/theme/bulky_theme.dart';
+import 'features/orders/providers/orders_provider.dart';
+import 'features/orders/screens/bulky_order_detail_screen.dart';
+import 'features/orders/screens/bulky_orders_list_screen.dart';
+import 'features/payment/screens/bulky_payment_screen.dart';
+import 'features/quote/screens/bulky_quote_screen.dart';
+import 'features/request_wizard/providers/booking_wizard_provider.dart';
+import 'features/request_wizard/screens/bulky_booking_wizard_screen.dart';
+import 'features/scan/providers/scan_provider.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const BulkyApp());
 }
 
@@ -11,66 +23,134 @@ class BulkyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smartbin Bulky',
-      theme: BulkyTheme.lightTheme,
-      home: const BulkyHomeScreen(),
-      debugShowCheckedModeBanner: false,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ScanProvider>(
+          create: (_) => ScanProvider(),
+        ),
+        ChangeNotifierProvider<BookingWizardProvider>(
+          create: (_) => BookingWizardProvider(),
+        ),
+        ChangeNotifierProvider<OrdersProvider>(
+          create: (_) => OrdersProvider()..loadOrders(),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Smartbin Bulky',
+        theme: BulkyTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        initialRoute: '/',
+        onGenerateRoute: (settings) {
+          switch (settings.name) {
+            case '/':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyHomeScreen(),
+              );
+            case '/quote':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) {
+                  if (settings.arguments is BulkyQuote) {
+                    return BulkyQuoteScreen(quote: settings.arguments as BulkyQuote);
+                  } else if (settings.arguments is BulkyOrder) {
+                    return BulkyQuoteScreen(order: settings.arguments as BulkyOrder);
+                  }
+                  return const BulkyQuoteScreen();
+                },
+              );
+            case '/payment':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) {
+                  final orderId = settings.arguments as String?;
+                  return BulkyPaymentScreen(orderId: orderId);
+                },
+              );
+            case '/order-detail':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) {
+                  final orderId = settings.arguments as String?;
+                  return BulkyOrderDetailScreen(orderId: orderId);
+                },
+              );
+            case '/orders':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyOrdersListScreen(),
+              );
+            case '/wizard':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyBookingWizardScreen(),
+              );
+            default:
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyHomeScreen(),
+              );
+          }
+        },
+      ),
     );
   }
 }
 
-class BulkyHomeScreen extends StatelessWidget {
-  const BulkyHomeScreen({super.key});
+class BulkyHomeScreen extends StatefulWidget {
+  final int initialTab;
+
+  const BulkyHomeScreen({
+    super.key,
+    this.initialTab = 0,
+  });
+
+  @override
+  State<BulkyHomeScreen> createState() => _BulkyHomeScreenState();
+}
+
+class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialTab;
+  }
 
   @override
   Widget build(BuildContext context) {
+    const screens = [
+      BulkyBookingWizardScreen(),
+      BulkyOrdersListScreen(),
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Smartbin - Thu Gom Rác Cồng Kềnh'),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: screens,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: BulkyColors.primaryLight.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.recycling_rounded,
-                  size: 48,
-                  color: BulkyColors.primary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Dịch Vụ Thu Gom Rác Cồng Kềnh',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: BulkyColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Hỗ trợ đăng ký thu gom đồ gỗ, nệm sofa, thiết bị điện tử gia dụng tại nhà nhanh chóng và tiện lợi.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: BulkyColors.textSecondary,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: BulkyColors.primary,
+        unselectedItemColor: BulkyColors.textSecondary,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            activeIcon: Icon(Icons.add_circle),
+            label: 'Đặt lịch',
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Đơn của tôi',
+          ),
+        ],
       ),
     );
   }
