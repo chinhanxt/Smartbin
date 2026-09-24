@@ -26,4 +26,18 @@ class BulkyColors {
   static const Color boxTable = Color(0xFFF59E0B);
   static const Color boxOther = Color(0xFF475569);
   static const Color boxHazardous = Color(0xFFEF4444);
+
+  /// Formats VND amount with dot thousands separator, e.g. 150000 -> "150.000 đ"
+  static String formatCurrency(int amount) {
+    final isNegative = amount < 0;
+    final str = amount.abs().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+      buffer.write(str[i]);
+    }
+    return '${isNegative ? '-' : ''}${buffer.toString()} đ';
+  }
 }

@@ -39,6 +39,15 @@ class ScanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets recognition result directly (useful for testing and presets).
+  void setScanResult(AiRecognitionResult result, [Uint8List? imageBytes]) {
+    _result = result;
+    if (imageBytes != null) _imageBytes = imageBytes;
+    _isScanning = false;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   /// Sends image bytes to Gemini Vision AI for object detection & classification.
   Future<void> scanImage(
     Uint8List bytes, {
