@@ -1,0 +1,220 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../constants/bulky_constants.dart';
+import '../../domain/models/bulky_item.dart';
+import '../../domain/models/bulky_order.dart';
+import '../../domain/pricing/pricing_engine.dart';
+
+/// Local mock storage service for Smartbin Bulky Waste orders.
+/// Persists order records in [SharedPreferences] as serialized JSON.
+class MockBulkyStorage {
+  static const String storageKey = 'smartbin_bulky_orders';
+
+  SharedPreferences? preferences;
+
+  MockBulkyStorage({this.preferences});
+
+  Future<SharedPreferences> get _prefs async =>
+      preferences ??= await SharedPreferences.getInstance();
+
+  /// Retrieves all persisted bulky waste orders, ordered by creation date descending.
+  Future<List<BulkyOrder>> getOrders() async {
+    final prefs = await _prefs;
+    final jsonString = prefs.getString(storageKey);
+    if (jsonString == null || jsonString.trim().isEmpty) {
+      return [];
+    }
+
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonString) as List<dynamic>;
+      final orders = decoded
+          .map((item) => BulkyOrder.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList();
+      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return orders;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Retrieves a specific bulky order by ID.
+  Future<BulkyOrder?> getOrderById(String orderId) async {
+    final orders = await getOrders();
+    for (final order in orders) {
+      if (order.id == orderId) {
+        return order;
+      }
+    }
+    return null;
+  }
+
+  /// Saves or updates a bulky order in local storage.
+  Future<void> saveOrder(BulkyOrder order) async {
+    final orders = await getOrders();
+    final index = orders.indexWhere((o) => o.id == order.id);
+
+    if (index >= 0) {
+      orders[index] = order;
+    } else {
+      orders.insert(0, order);
+    }
+
+    await _persistOrders(orders);
+  }
+
+  /// Updates the order status and optionally payment status of a given order.
+  Future<void> updateOrderStatus(
+    String orderId,
+    BulkyOrderStatus status, {
+    BulkyPaymentStatus? paymentStatus,
+  }) async {
+    final orders = await getOrders();
+    final index = orders.indexWhere((o) => o.id == orderId);
+    if (index == -1) return;
+
+    final existing = orders[index];
+    final newPaymentStatus = paymentStatus ??
+        ((status == BulkyOrderStatus.CONFIRMED || status == BulkyOrderStatus.SCHEDULED) &&
+                existing.paymentStatus == BulkyPaymentStatus.UNPAID
+            ? BulkyPaymentStatus.DEPOSIT_HELD
+            : (status == BulkyOrderStatus.COMPLETED
+                ? BulkyPaymentStatus.PAID
+                : existing.paymentStatus));
+
+    final updated = existing.copyWith(
+      status: status,
+      paymentStatus: newPaymentStatus,
+      depositPaidAt: newPaymentStatus == BulkyPaymentStatus.DEPOSIT_HELD && existing.depositPaidAt == null
+          ? DateTime.now()
+          : existing.depositPaidAt,
+    );
+
+    orders[index] = updated;
+    await _persistOrders(orders);
+  }
+
+  /// Seeds 2 realistic Vietnamese demonstration orders if storage is currently empty.
+  Future<void> seedInitialOrdersIfEmpty() async {
+    final existingOrders = await getOrders();
+    if (existingOrders.isNotEmpty) {
+      return;
+    }
+
+    // 1. Order 1: SCHEDULED with deposit held
+    final itemsOrder1 = [
+      const BulkyItem(
+        id: 'seed-item-1',
+        category: BulkyCategory.SOFA,
+        displayName: 'Sofa da góc chữ L',
+        quantity: 1,
+        lengthCm: 220,
+        widthCm: 150,
+        heightCm: 85,
+        material: MaterialType.STANDARD,
+        requiresDisassembly: true,
+      ),
+      const BulkyItem(
+        id: 'seed-item-2',
+        category: BulkyCategory.TABLE,
+        displayName: 'Bàn trà mặt kính',
+        quantity: 1,
+        lengthCm: 100,
+        widthCm: 60,
+        heightCm: 45,
+        material: MaterialType.LIGHT,
+      ),
+    ];
+
+    final quoteOrder1 = PricingEngine.calculateQuote(
+      items: itemsOrder1,
+      requiresDisassembly: true,
+      floorNumber: 2,
+      hasElevator: true,
+      now: DateTime(2026, 9, 23, 14, 30),
+    );
+
+    final scheduledOrder = BulkyOrder(
+      id: 'order-demo-scheduled',
+      items: itemsOrder1,
+      quote: quoteOrder1,
+      address: '123 Nguyễn Thị Minh Khai, Phường 6, Quận 3, TP. Hồ Chí Minh',
+      pickupDate: '2026-09-26',
+      status: BulkyOrderStatus.SCHEDULED,
+      paymentStatus: BulkyPaymentStatus.DEPOSIT_HELD,
+      hasElevator: true,
+      floorNumber: 2,
+      requiresDisassembly: true,
+      vehiclePlate: '51C-889.21',
+      createdAt: DateTime(2026, 9, 23, 14, 30),
+      depositPaidAt: DateTime(2026, 9, 23, 14, 45),
+      contactName: 'Nguyễn Văn An',
+      contactPhone: '0901234567',
+      note: 'Hẻm xe tải 2.5 tấn vào được, vui lòng gọi trước 15 phút.',
+    );
+
+    // 2. Order 2: COMPLETED
+    final itemsOrder2 = [
+      const BulkyItem(
+        id: 'seed-item-3',
+        category: BulkyCategory.MATTRESS,
+        displayName: 'Đệm lò xo cũ 1m8',
+        quantity: 1,
+        lengthCm: 200,
+        widthCm: 180,
+        heightCm: 25,
+        material: MaterialType.STANDARD,
+      ),
+      const BulkyItem(
+        id: 'seed-item-4',
+        category: BulkyCategory.CABINET,
+        displayName: 'Tủ quần áo gỗ ép 3 cánh',
+        quantity: 1,
+        lengthCm: 180,
+        widthCm: 120,
+        heightCm: 60,
+        material: MaterialType.STANDARD,
+      ),
+    ];
+
+    final quoteOrder2 = PricingEngine.calculateQuote(
+      items: itemsOrder2,
+      requiresDisassembly: false,
+      floorNumber: 0,
+      hasElevator: false,
+      now: DateTime(2026, 9, 19, 9, 15),
+    );
+
+    final completedOrder = BulkyOrder(
+      id: 'order-demo-completed',
+      items: itemsOrder2,
+      quote: quoteOrder2,
+      address: '45 Lê Duẩn, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+      pickupDate: '2026-09-20',
+      status: BulkyOrderStatus.COMPLETED,
+      paymentStatus: BulkyPaymentStatus.PAID,
+      hasElevator: false,
+      floorNumber: 0,
+      requiresDisassembly: false,
+      vehiclePlate: '51D-432.10',
+      createdAt: DateTime(2026, 9, 19, 9, 15),
+      depositPaidAt: DateTime(2026, 9, 19, 9, 25),
+      contactName: 'Trần Thị Mai',
+      contactPhone: '0918765432',
+      note: 'Đã tập kết sẵn ở sân tầng trệt.',
+    );
+
+    await _persistOrders([scheduledOrder, completedOrder]);
+  }
+
+  /// Clears all stored orders (useful for testing and reset).
+  Future<void> clear() async {
+    final prefs = await _prefs;
+    await prefs.remove(storageKey);
+  }
+
+  Future<void> _persistOrders(List<BulkyOrder> orders) async {
+    final prefs = await _prefs;
+    final encoded = jsonEncode(orders.map((o) => o.toJson()).toList());
+    await prefs.setString(storageKey, encoded);
+  }
+}

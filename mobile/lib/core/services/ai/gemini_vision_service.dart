@@ -251,6 +251,22 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
     );
   }
 
+  /// Alias for analyze.
+  Future<AiRecognitionResult> analyzeBulkyImage(
+    Uint8List imageBytes, {
+    String? mimeType,
+    http.Client? client,
+    String? apiKey,
+    String? filename,
+  }) =>
+      analyze(
+        imageBytes,
+        mimeType: mimeType,
+        client: client,
+        apiKey: apiKey,
+        filename: filename,
+      );
+
   /// Primary recognition method taking image bytes.
   static Future<AiRecognitionResult> analyzeImageBytes(
     Uint8List imageBytes, {

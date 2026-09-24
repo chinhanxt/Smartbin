@@ -1,0 +1,134 @@
+import 'package:flutter/foundation.dart';
+import '../../../core/constants/bulky_constants.dart';
+import '../../../core/domain/models/bulky_order.dart';
+import '../../../core/services/storage/mock_bulky_storage.dart';
+import '../../request_wizard/providers/booking_wizard_provider.dart';
+
+/// Provider for managing customer bulky waste orders and coordinating with [MockBulkyStorage].
+class OrdersProvider extends ChangeNotifier {
+  final MockBulkyStorage _storage;
+
+  List<BulkyOrder> _orders = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  OrdersProvider({MockBulkyStorage? storage})
+      : _storage = storage ?? MockBulkyStorage();
+
+  List<BulkyOrder> get orders => List.unmodifiable(_orders);
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  /// Orders awaiting payment, scheduled, or currently in progress.
+  List<BulkyOrder> get activeOrders => _orders
+      .where((o) =>
+          o.status != BulkyOrderStatus.COMPLETED &&
+          o.status != BulkyOrderStatus.CANCELLED)
+      .toList();
+
+  /// Orders that have been completed.
+  List<BulkyOrder> get completedOrders =>
+      _orders.where((o) => o.status == BulkyOrderStatus.COMPLETED).toList();
+
+  /// Loads orders from local storage, seeding initial realistic records if empty.
+  Future<void> loadOrders() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _storage.seedInitialOrdersIfEmpty();
+      _orders = await _storage.getOrders();
+    } catch (e) {
+      _errorMessage = 'Không thể tải danh sách đơn hàng: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Finds an order by its ID from memory.
+  BulkyOrder? getOrderById(String orderId) {
+    try {
+      return _orders.firstWhere((o) => o.id == orderId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Creates a new order directly from the current [BookingWizardProvider] form state.
+  Future<BulkyOrder> createOrderFromWizard(BookingWizardProvider wizard) async {
+    final quote = wizard.currentQuote;
+    if (quote == null) {
+      throw StateError('Không thể tạo đơn hàng khi chưa có báo giá chi tiết.');
+    }
+
+    final newOrderId = 'order-${DateTime.now().millisecondsSinceEpoch}';
+
+    final order = BulkyOrder(
+      id: newOrderId,
+      items: List.from(wizard.items),
+      quote: quote,
+      address: wizard.address,
+      pickupDate: wizard.scheduledDate,
+      status: BulkyOrderStatus.AWAITING_PAYMENT,
+      paymentStatus: BulkyPaymentStatus.UNPAID,
+      hasElevator: wizard.hasElevator,
+      floorNumber: wizard.floorNumber,
+      requiresDisassembly: wizard.requiresDisassembly,
+      createdAt: DateTime.now(),
+      contactName: wizard.contactName.trim().isNotEmpty
+          ? wizard.contactName.trim()
+          : null,
+      contactPhone: wizard.contactPhone.trim().isNotEmpty
+          ? wizard.contactPhone.trim()
+          : null,
+      note: wizard.notes.trim().isNotEmpty ? wizard.notes.trim() : null,
+    );
+
+    await _storage.saveOrder(order);
+    _orders.insert(0, order);
+    notifyListeners();
+
+    return order;
+  }
+
+  /// Simulates holding deposit payment for an order.
+  /// Moves status to [BulkyOrderStatus.CONFIRMED] and payment to [BulkyPaymentStatus.DEPOSIT_HELD].
+  Future<void> simulateDepositPayment(String orderId) async {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    final now = DateTime.now();
+
+    await _storage.updateOrderStatus(
+      orderId,
+      BulkyOrderStatus.CONFIRMED,
+      paymentStatus: BulkyPaymentStatus.DEPOSIT_HELD,
+    );
+
+    if (index >= 0) {
+      _orders[index] = _orders[index].copyWith(
+        status: BulkyOrderStatus.CONFIRMED,
+        paymentStatus: BulkyPaymentStatus.DEPOSIT_HELD,
+        depositPaidAt: now,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Cancels an order.
+  Future<void> cancelOrder(String orderId) async {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+
+    await _storage.updateOrderStatus(
+      orderId,
+      BulkyOrderStatus.CANCELLED,
+    );
+
+    if (index >= 0) {
+      _orders[index] = _orders[index].copyWith(
+        status: BulkyOrderStatus.CANCELLED,
+      );
+      notifyListeners();
+    }
+  }
+}
