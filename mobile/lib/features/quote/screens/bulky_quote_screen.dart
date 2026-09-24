@@ -102,7 +102,9 @@ class BulkyQuoteScreen extends StatelessWidget {
   }
 
   Widget _buildVehicleAvailabilityBanner(BulkyOrder? order, BookingWizardProvider wizard) {
-    final date = order?.pickupDate ?? (wizard.scheduledDate.isNotEmpty ? wizard.scheduledDate : 'Hôm nay');
+    final date = (order != null && order.pickupDate.isNotEmpty)
+        ? order.pickupDate
+        : (wizard.scheduledDate.isNotEmpty ? wizard.scheduledDate : 'Hôm nay');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

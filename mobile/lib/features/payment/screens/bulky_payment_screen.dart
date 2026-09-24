@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../core/domain/models/bulky_order.dart';
 import '../../../core/theme/bulky_colors.dart';
 import '../../orders/providers/orders_provider.dart';
 import '../widgets/countdown_timer_widget.dart';
@@ -338,7 +339,7 @@ class _BulkyPaymentScreenState extends State<BulkyPaymentScreen> {
     );
   }
 
-  Widget _buildQrSimulationCard(dynamic order, int depositVnd) {
+  Widget _buildQrSimulationCard(BulkyOrder order, int depositVnd) {
     final isMoMo = _selectedMethodIndex == 1;
 
     return Container(
@@ -436,7 +437,7 @@ class _BulkyPaymentScreenState extends State<BulkyPaymentScreen> {
           const SizedBox(height: 8),
           _buildInfoRowWithCopy('Số tài khoản:', '999888666'),
           const SizedBox(height: 8),
-          _buildInfoRowWithCopy('Nội dung CK:', order.id as String),
+          _buildInfoRowWithCopy('Nội dung CK:', order.id),
           const SizedBox(height: 8),
           _buildInfoRow('Số tiền:', BulkyColors.formatCurrency(depositVnd)),
         ],
