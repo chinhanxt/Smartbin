@@ -13,12 +13,31 @@ import 'material_survey_chips.dart';
 class StepItemsEditor extends StatelessWidget {
   const StepItemsEditor({super.key});
 
-  void _syncFromScan(
+  Future<void> _syncFromScan(
     BuildContext context,
     ScanProvider scanProvider,
     BookingWizardProvider wizardProvider,
-  ) {
-    if (scanProvider.result != null) {
+  ) async {
+    if (scanProvider.imageBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Vui lòng chọn ảnh mẫu hoặc chụp/tải ảnh đồ vật để AI nhận diện.',
+          ),
+          backgroundColor: BulkyColors.warning,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (scanProvider.result == null || scanProvider.result!.items.isEmpty) {
+      await scanProvider.scanImage(scanProvider.imageBytes!);
+    }
+
+    if (!context.mounted) return;
+
+    if (scanProvider.result != null && scanProvider.result!.items.isNotEmpty) {
       wizardProvider.initFromScan(
         scanProvider.result!,
         scanProvider.imageBytes,
@@ -26,14 +45,23 @@ class StepItemsEditor extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '✓ Đã nhận diện ${scanProvider.result!.items.length} món đồ và điền thông tin!',
+            '✓ Đã nhận diện ${scanProvider.result!.items.length} món đồ và cập nhật thông tin!',
           ),
           backgroundColor: BulkyColors.success,
           duration: const Duration(seconds: 2),
         ),
       );
-    } else if (scanProvider.imageBytes != null) {
-      scanProvider.scanImage(scanProvider.imageBytes!);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            scanProvider.errorMessage ??
+                'Không phát hiện thấy vật dụng cồng kềnh trong ảnh. Bạn có thể thêm thủ công bên dưới.',
+          ),
+          backgroundColor: BulkyColors.warning,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 

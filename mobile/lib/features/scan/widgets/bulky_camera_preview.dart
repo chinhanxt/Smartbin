@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../core/domain/models/bounding_box.dart';
 import '../../../core/theme/bulky_colors.dart';
+import '../../request_wizard/providers/booking_wizard_provider.dart';
 import '../providers/scan_provider.dart';
 import 'bounding_box_painter.dart';
 
@@ -55,30 +57,48 @@ class _BulkyCameraPreviewState extends State<BulkyCameraPreview> {
     }
   }
 
-  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+  Future<void> _pickImage(ImageSource source) async {
     final provider = _getProvider(context);
     try {
       final picker = widget.imagePicker ?? ImagePicker();
       final xFile = await picker.pickImage(source: source);
       if (xFile != null) {
         final bytes = await xFile.readAsBytes();
-        if (mounted) {
-          if (provider != null) {
-            await provider.scanImage(bytes);
+        if (!mounted) return;
+        if (provider != null) {
+          await provider.scanImage(bytes);
+          if (!mounted) return;
+          if (provider.result != null && provider.result!.items.isNotEmpty) {
+            try {
+              Provider.of<BookingWizardProvider>(context, listen: false)
+                  .initFromScan(provider.result!, bytes);
+            } catch (_) {}
           }
-          widget.onImageSelected?.call(bytes);
         }
+        widget.onImageSelected?.call(bytes);
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
   }
 
-  Future<void> _selectPreset(BuildContext context, String filename) async {
+  Future<void> _selectPreset(String filename) async {
     final provider = _getProvider(context);
     if (provider != null) {
-      await provider.scanImage(kPresetSamplePngBytes, filename: filename);
-      widget.onImageSelected?.call(kPresetSamplePngBytes);
+      Uint8List bytes = kPresetSamplePngBytes;
+      try {
+        final data = await rootBundle.load('assets/samples/$filename');
+        bytes = data.buffer.asUint8List();
+      } catch (_) {}
+      await provider.scanImage(bytes, filename: filename);
+      if (!mounted) return;
+      widget.onImageSelected?.call(bytes);
+      if (provider.result != null && provider.result!.items.isNotEmpty) {
+        try {
+          Provider.of<BookingWizardProvider>(context, listen: false)
+              .initFromScan(provider.result!, bytes);
+        } catch (_) {}
+      }
     }
   }
 
@@ -225,7 +245,7 @@ class _BulkyCameraPreviewState extends State<BulkyCameraPreview> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: isScanning ? null : () => _pickImage(context, ImageSource.camera),
+                onPressed: isScanning ? null : () => _pickImage(ImageSource.camera),
                 icon: const Icon(Icons.camera_alt_outlined, size: 20),
                 label: const Text('Chụp ảnh'),
                 style: ElevatedButton.styleFrom(
@@ -239,7 +259,7 @@ class _BulkyCameraPreviewState extends State<BulkyCameraPreview> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: isScanning ? null : () => _pickImage(context, ImageSource.gallery),
+                onPressed: isScanning ? null : () => _pickImage(ImageSource.gallery),
                 icon: const Icon(Icons.photo_library_outlined, size: 20),
                 label: const Text('Thư viện'),
                 style: OutlinedButton.styleFrom(
@@ -295,6 +315,14 @@ class _BulkyCameraPreviewState extends State<BulkyCameraPreview> {
                     label: 'Tủ gỗ 3 cánh',
                     icon: Icons.door_sliding_outlined,
                     filename: 'tu_go_3_canh.jpg',
+                    isScanning: isScanning,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildPresetButton(
+                    context,
+                    label: 'Gạch ngói / Xà bần',
+                    icon: Icons.handyman_outlined,
+                    filename: 'gach_ngoi_xa_ban.jpg',
                     isScanning: isScanning,
                   ),
                 ],
@@ -367,7 +395,7 @@ class _BulkyCameraPreviewState extends State<BulkyCameraPreview> {
       backgroundColor: BulkyColors.background,
       side: const BorderSide(color: BulkyColors.border),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      onPressed: isScanning ? null : () => _selectPreset(context, filename),
+      onPressed: isScanning ? null : () => _selectPreset(filename),
     );
   }
 }

@@ -227,6 +227,51 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
       ],
       aiModelUsed: 'Trí tuệ nhân tạo (AI)',
     ),
+    'gach_ngoi_xa_ban.jpg': AiRecognitionResult(
+      decision: AiDecision.SUGGESTED,
+      requiresManualReview: false,
+      containsConstructionWaste: true,
+      confidence: 0.95,
+      explanation:
+          'AI nhận diện: Phát hiện phế thải xây dựng, gạch ngói vỡ và vữa xà bần (~80 kg). Tự động phân loại đồ cồng kềnh nhóm Nặng (HEAVY).',
+      items: [
+        BulkyItem(
+          id: 'preset-debris',
+          category: BulkyCategory.OTHER,
+          displayName: 'Phế thải gạch ngói / xà bần',
+          quantity: 1,
+          lengthCm: 120,
+          widthCm: 80,
+          heightCm: 50,
+          material: MaterialType.HEAVY,
+          box2d: const BoundingBox(
+            ymin: 120,
+            xmin: 100,
+            ymax: 880,
+            xmax: 900,
+            displayName: 'Phế thải gạch ngói / xà bần',
+            confidence: 0.95,
+            category: BulkyCategory.OTHER,
+            material: MaterialType.HEAVY,
+          ),
+          confidence: 0.95,
+          requiresDisassembly: false,
+        ),
+      ],
+      boundingBoxes: const [
+        BoundingBox(
+          ymin: 120,
+          xmin: 100,
+          ymax: 880,
+          xmax: 900,
+          displayName: 'Phế thải gạch ngói / xà bần',
+          confidence: 0.95,
+          category: BulkyCategory.OTHER,
+          material: MaterialType.HEAVY,
+        ),
+      ],
+      aiModelUsed: 'Trí tuệ nhân tạo (AI)',
+    ),
   };
 
   final http.Client? client;
@@ -293,7 +338,22 @@ CÁC QUY TẮC THẨM ĐỊNH BẮT BUỘC:
     }
 
     final effectiveClient = client ?? http.Client();
-    final effectiveApiKey = apiKey ?? defaultGeminiApiKey;
+    final effectiveApiKey = (apiKey != null && apiKey.isNotEmpty)
+        ? apiKey
+        : defaultGeminiApiKey;
+
+    if (client == null && effectiveApiKey.isEmpty) {
+      return AiRecognitionResult(
+        decision: AiDecision.MANUAL_REVIEW,
+        requiresManualReview: true,
+        confidence: 0.0,
+        explanation:
+            'Chưa cấu hình GEMINI_API_KEY. Vui lòng bấm chọn các ảnh mẫu kiểm thử nhanh bên dưới (Sofa da, Nệm, Tủ gỗ, Gạch ngói) hoặc khởi chạy app với --dart-define=GEMINI_API_KEY=...',
+        items: const [],
+        boundingBoxes: const [],
+        aiModelUsed: 'Trí tuệ nhân tạo (AI)',
+      );
+    }
     final base64Data = base64Encode(imageBytes);
     final effectiveMime = mimeType ?? 'image/jpeg';
 
