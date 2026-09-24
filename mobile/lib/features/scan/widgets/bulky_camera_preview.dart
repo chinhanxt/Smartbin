@@ -126,10 +126,8 @@ class _BulkyCameraPreviewState extends State<BulkyCameraPreview> {
                         onTapUp: (details) {
                           if (boxes.isEmpty) return;
                           final hitIndex = painter.findBoxAt(details.localPosition, canvasSize);
-                          if (hitIndex != null) {
-                            widget.onBoxSelected?.call(hitIndex);
-                            provider?.selectBox(hitIndex);
-                          }
+                          widget.onBoxSelected?.call(hitIndex);
+                          provider?.selectBox(hitIndex);
                         },
                         child: Stack(
                           fit: StackFit.expand,

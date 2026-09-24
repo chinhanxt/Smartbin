@@ -140,6 +140,9 @@ class BoundingBoxPainter extends CustomPainter {
     if (oldDelegate.showBadges != showBadges) return true;
     if (oldDelegate.strokeWidth != strokeWidth) return true;
     if (oldDelegate.selectedStrokeWidth != selectedStrokeWidth) return true;
+    if (oldDelegate.fillOpacity != fillOpacity) return true;
+    if (oldDelegate.selectedFillOpacity != selectedFillOpacity) return true;
+    if (oldDelegate.cornerRadius != cornerRadius) return true;
 
     for (int i = 0; i < boxes.length; i++) {
       if (oldDelegate.boxes[i] != boxes[i]) return true;
