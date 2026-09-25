@@ -304,17 +304,24 @@ class _BulkyOperatorScreenState extends State<BulkyOperatorScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: BulkyColors.successBg,
+                    color: BulkyColors.warningBg,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: BulkyColors.success.withValues(alpha: 0.3)),
+                    border: Border.all(color: BulkyColors.warning.withValues(alpha: 0.4)),
                   ),
-                  child: const Text(
-                    'Đã đặt cọc giữ chỗ',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: BulkyColors.success,
-                    ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.hourglass_top_rounded, size: 12, color: BulkyColors.warning),
+                      SizedBox(width: 4),
+                      Text(
+                        'Chờ duyệt & Xếp xe',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -376,38 +383,188 @@ class _BulkyOperatorScreenState extends State<BulkyOperatorScreen>
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                key: Key('assign_driver_button_${order.id}'),
-                onPressed: () async {
-                  await ordersProvider.assignDriverAndSchedule(
-                    order.id,
-                    vehiclePlate: '51C-889.21',
-                  );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Đã chỉ định xe tải 51C-889.21 (Tài xế Nguyễn Văn Hùng) cho đơn ${order.id}!',
-                        ),
-                        backgroundColor: BulkyColors.primary,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.local_shipping_rounded, size: 18),
-                label: const Text('Chỉ định xe tải 51C-889.21 & Lên lịch'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: BulkyColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Cọc đã giữ: ${BulkyColors.formatCurrency(order.quote.depositHoldVnd)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: BulkyColors.success,
                   ),
                 ),
+                Text(
+                  order.floorNumber > 0
+                      ? 'Tầng ${order.floorNumber} (${order.hasElevator ? "Thang máy" : "Thang bộ"})'
+                      : 'Bốc tại tầng trệt',
+                  style: const TextStyle(fontSize: 12, color: BulkyColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    key: Key('assign_driver_button_${order.id}'),
+                    onPressed: () async {
+                      await ordersProvider.assignDriverAndSchedule(
+                        order.id,
+                        vehiclePlate: '51C-889.21',
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '✓ Đã phê duyệt hồ sơ và điều phối xe tải 51C-889.21 (Tài xế Nguyễn Văn Hùng) cho đơn ${order.id}!',
+                            ),
+                            backgroundColor: BulkyColors.primary,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.verified_rounded, size: 18),
+                    label: const Text('Phê duyệt & Điều xe tải'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BulkyColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => _showRejectDialog(context, ordersProvider, order),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: BulkyColors.error,
+                    side: const BorderSide(color: BulkyColors.error),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Từ chối'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRejectDialog(
+    BuildContext context,
+    OrdersProvider ordersProvider,
+    BulkyOrder order,
+  ) {
+    String selectedReason = 'Chứa chất thải nguy hại / bình gas không thu gom';
+    final reasons = [
+      'Chứa chất thải nguy hại / bình gas không thu gom',
+      'Đường hẻm quá hẹp, xe tải không tiếp cận được',
+      'Khai báo sai lệch thể tích / kích thước thực tế',
+      'Địa chỉ nằm ngoài địa bàn phụ trách Quận 1',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: BulkyColors.error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.cancel_rounded, color: BulkyColors.error, size: 22),
               ),
+              const SizedBox(width: 10),
+              const Text('Từ chối đơn thu gom', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bạn đang xem xét từ chối đơn ${order.id}. Tiền cọc ${BulkyColors.formatCurrency(order.quote.depositHoldVnd)} sẽ được hoàn lại cho công dân.',
+                style: const TextStyle(fontSize: 13, color: BulkyColors.textSecondary, height: 1.3),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Lý do từ chối kiểm duyệt:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BulkyColors.textPrimary),
+              ),
+              const SizedBox(height: 6),
+              ...reasons.map(
+                (r) {
+                  final isSelected = selectedReason == r;
+                  return InkWell(
+                    onTap: () {
+                      setDialogState(() {
+                        selectedReason = r;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                            size: 18,
+                            color: isSelected ? BulkyColors.error : BulkyColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              r,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isSelected ? BulkyColors.textPrimary : BulkyColors.textSecondary,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Quay lại'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await ordersProvider.rejectOrder(order.id, reason: selectedReason);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Đã từ chối đơn ${order.id} và hoàn tiền cọc.'),
+                      backgroundColor: BulkyColors.error,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BulkyColors.error,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Xác nhận từ chối'),
             ),
           ],
         ),

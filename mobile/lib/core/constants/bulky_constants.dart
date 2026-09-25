@@ -167,9 +167,9 @@ enum BulkyOrderStatus {
       case BulkyOrderStatus.AWAITING_PAYMENT:
         return 'Chờ thanh toán cọc';
       case BulkyOrderStatus.CONFIRMED:
-        return 'Đã đặt cọc giữ chỗ';
+        return 'Đã cọc • Chờ phê duyệt';
       case BulkyOrderStatus.SCHEDULED:
-        return 'Đã xếp lịch hẹn';
+        return 'Đã duyệt & Lên lịch xe';
       case BulkyOrderStatus.ASSIGNED:
         return 'Đã điều phối xe thu gom';
       case BulkyOrderStatus.IN_PROGRESS:

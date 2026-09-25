@@ -183,6 +183,29 @@ class OrdersProvider extends ChangeNotifier {
     }
   }
 
+  /// [Operator Action] Rejects an order with a reason and marks as CANCELLED with refunded deposit.
+  Future<void> rejectOrder(String orderId, {required String reason}) async {
+    if (_orders.isEmpty) {
+      await loadOrders();
+    }
+    final index = _orders.indexWhere((o) => o.id == orderId);
+
+    await _storage.updateOrderStatus(
+      orderId,
+      BulkyOrderStatus.CANCELLED,
+      paymentStatus: BulkyPaymentStatus.REFUNDED,
+    );
+
+    if (index >= 0) {
+      _orders[index] = _orders[index].copyWith(
+        status: BulkyOrderStatus.CANCELLED,
+        paymentStatus: BulkyPaymentStatus.REFUNDED,
+        note: reason,
+      );
+      notifyListeners();
+    }
+  }
+
   /// [Driver Action] Marks order as IN_PROGRESS (driver en route to pickup point).
   Future<void> startCollection(String orderId) async {
     if (_orders.isEmpty) {

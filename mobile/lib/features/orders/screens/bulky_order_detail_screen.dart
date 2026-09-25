@@ -110,7 +110,45 @@ class BulkyOrderDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // 4-Step Timeline Card
+            if (order.status == BulkyOrderStatus.CONFIRMED) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: BulkyColors.warningBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: BulkyColors.warning.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.hourglass_top_rounded, color: BulkyColors.warning, size: 26),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Đang chờ Tổ điều phối VSMT kiểm duyệt',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Color(0xFFB45309),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Hồ sơ đơn ${order.id} đang được cán bộ kiểm tra hình ảnh AI và vật liệu để phê duyệt và điều phối xe tải.',
+                            style: const TextStyle(fontSize: 12, color: BulkyColors.textSecondary, height: 1.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 5-Step Timeline Card
             _buildTimelineCard(order),
             const SizedBox(height: 16),
 
@@ -166,7 +204,16 @@ class BulkyOrderDetailScreen extends StatelessWidget {
 
     final timelineSteps = [
       {'title': 'Đã đặt cọc', 'active': isStep1Active, 'desc': 'Đã cọc giữ chỗ'},
-      {'title': 'Đã xếp lịch xe & Tài xế', 'active': isStep2Active, 'desc': 'Đã điều phối xe thu gom'},
+      {
+        'title': 'Kiểm duyệt & Phê duyệt',
+        'active': isStep2Active,
+        'desc': isStep2Active ? 'Tổ điều phối đã duyệt hồ sơ' : 'Đang chờ điều phối viên phê duyệt'
+      },
+      {
+        'title': 'Đã xếp lịch xe & Tài xế',
+        'active': isStep2Active,
+        'desc': isStep2Active ? 'Đã điều phối xe thu gom' : 'Chờ phân công xe thu gom'
+      },
       {'title': 'Đang đến lấy rác', 'active': isStep3Active, 'desc': 'Tài xế đang di chuyển'},
       {'title': 'Hoàn tất thu gom', 'active': isStep4Active, 'desc': 'Đã hoàn tất thanh toán'},
     ];
