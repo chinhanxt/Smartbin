@@ -3,20 +3,26 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/citizen_user.dart';
 
-/// Provider managing Citizen authentication state (Login / Logout / Profile).
+/// Provider managing authentication state across Citizen, Operator, and Driver roles.
 class AuthProvider extends ChangeNotifier {
   static const String _userStorageKey = 'smartbin_bulky_current_user';
 
   CitizenUser? _currentUser;
   bool _isLoading = false;
 
-  AuthProvider({CitizenUser? initialUser}) : _currentUser = initialUser ?? CitizenUser.demoUser;
+  AuthProvider({CitizenUser? initialUser})
+      : _currentUser = initialUser ?? CitizenUser.demoCitizen;
 
   CitizenUser? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null;
   bool get isLoading => _isLoading;
 
-  /// Loads stored user from local storage or defaults to demo user.
+  UserRole get currentRole => _currentUser?.role ?? UserRole.citizen;
+  bool get isCitizen => _currentUser?.role == UserRole.citizen;
+  bool get isOperator => _currentUser?.role == UserRole.operator;
+  bool get isDriver => _currentUser?.role == UserRole.driver;
+
+  /// Loads stored user from local storage or defaults to demo citizen.
   Future<void> loadSession() async {
     _isLoading = true;
     notifyListeners();
@@ -28,24 +34,56 @@ class AuthProvider extends ChangeNotifier {
         final data = jsonDecode(userJsonStr) as Map<String, dynamic>;
         _currentUser = CitizenUser.fromJson(data);
       } else {
-        // Default to demo user for seamless out-of-the-box experience
-        _currentUser = CitizenUser.demoUser;
+        _currentUser = CitizenUser.demoCitizen;
         await _saveUserToPrefs(_currentUser!);
       }
     } catch (_) {
-      _currentUser = CitizenUser.demoUser;
+      _currentUser = CitizenUser.demoCitizen;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Logs in citizen with phone and password or OTP.
-  Future<bool> login(String phone, String password) async {
+  /// Quickly switches the active role between Citizen, Operator, and Driver.
+  Future<void> switchRole(UserRole role) async {
     _isLoading = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 400)); // simulate auth latency
+    switch (role) {
+      case UserRole.citizen:
+        _currentUser = CitizenUser.demoCitizen;
+        break;
+      case UserRole.operator:
+        _currentUser = CitizenUser.demoOperator;
+        break;
+      case UserRole.driver:
+        _currentUser = CitizenUser.demoDriver;
+        break;
+    }
+
+    await _saveUserToPrefs(_currentUser!);
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Sets arbitrary authenticated user.
+  Future<void> loginAs(CitizenUser user) async {
+    _isLoading = true;
+    notifyListeners();
+
+    _currentUser = user;
+    await _saveUserToPrefs(_currentUser!);
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Logs in user with phone number and password.
+  /// Automatically recognizes Operator and Driver phone numbers.
+  Future<bool> login(String phone, String password) async {
+    _isLoading = true;
+    notifyListeners();
 
     final trimmedPhone = phone.trim();
     if (trimmedPhone.isEmpty) {
@@ -54,17 +92,26 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
 
-    _currentUser = CitizenUser(
-      id: 'user-${trimmedPhone.replaceAll(RegExp(r'\D'), '')}',
-      name: trimmedPhone == '0912.345.678' || trimmedPhone == '0912345678'
-          ? 'Nguyễn Văn An'
-          : 'Công dân $trimmedPhone',
-      phone: trimmedPhone,
-      email: 'congdan.${trimmedPhone.replaceAll(RegExp(r'\D'), '')}@smartbin.vn',
-      defaultAddress: '123 Nguyễn Thị Minh Khai, P. Bến Nghé, Q.1, TP.HCM',
-      householdId: 'HH-${trimmedPhone.length >= 4 ? trimmedPhone.substring(trimmedPhone.length - 4) : "1234"}',
-      rewardPoints: 120,
-    );
+    final normalized = trimmedPhone.replaceAll(RegExp(r'\D'), '');
+
+    if (normalized == '0908111222' || trimmedPhone == '0908.111.222') {
+      _currentUser = CitizenUser.demoOperator;
+    } else if (normalized == '0909123456' || trimmedPhone == '0909.123.456') {
+      _currentUser = CitizenUser.demoDriver;
+    } else if (normalized == '0912345678' || trimmedPhone == '0912.345.678') {
+      _currentUser = CitizenUser.demoCitizen;
+    } else {
+      _currentUser = CitizenUser(
+        id: 'user-$normalized',
+        name: 'Công dân $trimmedPhone',
+        phone: trimmedPhone,
+        email: 'congdan.$normalized@smartbin.vn',
+        defaultAddress: '123 Nguyễn Thị Minh Khai, P. Bến Nghé, Q.1, TP.HCM',
+        householdId: 'HH-${normalized.length >= 4 ? normalized.substring(normalized.length - 4) : "1234"}',
+        rewardPoints: 120,
+        role: UserRole.citizen,
+      );
+    }
 
     await _saveUserToPrefs(_currentUser!);
     _isLoading = false;
@@ -72,20 +119,16 @@ class AuthProvider extends ChangeNotifier {
     return true;
   }
 
-  /// 1-Click quick login for demo user.
-  Future<void> loginDemo() async {
-    _isLoading = true;
-    notifyListeners();
+  /// 1-Click quick login for Citizen demo account.
+  Future<void> loginDemo() async => switchRole(UserRole.citizen);
 
-    await Future.delayed(const Duration(milliseconds: 200));
-    _currentUser = CitizenUser.demoUser;
-    await _saveUserToPrefs(_currentUser!);
+  /// 1-Click quick login for Operator demo account.
+  Future<void> loginOperator() async => switchRole(UserRole.operator);
 
-    _isLoading = false;
-    notifyListeners();
-  }
+  /// 1-Click quick login for Driver demo account.
+  Future<void> loginDriver() async => switchRole(UserRole.driver);
 
-  /// Logs out the citizen and clears local session.
+  /// Logs out and clears local session.
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();

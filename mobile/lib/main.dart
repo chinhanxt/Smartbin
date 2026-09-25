@@ -4,8 +4,11 @@ import 'core/domain/models/bulky_order.dart';
 import 'core/domain/models/bulky_quote.dart';
 import 'core/theme/bulky_colors.dart';
 import 'core/theme/bulky_theme.dart';
+import 'features/auth/models/citizen_user.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/bulky_account_screen.dart';
+import 'features/driver/screens/bulky_driver_screen.dart';
+import 'features/operator/screens/bulky_operator_screen.dart';
 import 'features/orders/providers/orders_provider.dart';
 import 'features/orders/screens/bulky_order_detail_screen.dart';
 import 'features/orders/screens/bulky_orders_list_screen.dart';
@@ -90,6 +93,16 @@ class BulkyApp extends StatelessWidget {
                 settings: settings,
                 builder: (_) => const BulkyAccountScreen(),
               );
+            case '/operator':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyOperatorScreen(),
+              );
+            case '/driver':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const BulkyDriverScreen(),
+              );
             case '/wizard':
               return MaterialPageRoute(
                 settings: settings,
@@ -130,27 +143,20 @@ class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const screens = [
-      BulkyBookingWizardScreen(),
-      BulkyOrdersListScreen(),
-      BulkyAccountScreen(),
-    ];
+    final auth = context.watch<AuthProvider>();
+    final role = auth.currentRole;
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        selectedItemColor: BulkyColors.primary,
-        unselectedItemColor: BulkyColors.textSecondary,
-        items: const [
+    List<Widget> screens;
+    List<BottomNavigationBarItem> navItems;
+
+    switch (role) {
+      case UserRole.citizen:
+        screens = const [
+          BulkyBookingWizardScreen(),
+          BulkyOrdersListScreen(),
+          BulkyAccountScreen(),
+        ];
+        navItems = const [
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             activeIcon: Icon(Icons.add_circle),
@@ -166,7 +172,77 @@ class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
             activeIcon: Icon(Icons.person_rounded),
             label: 'Tài khoản',
           ),
-        ],
+        ];
+        break;
+      case UserRole.operator:
+        screens = const [
+          BulkyOperatorScreen(),
+          BulkyOrdersListScreen(),
+          BulkyAccountScreen(),
+        ];
+        navItems = const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard_rounded),
+            label: 'Điều phối xe',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Tất cả đơn',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            activeIcon: Icon(Icons.admin_panel_settings_rounded),
+            label: 'Tài khoản',
+          ),
+        ];
+        break;
+      case UserRole.driver:
+        screens = const [
+          BulkyDriverScreen(),
+          BulkyOrdersListScreen(),
+          BulkyAccountScreen(),
+        ];
+        navItems = const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.local_shipping_outlined),
+            activeIcon: Icon(Icons.local_shipping_rounded),
+            label: 'Lộ trình xe',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long_outlined),
+            activeIcon: Icon(Icons.receipt_long),
+            label: 'Lịch sử chuyến',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Tài khoản',
+          ),
+        ];
+        break;
+    }
+
+    final safeIndex = _currentIndex < screens.length ? _currentIndex : 0;
+
+    return Scaffold(
+      body: IndexedStack(
+        index: safeIndex,
+        children: screens,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: safeIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: role == UserRole.driver
+            ? const Color(0xFFEA580C)
+            : (role == UserRole.operator ? const Color(0xFF6366F1) : BulkyColors.primary),
+        unselectedItemColor: BulkyColors.textSecondary,
+        items: navItems,
       ),
     );
   }

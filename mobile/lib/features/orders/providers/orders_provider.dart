@@ -118,6 +118,26 @@ class OrdersProvider extends ChangeNotifier {
     }
   }
 
+  /// Orders that have been confirmed and are awaiting dispatch by the operator.
+  List<BulkyOrder> get pendingDispatchOrders => _orders
+      .where((o) => o.status == BulkyOrderStatus.CONFIRMED)
+      .toList();
+
+  /// Orders assigned to a collection vehicle and on schedule or actively collecting.
+  List<BulkyOrder> get driverAssignedOrders => _orders
+      .where((o) =>
+          o.status == BulkyOrderStatus.SCHEDULED ||
+          o.status == BulkyOrderStatus.ASSIGNED ||
+          o.status == BulkyOrderStatus.IN_PROGRESS)
+      .toList();
+
+  /// Filters orders for a specific collection vehicle plate number.
+  List<BulkyOrder> getOrdersByVehicle(String vehiclePlate) => _orders
+      .where((o) =>
+          o.vehiclePlate != null &&
+          o.vehiclePlate!.toLowerCase().contains(vehiclePlate.toLowerCase()))
+      .toList();
+
   /// Cancels an order.
   Future<void> cancelOrder(String orderId) async {
     if (_orders.isEmpty) {
@@ -133,6 +153,73 @@ class OrdersProvider extends ChangeNotifier {
     if (index >= 0) {
       _orders[index] = _orders[index].copyWith(
         status: BulkyOrderStatus.CANCELLED,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// [Operator Action] Assigns vehicle/driver and marks order as SCHEDULED.
+  Future<void> assignDriverAndSchedule(
+    String orderId, {
+    required String vehiclePlate,
+  }) async {
+    if (_orders.isEmpty) {
+      await loadOrders();
+    }
+    final index = _orders.indexWhere((o) => o.id == orderId);
+
+    await _storage.updateOrderStatus(
+      orderId,
+      BulkyOrderStatus.SCHEDULED,
+      vehiclePlate: vehiclePlate,
+    );
+
+    if (index >= 0) {
+      _orders[index] = _orders[index].copyWith(
+        status: BulkyOrderStatus.SCHEDULED,
+        vehiclePlate: vehiclePlate,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// [Driver Action] Marks order as IN_PROGRESS (driver en route to pickup point).
+  Future<void> startCollection(String orderId) async {
+    if (_orders.isEmpty) {
+      await loadOrders();
+    }
+    final index = _orders.indexWhere((o) => o.id == orderId);
+
+    await _storage.updateOrderStatus(
+      orderId,
+      BulkyOrderStatus.IN_PROGRESS,
+    );
+
+    if (index >= 0) {
+      _orders[index] = _orders[index].copyWith(
+        status: BulkyOrderStatus.IN_PROGRESS,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// [Driver Action] Confirms bulky waste collected and finalizes payment.
+  Future<void> completeCollection(String orderId) async {
+    if (_orders.isEmpty) {
+      await loadOrders();
+    }
+    final index = _orders.indexWhere((o) => o.id == orderId);
+
+    await _storage.updateOrderStatus(
+      orderId,
+      BulkyOrderStatus.COMPLETED,
+      paymentStatus: BulkyPaymentStatus.PAID,
+    );
+
+    if (index >= 0) {
+      _orders[index] = _orders[index].copyWith(
+        status: BulkyOrderStatus.COMPLETED,
+        paymentStatus: BulkyPaymentStatus.PAID,
       );
       notifyListeners();
     }

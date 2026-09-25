@@ -62,11 +62,12 @@ class MockBulkyStorage {
     await _persistOrders(orders);
   }
 
-  /// Updates the order status and optionally payment status of a given order.
+  /// Updates the order status and optionally payment status or assigned vehicle of a given order.
   Future<void> updateOrderStatus(
     String orderId,
     BulkyOrderStatus status, {
     BulkyPaymentStatus? paymentStatus,
+    String? vehiclePlate,
   }) async {
     final orders = await getOrders();
     final index = orders.indexWhere((o) => o.id == orderId);
@@ -74,7 +75,7 @@ class MockBulkyStorage {
 
     final existing = orders[index];
     final newPaymentStatus = paymentStatus ??
-        ((status == BulkyOrderStatus.CONFIRMED || status == BulkyOrderStatus.SCHEDULED) &&
+        ((status == BulkyOrderStatus.CONFIRMED || status == BulkyOrderStatus.SCHEDULED || status == BulkyOrderStatus.ASSIGNED) &&
                 existing.paymentStatus == BulkyPaymentStatus.UNPAID
             ? BulkyPaymentStatus.DEPOSIT_HELD
             : (status == BulkyOrderStatus.COMPLETED
@@ -84,6 +85,7 @@ class MockBulkyStorage {
     final updated = existing.copyWith(
       status: status,
       paymentStatus: newPaymentStatus,
+      vehiclePlate: vehiclePlate ?? existing.vehiclePlate,
       depositPaidAt: newPaymentStatus == BulkyPaymentStatus.DEPOSIT_HELD && existing.depositPaidAt == null
           ? DateTime.now()
           : existing.depositPaidAt,
@@ -203,7 +205,57 @@ class MockBulkyStorage {
       note: 'Đã tập kết sẵn ở sân tầng trệt.',
     );
 
-    await _persistOrders([scheduledOrder, completedOrder]);
+    // 3. Order 3: CONFIRMED (Awaiting dispatch & vehicle assignment)
+    final itemsOrder3 = [
+      const BulkyItem(
+        id: 'seed-item-5',
+        category: BulkyCategory.SOFA,
+        displayName: 'Sofa góc phòng khách',
+        quantity: 1,
+        lengthCm: 200,
+        widthCm: 90,
+        heightCm: 80,
+        material: MaterialType.STANDARD,
+      ),
+      const BulkyItem(
+        id: 'seed-item-6',
+        category: BulkyCategory.CABINET,
+        displayName: 'Tủ giày dép gỗ MDF',
+        quantity: 1,
+        lengthCm: 100,
+        widthCm: 40,
+        heightCm: 110,
+        material: MaterialType.STANDARD,
+      ),
+    ];
+
+    final quoteOrder3 = PricingEngine.calculateQuote(
+      items: itemsOrder3,
+      requiresDisassembly: false,
+      floorNumber: 1,
+      hasElevator: true,
+      now: DateTime(2026, 9, 24, 10, 0),
+    );
+
+    final confirmedOrder = BulkyOrder(
+      id: 'order-demo-confirmed',
+      items: itemsOrder3,
+      quote: quoteOrder3,
+      address: '72 Lê Thánh Tôn, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+      pickupDate: '2026-09-27',
+      status: BulkyOrderStatus.CONFIRMED,
+      paymentStatus: BulkyPaymentStatus.DEPOSIT_HELD,
+      hasElevator: true,
+      floorNumber: 1,
+      requiresDisassembly: false,
+      createdAt: DateTime(2026, 9, 24, 10, 0),
+      depositPaidAt: DateTime(2026, 9, 24, 10, 15),
+      contactName: 'Lê Hoàng Nam',
+      contactPhone: '0938.999.888',
+      note: 'Đã thanh toán cọc giữ chỗ 150.000đ, sẵn sàng đón xe thu gom.',
+    );
+
+    await _persistOrders([confirmedOrder, scheduledOrder, completedOrder]);
   }
 
   /// Clears all stored orders (useful for testing and reset).

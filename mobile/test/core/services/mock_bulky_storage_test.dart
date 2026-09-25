@@ -17,16 +17,23 @@ void main() {
   });
 
   group('MockBulkyStorage', () {
-    test('1. seedInitialOrdersIfEmpty populates 2 realistic Vietnamese orders when empty', () async {
+    test('1. seedInitialOrdersIfEmpty populates realistic Vietnamese orders when empty', () async {
       final initialOrders = await storage.getOrders();
       expect(initialOrders, isEmpty);
 
       await storage.seedInitialOrdersIfEmpty();
 
       final orders = await storage.getOrders();
-      expect(orders.length, 2);
+      expect(orders.length, 3);
 
-      // Order 1: SCHEDULED with deposit held
+      // Order 1: CONFIRMED awaiting dispatch
+      final confirmedOrder = orders.firstWhere(
+        (o) => o.status == BulkyOrderStatus.CONFIRMED,
+      );
+      expect(confirmedOrder.paymentStatus, BulkyPaymentStatus.DEPOSIT_HELD);
+      expect(confirmedOrder.address, contains('Hồ Chí Minh'));
+
+      // Order 2: SCHEDULED with deposit held
       final scheduledOrder = orders.firstWhere(
         (o) => o.status == BulkyOrderStatus.SCHEDULED,
       );
@@ -36,7 +43,7 @@ void main() {
       expect(scheduledOrder.items.isNotEmpty, isTrue);
       expect(scheduledOrder.quote.minVnd, greaterThan(0));
 
-      // Order 2: COMPLETED
+      // Order 3: COMPLETED
       final completedOrder = orders.firstWhere(
         (o) => o.status == BulkyOrderStatus.COMPLETED,
       );
@@ -47,7 +54,7 @@ void main() {
       // Calling seed again should NOT duplicate orders
       await storage.seedInitialOrdersIfEmpty();
       final reloadedOrders = await storage.getOrders();
-      expect(reloadedOrders.length, 2);
+      expect(reloadedOrders.length, 3);
     });
 
     test('2. saveOrder saves and updates orders in storage', () async {

@@ -321,9 +321,8 @@ void main() {
       await ordersProvider.loadOrders();
 
       expect(ordersProvider.isLoading, isFalse);
-      expect(ordersProvider.orders.length, 2);
-      expect(ordersProvider.activeOrders.length, 1);
-      expect(ordersProvider.activeOrders.first.status, BulkyOrderStatus.SCHEDULED);
+      expect(ordersProvider.orders.length, 3);
+      expect(ordersProvider.activeOrders.length, 2);
       expect(ordersProvider.completedOrders.length, 1);
       expect(ordersProvider.completedOrders.first.status, BulkyOrderStatus.COMPLETED);
     });
@@ -357,8 +356,8 @@ void main() {
       expect(newOrder.contactPhone, '0933221100');
       expect(newOrder.note, contains('Hẻm xe tải'));
 
-      expect(ordersProvider.orders.length, 3);
-      expect(ordersProvider.activeOrders.length, 2);
+      expect(ordersProvider.orders.length, 4);
+      expect(ordersProvider.activeOrders.length, 3);
 
       // Verify persisted in storage
       final stored = await storage.getOrderById(newOrder.id);

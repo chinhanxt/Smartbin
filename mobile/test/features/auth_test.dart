@@ -80,7 +80,8 @@ void main() {
         ),
       );
 
-      // Tap logout
+      // Scroll to logout button and tap
+      await tester.scrollUntilVisible(find.byKey(const Key('logout_button')), 100);
       await tester.tap(find.byKey(const Key('logout_button')));
       await tester.pumpAndSettle();
 
