@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/domain/models/bulky_order.dart';
 import '../../../core/theme/bulky_colors.dart';
 import '../../orders/providers/orders_provider.dart';
+import '../../../core/widgets/bulky_app_bottom_nav_bar.dart';
 import '../widgets/countdown_timer_widget.dart';
 
 /// Screen for simulating deposit payment via VietQR / MoMo with countdown timer.
@@ -202,91 +203,119 @@ class _BulkyPaymentScreenState extends State<BulkyPaymentScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: BulkyColors.surface,
-          border: const Border(
-            top: BorderSide(color: BulkyColors.border, width: 1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: ElevatedButton(
-            key: const Key('confirm_payment_button'),
-            onPressed: _isProcessing
-                ? null
-                : () async {
-                    setState(() {
-                      _isProcessing = true;
-                    });
-                    try {
-                      await context
-                          .read<OrdersProvider>()
-                          .simulateDepositPayment(order.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Đặt cọc thành công! Đơn hàng đã được xác nhận.',
-                            ),
-                            backgroundColor: BulkyColors.success,
-                          ),
-                        );
-                        Navigator.pushReplacementNamed(
-                          context,
-                          '/order-detail',
-                          arguments: order.id,
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Lỗi thanh toán: $e')),
-                        );
-                      }
-                    } finally {
-                      if (mounted) {
-                        setState(() {
-                          _isProcessing = false;
-                        });
-                      }
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BulkyColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: BulkyColors.surface,
+              border: const Border(
+                top: BorderSide(color: BulkyColors.border, width: 1),
               ),
-              elevation: 2,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -3),
+                ),
+              ],
             ),
-            child: _isProcessing
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Xác nhận đã thanh toán cọc',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+            child: SafeArea(
+              top: false,
+              bottom: false,
+              child: Row(
+                children: [
+                  OutlinedButton.icon(
+                    key: const Key('payment_back_button'),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 15),
+                    label: const Text('Quay lại'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: BulkyColors.textPrimary,
+                      side: const BorderSide(color: BulkyColors.border),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      key: const Key('confirm_payment_button'),
+                      onPressed: _isProcessing
+                          ? null
+                          : () async {
+                              setState(() {
+                                _isProcessing = true;
+                              });
+                              try {
+                                await context
+                                    .read<OrdersProvider>()
+                                    .simulateDepositPayment(order.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Đặt cọc thành công! Đơn hàng đã được xác nhận.',
+                                      ),
+                                      backgroundColor: BulkyColors.success,
+                                    ),
+                                  );
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    '/order-detail',
+                                    arguments: order.id,
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Lỗi thanh toán: $e')),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _isProcessing = false;
+                                  });
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: BulkyColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isProcessing
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Xác nhận đã thanh toán cọc',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          const BulkyAppBottomNavBar(activeIndex: 1),
+        ],
       ),
     );
   }

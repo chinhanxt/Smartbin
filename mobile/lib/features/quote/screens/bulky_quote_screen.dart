@@ -5,6 +5,7 @@ import '../../../core/domain/models/bulky_quote.dart';
 import '../../../core/theme/bulky_colors.dart';
 import '../../orders/providers/orders_provider.dart';
 import '../../request_wizard/providers/booking_wizard_provider.dart';
+import '../../../core/widgets/bulky_app_bottom_nav_bar.dart';
 import '../widgets/tolerance_guarantee_banner.dart';
 
 /// Detailed Quote Screen breaking down itemized pricing, handling surcharges,
@@ -97,7 +98,13 @@ class BulkyQuoteScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomActionBar(context, resolvedOrder, wizard),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildBottomActionBar(context, resolvedOrder, wizard),
+          const BulkyAppBottomNavBar(activeIndex: 1),
+        ],
+      ),
     );
   }
 
@@ -394,7 +401,7 @@ class BulkyQuoteScreen extends StatelessWidget {
     BookingWizardProvider wizard,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: BulkyColors.surface,
         border: const Border(
@@ -410,43 +417,65 @@ class BulkyQuoteScreen extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: ElevatedButton(
-          key: const Key('proceed_to_payment_button'),
-          onPressed: () async {
-            if (existingOrder != null) {
-              Navigator.pushNamed(context, '/payment', arguments: existingOrder.id);
-            } else {
-              final ordersProvider = context.read<OrdersProvider>();
-              try {
-                final newOrder = await ordersProvider.createOrderFromWizard(wizard);
-                if (context.mounted) {
-                  Navigator.pushNamed(context, '/payment', arguments: newOrder.id);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi tạo đơn: $e')),
-                  );
-                }
-              }
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: BulkyColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+        bottom: false,
+        child: Row(
+          children: [
+            OutlinedButton.icon(
+              key: const Key('quote_back_button'),
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 15),
+              label: const Text('Quay lại'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: BulkyColors.textPrimary,
+                side: const BorderSide(color: BulkyColors.border),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
-            elevation: 2,
-          ),
-          child: const Text(
-            'Tiến hành đặt cọc giữ chỗ',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                key: const Key('proceed_to_payment_button'),
+                onPressed: () async {
+                  if (existingOrder != null) {
+                    Navigator.pushNamed(context, '/payment', arguments: existingOrder.id);
+                  } else {
+                    final ordersProvider = context.read<OrdersProvider>();
+                    try {
+                      final newOrder = await ordersProvider.createOrderFromWizard(wizard);
+                      if (context.mounted) {
+                        Navigator.pushNamed(context, '/payment', arguments: newOrder.id);
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi tạo đơn: $e')),
+                        );
+                      }
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BulkyColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  'Tiến hành đặt cọc giữ chỗ',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

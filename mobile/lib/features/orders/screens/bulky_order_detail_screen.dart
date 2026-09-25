@@ -4,6 +4,7 @@ import '../../../core/constants/bulky_constants.dart';
 import '../../../core/domain/models/bulky_order.dart';
 import '../../../core/theme/bulky_colors.dart';
 import '../../quote/widgets/tolerance_guarantee_banner.dart';
+import '../../../core/widgets/bulky_app_bottom_nav_bar.dart';
 import '../providers/orders_provider.dart';
 
 /// Detailed view of a bulky waste order with a 4-step progress timeline,
@@ -178,6 +179,7 @@ class BulkyOrderDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: const BulkyAppBottomNavBar(activeIndex: 2),
     );
   }
 
