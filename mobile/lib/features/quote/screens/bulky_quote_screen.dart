@@ -119,7 +119,7 @@ class BulkyQuoteScreen extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Ngày $date có xe cẩu chuyên dụng sẵn sàng phục vụ',
+              'Ngày $date có xe thu gom chuyên dụng sẵn sàng phục vụ',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -295,7 +295,7 @@ class BulkyQuoteScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _buildRowLine(
-            'Phí xe cẩu chuyên dụng',
+            'Phí xe thu gom chuyên dụng',
             BulkyColors.formatCurrency(q.areaFee),
           ),
           const SizedBox(height: 12),

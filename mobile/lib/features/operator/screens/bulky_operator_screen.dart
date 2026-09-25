@@ -390,7 +390,7 @@ class _BulkyOperatorScreenState extends State<BulkyOperatorScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Đã chỉ định xe cẩu 51C-889.21 (Tài xế Nguyễn Văn Hùng) cho đơn ${order.id}!',
+                          'Đã chỉ định xe tải 51C-889.21 (Tài xế Nguyễn Văn Hùng) cho đơn ${order.id}!',
                         ),
                         backgroundColor: BulkyColors.primary,
                       ),
@@ -398,7 +398,7 @@ class _BulkyOperatorScreenState extends State<BulkyOperatorScreen>
                   }
                 },
                 icon: const Icon(Icons.local_shipping_rounded, size: 18),
-                label: const Text('Chỉ định xe cẩu 51C-889.21 & Lên lịch'),
+                label: const Text('Chỉ định xe tải 51C-889.21 & Lên lịch'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: BulkyColors.primary,
                   foregroundColor: Colors.white,

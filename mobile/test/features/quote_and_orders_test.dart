@@ -166,7 +166,7 @@ void main() {
       expect(find.text('Cước đồ vật'), findsOneWidget);
       expect(find.text('Phụ phí tháo dỡ'), findsOneWidget);
       expect(find.text('Phụ phí bốc vác thang bộ'), findsOneWidget);
-      expect(find.text('Phí xe cẩu chuyên dụng'), findsOneWidget);
+      expect(find.text('Phí xe thu gom chuyên dụng'), findsOneWidget);
       expect(find.text('Tổng cước ước tính'), findsOneWidget);
 
       // Deposit hold card

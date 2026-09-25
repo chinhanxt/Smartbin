@@ -277,7 +277,7 @@ class _StepLogisticsEditorState extends State<StepLogisticsEditor> {
                       child: _buildLocationChoiceCard(
                         key: const Key('curbside_pickup_choice'),
                         title: 'Mặt đất / Vỉa hè',
-                        desc: 'Xe cẩu bốc trực tiếp (Miễn phí tầng)',
+                        desc: 'Xe tải bốc trực tiếp (Miễn phí tầng)',
                         emoji: '🚚',
                         isSelected: wizard.floorNumber == 0,
                         onTap: () {

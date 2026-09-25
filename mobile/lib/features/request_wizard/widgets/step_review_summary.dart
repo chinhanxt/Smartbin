@@ -62,7 +62,7 @@ class StepReviewSummary extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Xe cẩu chuyên dụng sẵn sàng phục vụ ngày ${wizard.scheduledDate.isNotEmpty ? wizard.scheduledDate : "hẹn"}',
+                    'Xe thu gom chuyên dụng sẵn sàng phục vụ ngày ${wizard.scheduledDate.isNotEmpty ? wizard.scheduledDate : "hẹn"}',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -229,7 +229,7 @@ class StepReviewSummary extends StatelessWidget {
                     BulkyColors.formatCurrency(quote.floorHandlingFee),
                   ),
                 _buildCostRow(
-                  'Phí xe cẩu chuyên dụng:',
+                  'Phí xe thu gom chuyên dụng:',
                   BulkyColors.formatCurrency(quote.areaFee),
                 ),
                 const Divider(thickness: 1.2, height: 20),

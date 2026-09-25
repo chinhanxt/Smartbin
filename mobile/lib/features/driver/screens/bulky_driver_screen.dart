@@ -178,7 +178,7 @@ class BulkyDriverScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Xe cẩu 2.5T ($vehiclePlate) • Đội VSMT Q.1',
+                      'Xe tải 2.5T ($vehiclePlate) • Đội VSMT Q.1',
                       style: const TextStyle(
                         fontSize: 12,
                         color: BulkyColors.textSecondary,
@@ -245,7 +245,7 @@ class BulkyDriverScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Xe cẩu 51C-889.21 sẵn sàng nhận lệnh phân công mới từ Điều phối viên.',
+            'Xe tải 51C-889.21 sẵn sàng nhận lệnh phân công mới từ Điều phối viên.',
             style: TextStyle(fontSize: 12, color: BulkyColors.textSecondary),
             textAlign: TextAlign.center,
           ),
@@ -479,7 +479,7 @@ class BulkyDriverScreen extends StatelessWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Đã có mặt tại hiện trường. Kiểm tra và bốc dỡ đồ đạc lên thùng xe cẩu an toàn.',
+                        'Đã có mặt tại hiện trường. Kiểm tra và bốc dỡ đồ đạc lên thùng xe tải an toàn.',
                         style: TextStyle(
                             fontSize: 11, color: BulkyColors.textPrimary),
                       ),

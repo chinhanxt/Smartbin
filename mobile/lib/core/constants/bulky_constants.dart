@@ -171,7 +171,7 @@ enum BulkyOrderStatus {
       case BulkyOrderStatus.SCHEDULED:
         return 'Đã xếp lịch hẹn';
       case BulkyOrderStatus.ASSIGNED:
-        return 'Đã điều phối xe cẩu';
+        return 'Đã điều phối xe thu gom';
       case BulkyOrderStatus.IN_PROGRESS:
         return 'Xe đang đến thu gom';
       case BulkyOrderStatus.COLLECTED:

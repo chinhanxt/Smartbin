@@ -842,7 +842,7 @@ class CitizenHomeScreen extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Text('🎟️', style: TextStyle(fontSize: 24)),
-              title: const Text('Voucher giảm 30k cước xe cẩu rác cồng kềnh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              title: const Text('Voucher giảm 30k cước xe thu gom rác cồng kềnh', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               subtitle: const Text('100 Điểm Xanh'),
               trailing: ElevatedButton(
                 onPressed: () {

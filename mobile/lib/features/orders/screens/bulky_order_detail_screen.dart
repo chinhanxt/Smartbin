@@ -166,7 +166,7 @@ class BulkyOrderDetailScreen extends StatelessWidget {
 
     final timelineSteps = [
       {'title': 'Đã đặt cọc', 'active': isStep1Active, 'desc': 'Đã cọc giữ chỗ'},
-      {'title': 'Đã xếp lịch xe & Tài xế', 'active': isStep2Active, 'desc': 'Đã điều phối xe cẩu'},
+      {'title': 'Đã xếp lịch xe & Tài xế', 'active': isStep2Active, 'desc': 'Đã điều phối xe thu gom'},
       {'title': 'Đang đến lấy rác', 'active': isStep3Active, 'desc': 'Tài xế đang di chuyển'},
       {'title': 'Hoàn tất thu gom', 'active': isStep4Active, 'desc': 'Đã hoàn tất thanh toán'},
     ];
@@ -274,7 +274,7 @@ class BulkyOrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildDriverVehicleCard(BulkyOrder order) {
-    final vehiclePlate = order.vehiclePlate ?? '51C-889.21 (Xe cẩu 2.5T)';
+    final vehiclePlate = order.vehiclePlate ?? '51C-889.21 (Xe tải 2.5T)';
 
     return Container(
       padding: const EdgeInsets.all(16),

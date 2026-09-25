@@ -111,11 +111,11 @@ class LivePricingBottomBar extends StatelessWidget {
 
                   // 2. Logistics & Surcharges
                   const Text(
-                    'Phụ phí dịch vụ & Xe cẩu:',
+                    'Phụ phí dịch vụ & Phương tiện:',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
-                  _buildCostRow('Phí xe cẩu chuyên dụng:', BulkyColors.formatCurrency(quote.areaFee)),
+                  _buildCostRow('Phí xe thu gom chuyên dụng:', BulkyColors.formatCurrency(quote.areaFee)),
                   if (quote.disassemblyFee > 0)
                     _buildCostRow('Phụ phí tháo dỡ đồ:', BulkyColors.formatCurrency(quote.disassemblyFee)),
                   if (quote.floorHandlingFee > 0)

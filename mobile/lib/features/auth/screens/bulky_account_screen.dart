@@ -618,7 +618,7 @@ class _BulkyAccountScreenState extends State<BulkyAccountScreen> {
                     Icon(Icons.directions_car_rounded, size: 18, color: Color(0xFFEA580C)),
                     SizedBox(width: 6),
                     Text(
-                      'Biển số xe cẩu',
+                      'Biển số xe tải',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -859,7 +859,7 @@ class _BulkyAccountScreenState extends State<BulkyAccountScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Đã đăng nhập tài khoản mẫu: Tài xế xe cẩu (Nguyễn Văn Hùng)'),
+                        content: Text('Đã đăng nhập tài khoản mẫu: Tài xế xe tải thu gom (Nguyễn Văn Hùng)'),
                         backgroundColor: Color(0xFFEA580C),
                       ),
                     );
