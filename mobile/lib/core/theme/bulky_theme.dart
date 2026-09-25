@@ -13,6 +13,7 @@ class BulkyTheme {
         secondary: BulkyColors.primaryLight,
         surface: BulkyColors.surface,
         error: BulkyColors.error,
+        primaryContainer: BulkyColors.primaryContainer,
         brightness: Brightness.light,
       ),
       scaffoldBackgroundColor: BulkyColors.background,
@@ -20,6 +21,7 @@ class BulkyTheme {
         backgroundColor: BulkyColors.surface,
         foregroundColor: BulkyColors.textPrimary,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
         titleTextStyle: TextStyle(
           color: BulkyColors.textPrimary,
@@ -48,6 +50,27 @@ class BulkyTheme {
           borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: BulkyColors.border),
         ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: BulkyColors.surface,
+        selectedColor: BulkyColors.primaryContainer,
+        side: const BorderSide(color: BulkyColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        labelStyle: const TextStyle(fontSize: 13, color: BulkyColors.textPrimary),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return BulkyColors.primary;
+          }
+          return Colors.grey.shade400;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return BulkyColors.primaryLight.withValues(alpha: 0.5);
+          }
+          return Colors.grey.shade200;
+        }),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

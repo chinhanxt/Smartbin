@@ -45,8 +45,8 @@ void main() {
     expect(find.text('Đặt Thu Gom Rác Cồng Kềnh'), findsOneWidget);
 
     // Verify BulkyColors palette constants
-    expect(BulkyColors.primary, const Color(0xFF1D4ED8));
+    expect(BulkyColors.primary, const Color(0xFF059669));
     expect(BulkyColors.success, const Color(0xFF16A34A));
-    expect(BulkyColors.background, const Color(0xFFF8FAFC));
+    expect(BulkyColors.background, const Color(0xFFF6FBF8));
   });
 }

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
 class BulkyColors {
-  static const Color primary = Color(0xFF1D4ED8);
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1E40AF);
+  // Eco Emerald / Smartbin Green (Chủ đề Môi trường & Tái chế Rác thải đô thị)
+  static const Color primary = Color(0xFF059669); // Emerald 600 - Xanh môi trường chủ đạo
+  static const Color primaryLight = Color(0xFF10B981); // Emerald 500 - Xanh tươi sáng
+  static const Color primaryDark = Color(0xFF047857); // Emerald 700 - Xanh đậm tương phản cao
+  static const Color primaryContainer = Color(0xFFECFDF5); // Emerald 50 - Nền xanh minty nhẹ
 
-  static const Color background = Color(0xFFF8FAFC);
+  // Nền & Khung thẻ (Sạch sẽ, dịu mát với ánh ngọc sinh thái)
+  static const Color background = Color(0xFFF6FBF8); // Off-white ánh xanh lá thanh nhẹ
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color border = Color(0xFFE2E8F0);
+  static const Color border = Color(0xFFE2EBE5); // Viền xám ánh xanh lá dịu mắt
 
   static const Color textPrimary = Color(0xFF0F172A);
   static const Color textSecondary = Color(0xFF64748B);
@@ -19,13 +22,13 @@ class BulkyColors {
   static const Color error = Color(0xFFDC2626);
   static const Color errorBg = Color(0xFFFEE2E2);
 
-  // Category Bounding Box Colors
-  static const Color boxSofa = Color(0xFF10B981);
-  static const Color boxMattress = Color(0xFF2563EB);
-  static const Color boxCabinet = Color(0xFF9333EA);
-  static const Color boxTable = Color(0xFFF59E0B);
-  static const Color boxOther = Color(0xFF475569);
-  static const Color boxHazardous = Color(0xFFEF4444);
+  // Phân loại vật phẩm & Bounding Box (Trực quan, mang màu sắc chất liệu nội thất/môi trường)
+  static const Color boxSofa = Color(0xFF059669); // Xanh Emerald cho sofa/nệm bọc
+  static const Color boxMattress = Color(0xFF0284C7); // Xanh da trời cho đệm lò xo
+  static const Color boxCabinet = Color(0xFFB45309); // Nâu gỗ ấm cho tủ/kệ
+  static const Color boxTable = Color(0xFFD97706); // Vàng hổ phách cho bàn ăn/bàn đá
+  static const Color boxOther = Color(0xFF64748B); // Xám đá cho xà bần/phế thải
+  static const Color boxHazardous = Color(0xFFDC2626); // Đỏ cảnh báo cho chất độc hại
 
   /// Formats VND amount with dot thousands separator, e.g. 150000 -> "150.000 đ"
   static String formatCurrency(int amount) {
