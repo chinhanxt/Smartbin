@@ -14,35 +14,38 @@ void main() {
     await tester.pumpWidget(const BulkyApp());
     await tester.pumpAndSettle();
 
-    // Verify Wizard AppBar title is displayed by default on Tab 0
-    expect(find.text('Đặt Thu Gom Rác Cồng Kềnh'), findsOneWidget);
+    // Verify Citizen Home Dashboard elements are displayed on Tab 0
+    expect(find.text('SMARTBIN CITIZEN'), findsOneWidget);
+    expect(find.text('THÙNG RÁC THÔNG MINH GIA ĐÌNH'), findsOneWidget);
+    expect(find.text('LỊCH THU GOM HÔM NAY'), findsOneWidget);
+    expect(find.text('HÀNH ĐỘNG NHANH'), findsOneWidget);
 
     // Verify BottomNavigationBar tabs are displayed
-    expect(find.text('Đặt lịch'), findsOneWidget);
-    expect(find.text('Đơn của tôi'), findsOneWidget);
-    expect(find.byIcon(Icons.add_circle), findsOneWidget);
-    expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
+    expect(find.text('Trang chủ'), findsOneWidget);
+    expect(find.text('Thu gom'), findsOneWidget);
+    expect(find.text('Đơn & Phí'), findsOneWidget);
+    expect(find.text('Tài khoản'), findsOneWidget);
 
-    // Switch to Tab 1: Đơn của tôi
-    await tester.tap(find.text('Đơn của tôi'));
+    // Switch to Tab 1: Thu gom
+    await tester.tap(find.text('Thu gom'));
     await tester.pumpAndSettle();
+    expect(find.text('Đặt Thu Gom Rác Cồng Kềnh'), findsOneWidget);
 
-    // Verify Orders screen is visible
+    // Switch to Tab 2: Đơn & Phí
+    await tester.tap(find.text('Đơn & Phí'));
+    await tester.pumpAndSettle();
     expect(find.text('Đơn Của Tôi'), findsOneWidget);
 
-    // Switch to Tab 2: Tài khoản
+    // Switch to Tab 3: Tài khoản
     await tester.tap(find.text('Tài khoản'));
     await tester.pumpAndSettle();
-
-    // Verify Account screen is visible
     expect(find.text('Tài Khoản Công Dân'), findsOneWidget);
     expect(find.text('Nguyễn Văn An'), findsOneWidget);
 
-    // Switch back to Tab 0: Đặt lịch
-    await tester.tap(find.text('Đặt lịch'));
+    // Switch back to Tab 0: Trang chủ
+    await tester.tap(find.text('Trang chủ'));
     await tester.pumpAndSettle();
-
-    expect(find.text('Đặt Thu Gom Rác Cồng Kềnh'), findsOneWidget);
+    expect(find.text('SMARTBIN CITIZEN'), findsOneWidget);
 
     // Verify BulkyColors palette constants
     expect(BulkyColors.primary, const Color(0xFF059669));

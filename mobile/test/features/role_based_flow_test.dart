@@ -124,8 +124,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Default: Citizen tabs
-      expect(find.text('Đặt lịch'), findsOneWidget);
-      expect(find.text('Đơn của tôi'), findsOneWidget);
+      expect(find.text('Trang chủ'), findsOneWidget);
+      expect(find.text('Thu gom'), findsOneWidget);
+      expect(find.text('Đơn & Phí'), findsOneWidget);
       expect(find.text('Tài khoản'), findsOneWidget);
 
       // Switch to Operator role

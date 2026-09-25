@@ -7,6 +7,7 @@ import 'core/theme/bulky_theme.dart';
 import 'features/auth/models/citizen_user.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/bulky_account_screen.dart';
+import 'features/citizen_home/screens/citizen_home_screen.dart';
 import 'features/driver/screens/bulky_driver_screen.dart';
 import 'features/operator/screens/bulky_operator_screen.dart';
 import 'features/orders/providers/orders_provider.dart';
@@ -151,21 +152,33 @@ class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
 
     switch (role) {
       case UserRole.citizen:
-        screens = const [
-          BulkyBookingWizardScreen(),
-          BulkyOrdersListScreen(),
-          BulkyAccountScreen(),
+        screens = [
+          CitizenHomeScreen(
+            onNavigateTab: (tabIndex) {
+              setState(() {
+                _currentIndex = tabIndex;
+              });
+            },
+          ),
+          const BulkyBookingWizardScreen(),
+          const BulkyOrdersListScreen(),
+          const BulkyAccountScreen(),
         ];
         navItems = const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            activeIcon: Icon(Icons.add_circle),
-            label: 'Đặt lịch',
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home_rounded),
+            label: 'Trang chủ',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chair_outlined),
+            activeIcon: Icon(Icons.chair_rounded),
+            label: 'Thu gom',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long_outlined),
             activeIcon: Icon(Icons.receipt_long),
-            label: 'Đơn của tôi',
+            label: 'Đơn & Phí',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
@@ -232,6 +245,7 @@ class _BulkyHomeScreenState extends State<BulkyHomeScreen> {
         children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: safeIndex,
         onTap: (index) {
           setState(() {
