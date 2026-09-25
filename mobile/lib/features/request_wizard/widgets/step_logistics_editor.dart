@@ -260,7 +260,50 @@ class _StepLogisticsEditorState extends State<StepLogisticsEditor> {
             title: 'Điều kiện bốc dỡ & Bê vác',
             icon: Icons.front_loader,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text(
+                  'Vị trí tập kết đồ đạc:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: BulkyColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildLocationChoiceCard(
+                        key: const Key('curbside_pickup_choice'),
+                        title: 'Mặt đất / Vỉa hè',
+                        desc: 'Xe cẩu bốc trực tiếp (Miễn phí tầng)',
+                        emoji: '🚚',
+                        isSelected: wizard.floorNumber == 0,
+                        onTap: () {
+                          wizard.setLogistics(floorNumber: 0, hasElevator: false);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildLocationChoiceCard(
+                        key: const Key('inside_pickup_choice'),
+                        title: 'Trong nhà / Lầu cao',
+                        desc: 'Bốc vác từ căn hộ / lầu cao',
+                        emoji: '🏢',
+                        isSelected: wizard.floorNumber > 0 || wizard.hasElevator,
+                        onTap: () {
+                          if (wizard.floorNumber == 0 && !wizard.hasElevator) {
+                            wizard.setLogistics(floorNumber: 1);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
@@ -427,6 +470,64 @@ class _StepLogisticsEditorState extends State<StepLogisticsEditor> {
               child,
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationChoiceCard({
+    required Key key,
+    required String title,
+    required String desc,
+    required String emoji,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      key: key,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? BulkyColors.primaryLight.withValues(alpha: 0.1)
+              : BulkyColors.background,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? BulkyColors.primary : BulkyColors.border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 18)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? BulkyColors.primary : BulkyColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc,
+              style: const TextStyle(
+                fontSize: 10,
+                color: BulkyColors.textSecondary,
+                height: 1.2,
+              ),
+            ),
+          ],
         ),
       ),
     );

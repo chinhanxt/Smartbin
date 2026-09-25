@@ -6,6 +6,7 @@ import '../../../../core/theme/bulky_colors.dart';
 import '../../scan/providers/scan_provider.dart';
 import '../../scan/widgets/bulky_camera_preview.dart';
 import '../providers/booking_wizard_provider.dart';
+import 'bulky_category_quick_selector.dart';
 import 'material_survey_chips.dart';
 
 /// Step 1 of Booking Wizard: Camera/Photo scanning, AI recognition trigger,
@@ -175,7 +176,11 @@ class StepItemsEditor extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // 3. Section Header & Add Item Button
+          // 3. Quick Visual Category Catalog (1-Click Add)
+          BulkyCategoryQuickSelector(wizard: wizard),
+          const SizedBox(height: 16),
+
+          // 4. Section Header & Add Item Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -374,33 +379,43 @@ class _ItemCardState extends State<_ItemCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Category dropdown & Delete button
+            // Top Row: Category dropdown with Emoji avatar & Delete button
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: BulkyColors.background,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: BulkyColors.border),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<BulkyCategory>(
-                      value: item.category,
-                      isDense: true,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: BulkyColors.textPrimary,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _getCategoryEmoji(item.category),
+                        style: const TextStyle(fontSize: 16),
                       ),
-                      items: BulkyCategory.values.map((cat) {
-                        return DropdownMenuItem<BulkyCategory>(
-                          value: cat,
-                          child: Text(cat.displayName),
-                        );
-                      }).toList(),
-                      onChanged: widget.onCategoryChanged,
-                    ),
+                      const SizedBox(width: 6),
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<BulkyCategory>(
+                          value: item.category,
+                          isDense: true,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: BulkyColors.textPrimary,
+                          ),
+                          items: BulkyCategory.values.map((cat) {
+                            return DropdownMenuItem<BulkyCategory>(
+                              value: cat,
+                              child: Text(cat.displayName),
+                            );
+                          }).toList(),
+                          onChanged: widget.onCategoryChanged,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
@@ -538,5 +553,20 @@ class _ItemCardState extends State<_ItemCard> {
         ),
       ),
     );
+  }
+
+  String _getCategoryEmoji(BulkyCategory cat) {
+    switch (cat) {
+      case BulkyCategory.SOFA:
+        return '🛋️';
+      case BulkyCategory.MATTRESS:
+        return '🛏️';
+      case BulkyCategory.CABINET:
+        return '🚪';
+      case BulkyCategory.TABLE:
+        return '🪑';
+      case BulkyCategory.OTHER:
+        return '🪨';
+    }
   }
 }

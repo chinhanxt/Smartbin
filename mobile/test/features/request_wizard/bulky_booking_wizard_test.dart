@@ -375,6 +375,7 @@ void main() {
       // Remove second item
       final deleteButtons = find.byIcon(Icons.delete_outline);
       expect(deleteButtons, findsNWidgets(2));
+      await tester.ensureVisible(deleteButtons.last);
       await tester.tap(deleteButtons.last);
       await tester.pumpAndSettle();
 
@@ -423,6 +424,132 @@ void main() {
       // 150.000 + 30.000 (disassembly) + 25.000 (area) = 205.000
       expect(wizardProvider.currentQuote!.minVnd, 205000);
       expect(find.textContaining('205.000 đ'), findsWidgets);
+    });
+
+    testWidgets('6. Quick category selector adds preset bulky item to wizard',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final wizardProvider = BookingWizardProvider();
+
+      await tester.pumpWidget(
+        createTestApp(
+          wizardProvider: wizardProvider,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(wizardProvider.items.isEmpty, isTrue);
+
+      // Tap quick add sofa button
+      final quickAddSofa = find.byKey(const Key('quick_add_sofa_button'));
+      expect(quickAddSofa, findsOneWidget);
+      await tester.tap(quickAddSofa);
+      await tester.pumpAndSettle();
+
+      // Verify sofa was added
+      expect(wizardProvider.items.length, 1);
+      expect(wizardProvider.items.first.category, BulkyCategory.SOFA);
+      expect(wizardProvider.items.first.displayName, 'Sofa da phòng khách');
+      expect(wizardProvider.items.first.material, MaterialType.STANDARD);
+    });
+
+    testWidgets('7. Curbside vs Inside Home pickup updates floorNumber and surcharges',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final wizardProvider = BookingWizardProvider();
+      wizardProvider.addItem(const BulkyItem(
+        id: 'item-1',
+        category: BulkyCategory.CABINET,
+        displayName: 'Tủ gỗ',
+        material: MaterialType.STANDARD,
+      ));
+
+      // Advance to step 1 (logistics)
+      wizardProvider.nextStep();
+      expect(wizardProvider.currentStep, 1);
+
+      await tester.pumpWidget(
+        createTestApp(
+          wizardProvider: wizardProvider,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap Inside Pickup
+      final insideBtn = find.byKey(const Key('inside_pickup_choice'));
+      expect(insideBtn, findsOneWidget);
+      await tester.ensureVisible(insideBtn);
+      await tester.tap(insideBtn);
+      await tester.pumpAndSettle();
+
+      // Floor stepper should now be active, floorNumber starts at 1
+      expect(wizardProvider.floorNumber, 1);
+
+      // Now tap Curbside Pickup
+      final curbsideBtn = find.byKey(const Key('curbside_pickup_choice'));
+      expect(curbsideBtn, findsOneWidget);
+      await tester.ensureVisible(curbsideBtn);
+      await tester.tap(curbsideBtn);
+      await tester.pumpAndSettle();
+
+      // Curbside sets floorNumber to 0 (free)
+      expect(wizardProvider.floorNumber, 0);
+      expect(wizardProvider.currentQuote!.floorHandlingFee, 0);
+    });
+
+    testWidgets('8. Tapping price breakdown trigger opens transparency modal bottom sheet',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final wizardProvider = BookingWizardProvider();
+      wizardProvider.addItem(const BulkyItem(
+        id: 'item-1',
+        category: BulkyCategory.SOFA,
+        displayName: 'Sofa da',
+        material: MaterialType.STANDARD,
+      ));
+
+      await tester.pumpWidget(
+        createTestApp(
+          wizardProvider: wizardProvider,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the breakdown drawer button
+      final drawerBtn = find.byKey(const Key('price_breakdown_drawer_button'));
+      expect(drawerBtn, findsOneWidget);
+      await tester.tap(drawerBtn);
+      await tester.pumpAndSettle();
+
+      // Modal bottom sheet should appear with detailed breakdown
+      expect(find.textContaining('Chi Tiết Bảng Cước'), findsOneWidget);
+      expect(find.textContaining('±15%'), findsOneWidget);
+      expect(find.text('Đã hiểu bảng cước'), findsOneWidget);
+
+      // Tap close button in bottom sheet
+      await tester.tap(find.text('Đã hiểu bảng cước'));
+      await tester.pumpAndSettle();
+
+      // Sheet should be dismissed
+      expect(find.textContaining('Chi Tiết Bảng Cước'), findsNothing);
     });
   });
 }
